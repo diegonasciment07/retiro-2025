@@ -1,0 +1,13 @@
+# Credenciais
+.env
+*.env
+
+# Backups
+*_backup.*
+*.tmp
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db
+node_modules/
