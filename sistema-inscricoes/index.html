@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Retiro 2025 - Inscrições</title>
+    <style>
+        /* ==========================================
+           🎨 PALETA DE CORES - FÁCIL DE MODIFICAR
+           ========================================== */
+        :root {
+            /* Cores principais */
+            --cor-primaria: #ff6b35;           /* Laranja principal */
+            --cor-primaria-hover: #ff8a5b;    /* Laranja hover */
+            --cor-primaria-escura: #ff4500;   /* Laranja escura */
+            
+            /* Fundos escuros */
+            --fundo-principal: #000000;        /* Preto total */
+            --fundo-secundario: #0a0a0a;      /* Preto suave */
+            --fundo-terciario: #111111;       /* Preto cinza */
+            --fundo-card: #1a1a1a;            /* Cards */
+            
+            /* Bordas e separadores */
+            --borda-principal: #222222;
+            --borda-secundaria: #333333;
+            
+            /* Textos */
+            --texto-branco: #ffffff;
+            --texto-cinza-claro: #cccccc;
+            --texto-cinza: #999999;
+            --texto-cinza-escuro: #666666;
+            
+            /* Status e alertas */
+            --cor-sucesso: #22c55e;
+            --cor-sucesso-fundo: #1a472a;
+            --cor-erro: #ef4444;
+            --cor-erro-fundo: #660000;
+            --cor-info: #1a1a2e;
+            
+            /* Cores das redes */
+            --rede-branca: #ffffff;
+            --rede-azul: #3b82f6;
+            --rede-amarela: #eab308;
+            --rede-vermelha: #ef4444;
+            --rede-verde: #22c55e;
+            --rede-marrom: #92400e;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--fundo-principal);
+            min-height: 100vh;
+            color: var(--texto-branco);
+            padding: 20px;
+        }
+        
+        .container { 
+            max-width: 650px;
+            margin: 0 auto;
+            background: var(--fundo-secundario);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            overflow: hidden;
+            border: 1px solid var(--borda-principal);
+        }
+        
+        .header { 
+            background: var(--fundo-principal);
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 3px solid var(--cor-primaria);
+        }
+        
+        .church-logo {
+            margin-bottom: 20px;
+        }
+        
+        .church-logo img {
+            max-width: 120px;
+            height: auto;
+            border-radius: 50%;
+            border: 4px solid var(--cor-primaria);
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.5);
+            transition: transform 0.3s ease;
+            background: var(--fundo-principal);
+        }
+        
+        .church-logo img:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.7);
+        }
+        
+        .church-name {
+            font-size: 1.1em;
+            color: var(--texto-branco);
+            margin-bottom: 20px;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 1.4;
+        }
+        
+        .titulo-retiro { 
+            font-size: 3em;
+            margin-bottom: 15px;
+            color: var(--texto-branco);
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        
+        .subtitle-retiro { 
+            font-size: 1.2em;
+            color: var(--cor-primaria);
+            letter-spacing: 2px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .date-display {
+            font-size: 1.2em;
+            color: var(--texto-branco);
+            font-weight: 600;
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--fundo-card);
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 2px solid var(--borda-secundaria);
+        }
+
+        .form-container { 
+            padding: 40px;
+            background: var(--fundo-terciario);
+        }
+        
+        .section-title { 
+            color: var(--cor-primaria);
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--borda-secundaria);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .form-group { 
+            margin-bottom: 25px;
+        }
+        
+        .conditional-field { 
+            margin-top: 15px;
+            padding-left: 20px;
+            border-left: 3px solid var(--cor-primaria);
+            display: none;
+        }
+        
+        label { 
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--texto-branco);
+            font-size: 1em;
+        }
+        
+        .required { 
+            color: var(--cor-primaria);
+            font-weight: bold;
+        }
+        
+        input, select, textarea { 
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--borda-secundaria);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: var(--fundo-card);
+            color: var(--texto-branco);
+            text-transform: uppercase;
+            font-family: inherit;
+        }
+        
+        input[type="number"],
+        input[type="tel"],
+        input[type="email"] { 
+            text-transform: none;
+        }
+        
+        input:focus, select:focus, textarea:focus { 
+            outline: none;
+            border-color: var(--cor-primaria);
+            background: var(--fundo-principal);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+        }
+        
+        input::placeholder { 
+            color: var(--texto-cinza);
+        }
+        
+        textarea { 
+            resize: vertical;
+            min-height: 80px;
+            text-transform: none;
+        }
+        
+        select { 
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23ff6b35' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 12px;
+            padding-right: 45px;
+        }
+        
+        select option { 
+            background: var(--fundo-card);
+            color: var(--texto-branco);
+        }
+        
+        .submit-btn { 
+            background: linear-gradient(45deg, var(--cor-primaria) 0%, var(--cor-primaria-hover) 100%);
+            color: var(--texto-branco);
+            border: none;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+        
+        .submit-btn:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 107, 53, 0.5);
+            background: linear-gradient(45deg, var(--cor-primaria-hover) 0%, var(--cor-primaria) 100%);
+        }
+        
+        .submit-btn:disabled { 
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .success-message { 
+            display: none;
+            background: var(--cor-sucesso-fundo);
+            color: var(--cor-sucesso);
+            border: 2px solid var(--cor-sucesso);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .error-message { 
+            display: none;
+            background: var(--cor-erro-fundo);
+            color: var(--cor-erro);
+            border: 2px solid var(--cor-erro);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .info-box { 
+            background: var(--cor-info);
+            border-left: 4px solid var(--cor-primaria);
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+            color: var(--texto-cinza-claro);
+            line-height: 1.6;
+        }
+        
+        .color-legend { 
+            background: var(--fundo-card);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid var(--borda-secundaria);
+        }
+        
+        .color-legend h4 { 
+            color: var(--cor-primaria);
+            margin-bottom: 10px;
+        }
+        
+        .color-list { 
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .color-item { 
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+        }
+        
+        .color-dot { 
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid var(--borda-principal);
+        }
+        
+        .color-dot.branca { background: var(--rede-branca); }
+        .color-dot.azul { background: var(--rede-azul); }
+        .color-dot.amarela { background: var(--rede-amarela); }
+        .color-dot.vermelha { background: var(--rede-vermelha); }
+        .color-dot.verde { background: var(--rede-verde); }
+        .color-dot.marrom { background: var(--rede-marrom); }
+        
+        .loading {
+            border: 4px solid var(--borda-secundaria);
+            border-top: 4px solid var(--cor-primaria);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { margin: 0; border-radius: 10px; }
+            .header { padding: 20px; }
+            .church-logo img { max-width: 100px; }
+            .church-name { font-size: 0.95em; letter-spacing: 1px; }
+            .titulo-retiro { font-size: 2.2em; letter-spacing: 2px; }
+            .subtitle-retiro { font-size: 1em; letter-spacing: 1px; }
+            .form-container { padding: 20px; }
+            .section-title { font-size: 1.1em; }
+            .color-list { justify-content: center; }
+            .color-item { font-size: 0.8em; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <div class="header">
+            <div class="church-logo">
+                <img src="https://i.imgur.com/T5QABfl.jpeg" alt="Logo O Retiro" id="church-logo-img">
+            </div>
+            
+            <div class="church-name">
+                O ALVO CURITIBA - UMA IGREJA, UMA VISÃO<br>
+                <strong>VEM E VÊ!</strong>
+            </div>
+            
+            <div class="date-display" id="date-display">SELECIONE SEU SEXO PARA VER A DATA</div>
+            
+            <div class="subtitle-retiro">VISÃO • MISSÃO • PRESSÃO</div>
+        </div>
+
+        <div class="form-container">
+            <div class="info-box">
+                <strong>🎯 Inscrição Online:</strong> Preencha seus dados para garantir sua vaga no Retiro 2025. O pagamento deverá ser realizado presencialmente no balcão da igreja.
+            </div>
+
+            <div class="info-box">
+                <strong>💰 Informações de Pagamento:</strong><br>
+                • <strong>Valor da Inscrição:</strong> R$ 520,00<br>
+                • <strong>Entrada Mínima:</strong> R$ 150,00 (para garantir a vaga)<br>
+                • <strong>Forma de Pagamento:</strong> PIX, Dinheiro, Cartão (Débito/Crédito)
+            </div>
+
+            <div class="info-box">
+                <strong>🎽 PROMOÇÃO ESPECIAL - CAMISA DO RETIRO:</strong><br>
+                • <strong>Os 150 primeiros pagamentos ganham a camisa oficial!</strong><br>
+                • <strong>Como garantir:</strong> Faça sua inscrição online e compareça ao balcão para efetuar o pagamento de no mínimo R$ 150,00
+            </div>
+
+            <div class="success-message" id="success-message">
+                🙌 <strong>Inscrição realizada com sucesso!</strong><br>
+                <div id="payment-instructions" style="margin-top: 15px;">
+                    <strong>📋 Próximos Passos:</strong><br>
+                    <span id="next-steps">Compareça ao balcão da igreja para efetuar o pagamento e garantir sua vaga!</span>
+                </div>
+            </div>
+
+            <div class="error-message" id="error-message">
+                ❌ <strong>Erro ao realizar inscrição.</strong><br>
+                <span id="error-details">Tente novamente em alguns instantes.</span>
+            </div>
+
+            <form id="inscricao-form">
+                <!-- IDENTIFICAÇÃO E CONTATO -->
+                <div class="section-title">✅ Identificação e Contato</div>
+                
+                <div class="form-group">
+                    <label for="nome">Nome Completo <span class="required">*</span></label>
+                    <input type="text" id="nome" name="nome" required placeholder="Digite seu nome completo">
+                    <div style="font-size: 0.9em; color: #ccc; margin-top: 5px;">
+                        ⚠️ Digite o nome exatamente como está no documento (RG/CPF)
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="sexo">Sexo <span class="required">*</span></label>
+                    <select id="sexo" name="sexo" required>
+                        <option value="">Selecione seu sexo</option>
+                        <option value="MASCULINO">👨 Masculino</option>
+                        <option value="FEMININO">👩 Feminino</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="idade">Idade <span class="required">*</span></label>
+                    <input type="number" id="idade" name="idade" required placeholder="Digite sua idade" min="12" max="100">
+                </div>
+
+                <div class="form-group">
+                    <label for="whatsapp">WhatsApp <span class="required">*</span></label>
+                    <input type="tel" id="whatsapp" name="whatsapp" placeholder="(11) 99999-9999" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email <span class="required">*</span></label>
+                    <input type="email" id="email" name="email" placeholder="seu@email.com" required style="text-transform: lowercase;">
+                </div>
+
+                <div class="form-group">
+                    <label for="endereco">Endereço <span class="required">*</span></label>
+                    <input type="text" id="endereco" name="endereco" placeholder="Rua, Avenida..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="numero">Número <span class="required">*</span></label>
+                    <input type="text" id="numero" name="numero" placeholder="123" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="bairro">Bairro <span class="required">*</span></label>
+                    <input type="text" id="bairro" name="bairro" placeholder="Nome do bairro" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="cidade">Cidade <span class="required">*</span></label>
+                    <input type="text" id="cidade" name="cidade" placeholder="Nome da cidade" required>
+                </div>
+
+                <!-- INFORMAÇÕES DE SAÚDE E ACESSIBILIDADE -->
+                <div class="section-title">🏥 Informações de Saúde e Acessibilidade</div>
+
+                <div class="form-group">
+                    <label for="comorbidade">Possui alguma comorbidade? <span class="required">*</span></label>
+                    <select id="comorbidade" name="comorbidade" required>
+                        <option value="">Selecione uma opção</option>
+                        <option value="NÃO">❌ Não</option>
+                        <option value="SIM">✅ Sim</option>
+                    </select>
+                    <div id="comorbidade-detalhes" class="conditional-field">
+                        <label for="comorbidade-qual">Qual comorbidade?</label>
+                        <textarea id="comorbidade-qual" name="comorbidade-qual" placeholder="Descreva a comorbidade..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="gravida">Está grávida? <span class="required">*</span></label>
+                    <select id="gravida" name="gravida" required>
+                        <option value="">Selecione uma opção</option>
+                        <option value="NÃO">❌ Não</option>
+                        <option value="SIM">✅ Sim</option>
+                    </select>
+                    <div id="gravida-detalhes" class="conditional-field">
+                        <label for="gravida-observacao">Tem alguma observação sobre a gravidez?</label>
+                        <textarea id="gravida-observacao" name="gravida-observacao" placeholder="Observações sobre a gravidez..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="medicacao">Usa medicação contínua? <span class="required">*</span></label>
+                    <select id="medicacao" name="medicacao" required>
+                        <option value="">Selecione uma opção</option>
+                        <option value="NÃO">❌ Não</option>
+                        <option value="SIM">✅ Sim</option>
+                    </select>
+                    <div id="medicacao-detalhes" class="conditional-field">
+                        <label for="medicacao-qual">Qual medicação?</label>
+                        <textarea id="medicacao-qual" name="medicacao-qual" placeholder="Descreva as medicações..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="restricoes">Tem restrições alimentares? <span class="required">*</span></label>
+                    <select id="restricoes" name="restricoes" required>
+                        <option value="">Selecione uma opção</option>
+                        <option value="NÃO">❌ Não</option>
+                        <option value="SIM">✅ Sim</option>
+                    </select>
+                    <div id="restricoes-detalhes" class="conditional-field">
+                        <label for="restricoes-quais">Quais restrições alimentares?</label>
+                        <textarea id="restricoes-quais" name="restricoes-quais" placeholder="Descreva as restrições alimentares..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="alergias">Tem alergias? <span class="required">*</span></label>
+                    <select id="alergias" name="alergias" required>
+                        <option value="">Selecione uma opção</option>
+                        <option value="NÃO">❌ Não</option>
+                        <option value="SIM">✅ Sim</option>
+                    </select>
+                    <div id="alergias-detalhes" class="conditional-field">
+                        <label for="alergias-quais">Quais alergias?</label>
+                        <textarea id="alergias-quais" name="alergias-quais" placeholder="Descreva as alergias..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="locomocao">Tem alguma limitação de locomoção? <span class="required">*</span></label>
+                    <select id="locomocao" name="locomocao" required>
+                        <option value="">Selecione uma opção</option>
+                        <option value="NÃO">❌ Não</option>
+                        <option value="SIM">✅ Sim</option>
+                    </select>
+                    <div id="locomocao-detalhes" class="conditional-field">
+                        <label for="locomocao-qual">Qual limitação de locomoção?</label>
+                        <textarea id="locomocao-qual" name="locomocao-qual" placeholder="Descreva a limitação de locomoção..."></textarea>
+                    </div>
+                </div>
+
+                <!-- INFORMAÇÕES DE VÍNCULO COM ALVO -->
+                <div class="section-title">🎯 Informações de Vínculos</div>
+
+                <div class="form-group">
+                    <div class="color-legend">
+                        <h4>Referência das Cores das Redes:</h4>
+                        <div class="color-list">
+                            <div class="color-item">
+                                <div class="color-dot branca"></div>
+                                <span>Branca</span>
+                            </div>
+                            <div class="color-item">
+                                <div class="color-dot azul"></div>
+                                <span>Azul</span>
+                            </div>
+                            <div class="color-item">
+                                <div class="color-dot amarela"></div>
+                                <span>Amarela</span>
+                            </div>
+                            <div class="color-item">
+                                <div class="color-dot vermelha"></div>
+                                <span>Vermelha</span>
+                            </div>
+                            <div class="color-item">
+                                <div class="color-dot verde"></div>
+                                <span>Verde</span>
+                            </div>
+                            <div class="color-item">
+                                <div class="color-dot marrom"></div>
+                                <span>Marrom</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <label for="cor-rede">Cor da Rede <span class="required">*</span></label>
+                    <select id="cor-rede" name="cor-rede" required>
+                        <option value="">Selecione a cor da sua rede</option>
+                        <option value="BRANCA">🤍 Rede Branca</option>
+                        <option value="AZUL">💙 Rede Azul</option>
+                        <option value="AMARELA">💛 Rede Amarela</option>
+                        <option value="VERMELHA">❤️ Rede Vermelha</option>
+                        <option value="VERDE">💚 Rede Verde</option>
+                        <option value="MARROM">🤎 Rede Marrom</option>
+                        <option value="NÃO-POSSUO">🆕 Não possuo rede ainda</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="vai-servir-receber">Trabalho ou Encontrista? <span class="required">*</span></label>
+                    <select id="vai-servir-receber" name="vai-servir-receber" required>
+                        <option value="">Selecione uma opção</option>
+                        <option value="TRABALHO">💼 Trabalho</option>
+                        <option value="ENCONTRISTA">🎯 Encontrista</option>
+                    </select>
+                </div>
+
+                <!-- AUTORIZAÇÃO DE IMAGEM -->
+                <div class="section-title">📸 Autorização de Imagem</div>
+
+                <div class="form-group">
+                    <div style="background: #1a1a2e; border: 2px solid #ff6b35; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+                        <p style="color: #fff; font-size: 1em; line-height: 1.6; margin-bottom: 15px;">
+                            <strong>📹 AUTORIZAÇÃO DE USO DE IMAGEM:</strong><br>
+                            O retiro será gravado e fotografado para fins de registro, divulgação e memória do evento. 
+                            As imagens poderão ser utilizadas em redes sociais, site da igreja, materiais promocionais e outros meios de comunicação da ALVO.
+                        </p>
+                    </div>
+                    
+                    <label for="autorizacao-imagem" style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="autorizacao-imagem" name="autorizacao-imagem" required style="width: auto; margin-right: 10px; transform: scale(1.5); cursor: pointer;">
+                        <span><span class="required">*</span> Eu autorizo o uso da minha imagem conforme descrito acima</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submit-btn">
+                    Confirmar Inscrição
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        // ==========================================
+        // 🔧 CONFIGURAÇÕES SUPABASE
+        // ==========================================
+        const SUPABASE_CONFIG = {
+            url: 'https://nkifiuenmiwvaqvwfktf.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raWZpdWVubWl3dmFxdndma3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyNTEyNDYsImV4cCI6MjA3NjgyNzI0Nn0.Kis_dGXTLT0KGhC3HkKwAsGi6OMXPlzhOYmhdzWpiTM'
+        };
+
+        let supabase;
+        let isSubmitting = false;
+
+        // ==========================================
+        // 🚀 INICIALIZAR SISTEMA
+        // ==========================================
+        function inicializarSistema() {
+            try {
+                supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+                console.log('✅ Sistema inicializado com sucesso!');
+                return true;
+            } catch (error) {
+                console.error('❌ Erro ao inicializar:', error);
+                return false;
+            }
+        }
+
+        // ==========================================
+        // 🔧 FUNÇÕES DE FORMATAÇÃO
+        // ==========================================
+        function formatarWhatsApp(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 11) {
+                value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            } else if (value.length >= 7) {
+                value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+            } else if (value.length >= 3) {
+                value = value.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+            }
+            input.value = value;
+        }
+
+        // ==========================================
+        // 📅 ATUALIZAR DATA DO RETIRO
+        // ==========================================
+        function atualizarDataRetiro() {
+            const sexo = document.getElementById('sexo').value;
+            const dateDisplay = document.getElementById('date-display');
+            
+            if (sexo === 'MASCULINO') {
+                dateDisplay.textContent = 'MASCULINO: 5, 6 E 7 DE DEZEMBRO';
+                dateDisplay.style.background = 'rgba(74, 222, 128, 0.15)';
+                dateDisplay.style.color = '#4ade80';
+                dateDisplay.style.borderColor = '#22c55e';
+            } else if (sexo === 'FEMININO') {
+                dateDisplay.textContent = 'FEMININO: 12, 13 E 14 DE DEZEMBRO';
+                dateDisplay.style.background = 'rgba(255, 107, 157, 0.15)';
+                dateDisplay.style.color = '#ff6b9d';
+                dateDisplay.style.borderColor = '#ff6b9d';
+            } else {
+                dateDisplay.textContent = 'SELECIONE SEU SEXO PARA VER A DATA';
+                dateDisplay.style.background = 'var(--fundo-card)';
+                dateDisplay.style.color = 'var(--texto-branco)';
+                dateDisplay.style.borderColor = 'var(--borda-secundaria)';
+            }
+        }
+
+        // ==========================================
+        // 🔧 CAMPOS CONDICIONAIS
+        // ==========================================
+        function configurarCampoCondicional(selectId, detailsId) {
+            const select = document.getElementById(selectId);
+            const details = document.getElementById(detailsId);
+            const textarea = details.querySelector('textarea');
+            
+            select.addEventListener('change', function() {
+                if (this.value === 'SIM') {
+                    details.style.display = 'block';
+                    textarea.required = true;
+                } else {
+                    details.style.display = 'none';
+                    textarea.required = false;
+                    textarea.value = '';
+                }
+            });
+        }
+
+        // ==========================================
+        // 📤 ENVIAR PARA SUPABASE
+        // ==========================================
+        async function enviarParaSupabase(dados) {
+            try {
+                console.log('📤 Enviando dados:', dados);
+
+                const { data, error } = await supabase
+                    .from('inscricoes')
+                    .insert([{
+                        nome_completo: dados.nome,
+                        sexo: dados.sexo,
+                        idade: parseInt(dados.idade),
+                        whatsapp: dados.whatsapp,
+                        email: dados.email.toLowerCase(),
+                        endereco: dados.endereco,
+                        numero: dados.numero,
+                        bairro: dados.bairro,
+                        cidade: dados.cidade,
+                        comorbidade: dados.comorbidade,
+                        comorbidade_qual: dados.comorbidadeQual || null,
+                        gravida: dados.gravida,
+                        gravidez_observacao: dados.gravidaObservacao || null,
+                        medicacao: dados.medicacao,
+                        medicacao_qual: dados.medicacaoQual || null,
+                        restricoes_alimentares: dados.restricoes,
+                        restricoes_quais: dados.restricoesQuais || null,
+                        alergias: dados.alergias,
+                        alergias_quais: dados.alergiasQuais || null,
+                        limitacao_locomocao: dados.locomocao,
+                        locomocao_qual: dados.locomocaoQual || null,
+                        cor_rede: dados.corRede,
+                        vai_servir_receber: dados.vaiServirReceber,
+                        autorizacao_imagem: dados.autorizacaoImagem,
+                        status_pagamento: 'PENDENTE',
+                        status: 'ATIVO'
+                    }])
+                    .select();
+
+                if (error) {
+                    console.error('❌ Erro Supabase:', error);
+                    
+                    // Tratamento de erros específicos
+                    if (error.code === '23505') {
+                        if (error.message.includes('whatsapp')) {
+                            throw new Error('📱 Este WhatsApp já foi cadastrado!\n\nVerifique se você já fez sua inscrição.\nEm caso de dúvida, procure o balcão da igreja.');
+                        } else if (error.message.includes('email')) {
+                            throw new Error('📧 Este e-mail já foi cadastrado!\n\nVerifique se você já fez sua inscrição.\nEm caso de dúvida, procure o balcão da igreja.');
+                        }
+                    }
+                    throw new Error(error.message);
+                }
+
+                console.log('✅ Sucesso:', data);
+                return { success: true, data };
+
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        // ==========================================
+        // 📝 SUBMIT DO FORMULÁRIO
+        // ==========================================
+        document.getElementById('inscricao-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (isSubmitting) return;
+            isSubmitting = true;
+            
+            const formData = new FormData(this);
+            const dados = {
+                nome: formData.get('nome'),
+                sexo: formData.get('sexo'),
+                idade: formData.get('idade'),
+                whatsapp: formData.get('whatsapp'),
+                email: formData.get('email'),
+                endereco: formData.get('endereco'),
+                numero: formData.get('numero'),
+                bairro: formData.get('bairro'),
+                cidade: formData.get('cidade'),
+                comorbidade: formData.get('comorbidade'),
+                comorbidadeQual: formData.get('comorbidade-qual') || '',
+                gravida: formData.get('gravida'),
+                gravidaObservacao: formData.get('gravida-observacao') || '',
+                medicacao: formData.get('medicacao'),
+                medicacaoQual: formData.get('medicacao-qual') || '',
+                restricoes: formData.get('restricoes'),
+                restricoesQuais: formData.get('restricoes-quais') || '',
+                alergias: formData.get('alergias'),
+                alergiasQuais: formData.get('alergias-quais') || '',
+                locomocao: formData.get('locomocao'),
+                locomocaoQual: formData.get('locomocao-qual') || '',
+                corRede: formData.get('cor-rede'),
+                vaiServirReceber: formData.get('vai-servir-receber'),
+                autorizacaoImagem: formData.get('autorizacao-imagem') ? true : false
+            };
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.textContent = 'Enviando...';
+            submitBtn.disabled = true;
+
+            // Esconder mensagens anteriores
+            document.getElementById('success-message').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+
+            try {
+                const resultado = await enviarParaSupabase(dados);
+                
+                if (resultado.success) {
+                    // Mostrar mensagem de sucesso
+                    document.getElementById('success-message').style.display = 'block';
+                    document.getElementById('next-steps').innerHTML = `
+                        ✅ Inscrição realizada com sucesso!<br><br>
+                        📍 <strong>Próximo passo:</strong> Compareça ao balcão da igreja para efetuar o pagamento mínimo de R$ 150,00 e garantir sua vaga.<br><br>
+                        🎽 <strong>Lembre-se:</strong> Os 150 primeiros pagamentos ganham a camisa oficial do retiro!<br><br>
+                        📱 <strong>Dúvidas?</strong> Procure a equipe de inscrição.
+                    `;
+                    
+                    // Reset do formulário
+                    this.reset();
+                    document.querySelectorAll('.conditional-field').forEach(field => {
+                        field.style.display = 'none';
+                    });
+                    
+                    // Reset da data display
+                    atualizarDataRetiro();
+                    
+                    // Scroll para o topo
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                } else {
+                    // Mostrar erro
+                    document.getElementById('error-message').style.display = 'block';
+                    document.getElementById('error-details').textContent = resultado.error;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+                
+            } catch (error) {
+                console.error('Erro geral:', error);
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-details').textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } finally {
+                submitBtn.textContent = 'Confirmar Inscrição';
+                submitBtn.disabled = false;
+                isSubmitting = false;
+            }
+        });
+
+        // ==========================================
+        // 🎬 INICIALIZAÇÃO
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar Supabase
+            if (inicializarSistema()) {
+                console.log('🎯 Sistema de Inscrições carregado!');
+            }
+
+            // Event Listeners
+            document.getElementById('sexo').addEventListener('change', atualizarDataRetiro);
+            document.getElementById('whatsapp').addEventListener('input', function() {
+                formatarWhatsApp(this);
+            });
+
+            // Configurar campos condicionais
+            configurarCampoCondicional('comorbidade', 'comorbidade-detalhes');
+            configurarCampoCondicional('gravida', 'gravida-detalhes');
+            configurarCampoCondicional('medicacao', 'medicacao-detalhes');
+            configurarCampoCondicional('restricoes', 'restricoes-detalhes');
+            configurarCampoCondicional('alergias', 'alergias-detalhes');
+            configurarCampoCondicional('locomocao', 'locomocao-detalhes');
+
+            // Converter para MAIÚSCULA (exceto email)
+            document.querySelectorAll('input[type="text"], textarea').forEach(input => {
+                if (input.id !== 'email') {
+                    input.addEventListener('input', function() {
+                        this.value = this.value.toUpperCase();
+                    });
+                }
+            });
+
+            // Manter email em minúscula
+            document.getElementById('email').addEventListener('input', function() {
+                this.value = this.value.toLowerCase();
+            });
+
+            console.log('✅ Event listeners configurados!');
+        });
+
+        // ==========================================
+        // 🧪 FUNÇÕES DE TESTE (CONSOLE)
+        // ==========================================
+        window.testarConexao = async function() {
+            console.log('🧪 Testando conexão com Supabase...');
+            try {
+                const { count, error } = await supabase
+                    .from('inscricoes')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (error) throw error;
+                console.log('✅ Conexão OK! Total de registros:', count);
+                alert('✅ Conexão funcionando! Total: ' + count);
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                alert('❌ Erro: ' + error.message);
+            }
+        };
+
+        console.log('💡 Para testar a conexão, execute: testarConexao()');
+    </script>
+</body>
+</html>
+
+
+
+
+
+
