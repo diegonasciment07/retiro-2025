@@ -841,14 +841,14 @@
                     
                     // Scroll para o topo
                     // Substitua window.scrollTo por isto:
-                    document.getElementById('success-message').scrollIntoView({ behavior: 'smooth', block: 'start' });  
+                    document.getElementById('success-message').scrollIntoView({ block: 'start' });  
 
                 } else {
                     // Mostrar erro
                     document.getElementById('error-message').style.display = 'block';
                     document.getElementById('error-details').textContent = resultado.error;
                     // Substitua window.scrollTo por isto:
-                    document.getElementById('error-message').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    document.getElementById('error-message').scrollIntoView({ block: 'start' });
                 }
                 
             } catch (error) {
@@ -856,7 +856,7 @@
                 document.getElementById('error-message').style.display = 'block';
                 document.getElementById('error-details').textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
                 // Substitua window.scrollTo por isto:
-                document.getElementById('error-message').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById('error-message').scrollIntoView({ block: 'start' });
             } finally {
                 submitBtn.textContent = 'Confirmar Inscrição';
                 submitBtn.disabled = false;
