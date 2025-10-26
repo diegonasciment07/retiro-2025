@@ -671,7 +671,7 @@
             <div style="margin-bottom: 20px; padding: 15px; background: var(--primary); border-radius: 8px; color: white; text-align: center;">
                 <h4 style="margin: 0;">Total Pago: <span id="total-paid">R$ 0,00</span></h4>
                 <div style="margin-top: 5px; font-size: 0.9em;">
-                    Faltam: <span id="remaining-amount">R$ 520,00</span>
+                    Faltam: <span id="remaining-amount">R$ 550,00</span>
                 </div>
             </div>
             
@@ -1131,7 +1131,7 @@
                 setTimeout(() => {
                     const totalPaidText = document.getElementById('total-paid').textContent;
                     const totalPaid = parseFloat(totalPaidText.replace('R$ ', '').replace(',', '.')) || 0;
-                    const remaining = Math.max(0, 520 - totalPaid);
+                    const remaining = Math.max(0, 550 - totalPaid);
                     
                     if (remaining > 0) {
                         document.getElementById('new-payment-value').value = remaining.toFixed(2).replace('.', ',');
@@ -1205,7 +1205,7 @@
 
         function updatePaymentSummary(payments) {
             const totalPaid = payments.reduce((sum, payment) => sum + parseFloat(payment.valor_pago), 0);
-            const remaining = Math.max(0, 520 - totalPaid);
+            const remaining = Math.max(0, 550 - totalPaid);
 
             document.getElementById('total-paid').textContent = `R$ ${totalPaid.toFixed(2).replace('.', ',')}`;
             document.getElementById('remaining-amount').textContent = `R$ ${remaining.toFixed(2).replace('.', ',')}`;
@@ -1229,9 +1229,9 @@
 
                 let newStatus, newFormaPagamento;
 
-                if (totalPaid >= 520) {
+                if (totalPaid >= 550) {
                     newStatus = 'PAGO';
-                } else if (totalPaid >= 150 && totalPaid < 520) {
+                } else if (totalPaid >= 150 && totalPaid < 550) {
                     newStatus = 'PAGO PARCIALMENTE';
                 } else {
                     newStatus = 'PENDENTE';
@@ -1353,8 +1353,8 @@
                 return;
             }
 
-            if (numericValue > 520) {
-                alert('❌ ATENÇÃO!\n\nValor máximo permitido é R$ 520,00\n\nDigite um valor menor.');
+            if (numericValue > 550) {
+                alert('❌ ATENÇÃO!\n\nValor máximo permitido é R$ 550,00\n\nDigite um valor menor.');
                 document.getElementById('new-payment-value').focus();
                 return;
             }
@@ -1368,9 +1368,9 @@
                 const totalRealPago = pagamentosExistentes ? 
                     pagamentosExistentes.reduce((sum, p) => sum + parseFloat(p.valor_pago), 0) : 0;
                 
-                if (totalRealPago + numericValue > 520) {
-                    const maxAllowed = 520 - totalRealPago;
-                    alert(`❌ ATENÇÃO!\n\nEste pagamento excederia o limite de R$ 520,00\n\nTotal já pago: R$ ${totalRealPago.toFixed(2).replace('.', ',')}\nMáximo permitido: R$ ${maxAllowed.toFixed(2).replace('.', ',')}`);
+                if (totalRealPago + numericValue > 550) {
+                    const maxAllowed = 550 - totalRealPago;
+                    alert(`❌ ATENÇÃO!\n\nEste pagamento excederia o limite de R$ 550,00\n\nTotal já pago: R$ ${totalRealPago.toFixed(2).replace('.', ',')}\nMáximo permitido: R$ ${maxAllowed.toFixed(2).replace('.', ',')}`);
                     document.getElementById('new-payment-value').value = maxAllowed > 0 ? maxAllowed.toFixed(2).replace('.', ',') : '0,00';
                     return;
                 }
@@ -1944,9 +1944,9 @@ Atendente: ${currentParticipant.atendente || 'Sistema'}`);
                     
                     <div class="receipt-footer">
                         <div style="text-align: center; margin-bottom: 10px;">
-                            ${totalPago >= 520 ? 
+                            ${totalPago >= 550 ? 
                                 '✅ <strong>INSCRIÇÃO CONFIRMADA!</strong>' : 
-                                `⏳ <strong>Pendente: ${formatCurrency(520 - totalPago)}</strong>`
+                                `⏳ <strong>Pendente: ${formatCurrency(550 - totalPago)}</strong>`
                             }
                         </div>
                         <div style="text-align: center; font-size: 0.8em;">
