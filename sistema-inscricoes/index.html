@@ -840,20 +840,23 @@
                     atualizarDataRetiro();
                     
                     // Scroll para o topo
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    // Substitua window.scrollTo por isto:
+                    document.getElementById('success-message').scrollIntoView({ behavior: 'smooth', block: 'start' });  
 
                 } else {
                     // Mostrar erro
                     document.getElementById('error-message').style.display = 'block';
                     document.getElementById('error-details').textContent = resultado.error;
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    // Substitua window.scrollTo por isto:
+                    document.getElementById('error-message').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
                 
             } catch (error) {
                 console.error('Erro geral:', error);
                 document.getElementById('error-message').style.display = 'block';
                 document.getElementById('error-details').textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                // Substitua window.scrollTo por isto:
+                document.getElementById('error-message').scrollIntoView({ behavior: 'smooth', block: 'start' });
             } finally {
                 submitBtn.textContent = 'Confirmar Inscrição';
                 submitBtn.disabled = false;
