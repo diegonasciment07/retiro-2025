@@ -1818,50 +1818,70 @@
             currentParticipant = null;
         }
 
+        // ===== NOVO CÓDIGO PARA COLAR NO LUGAR =====
+
         async function sendEmailReceipt() {
             const email = document.getElementById('email-input').value;
-            
+            const btn = document.querySelector('#email-modal .btn-success'); // Pega o botão de enviar
+
             if (!email || !validateEmail(email) || !currentParticipant) {
                 showNotification('Dados inválidos para envio', 'error');
                 return;
             }
 
+            // Desabilita o botão para evitar cliques duplos
+            btn.disabled = true;
+            btn.textContent = 'Enviando...';
+
             try {
-                const subject = encodeURIComponent(`Comprovante - O Retiro 2025 - ${currentParticipant.nome_completo}`);
-                const body = encodeURIComponent(`Olá ${currentParticipant.nome_completo}!
-
-Segue seu comprovante de inscrição para O Retiro 2025:
-
-📋 DADOS PESSOAIS:
-Nome: ${currentParticipant.nome_completo}
-WhatsApp: ${currentParticipant.whatsapp}
-E-mail: ${currentParticipant.email || email}
-Sexo: ${currentParticipant.sexo}
-
-🎯 INFORMAÇÕES DO RETIRO:
-Função: ${currentParticipant.vai_servir_receber || 'N/A'}
-Cor da Rede: ${currentParticipant.cor_rede || 'N/A'}
-
-💰 PAGAMENTO:
-Status: ${getStatusText(currentParticipant.status_pagamento)}
-Valor Pago: R$ ${currentParticipant.valor_pago || 'N/A'}
-Forma de Pagamento: ${currentParticipant.forma_pagamento || 'N/A'}
-
-ALVO CHURCH - Sistema de Balcão
-Atendente: ${currentParticipant.atendente || 'Sistema'}`);
+                // 1. Pega o resumo que já estava no modal
+                const summaryText = document.getElementById('email-payment-summary').textContent;
                 
-                const mailtoLink = `mailto:${email}?cc=oalvocuritiba@gmail.com&subject=${subject}&body=${body}`;
+                // 2. Cria um HTML bonito para o corpo do e-mail
+                // (Usamos replace para transformar as quebras de linha em <br>)
+                const receiptBodyHTML = `
+                    <html lang="pt-BR">
+                    <head><style>body { font-family: Arial, sans-serif; line-height: 1.6; } pre { font-family: Arial, sans-serif; line-height: 1.6; white-space: pre-wrap; margin: 0; }</style></head>
+                    <body>
+                        <h2>Olá, ${currentParticipant.nome_completo}!</h2>
+                        <p>Segue seu comprovante de inscrição para O Retiro 2025:</p>
+                        <div style="background-color: #f4f4f4; padding: 15px; border-radius: 8px;">
+                            <pre>${summaryText}</pre>
+                        </div>
+                        <br>
+                        <p>Atenciosamente,<br>Equipe ALVO Curitiba</p>
+                    </body>
+                    </html>
+                `;
                 
-                window.open(mailtoLink);
-                
-                showNotification('Cliente de e-mail aberto!', 'success');
-                closeEmailModal();
+                // 3. CHAMA A FUNÇÃO DE NUVEM (Edge Function)
+                const { data, error } = await supabase.functions.invoke('send-receipt', {
+                    body: {
+                        toEmail: email,
+                        participantName: currentParticipant.nome_completo,
+                        receiptBody: receiptBodyHTML
+                    }
+                });
 
-            } catch (error) {
-                console.error('Erro ao preparar e-mail:', error);
-                showNotification('Erro ao preparar e-mail: ' + error.message, 'error');
-            }
+        if (error) {
+            // Se a função de nuvem der erro
+            throw error;
         }
+
+        // 4. Sucesso!
+        console.log('Resposta da função:', data);
+        showNotification('E-mail enviado com sucesso para ' + email, 'success');
+        closeEmailModal();
+
+    } catch (error) {
+        console.error('Erro ao chamar função:', error);
+        showNotification('Erro ao enviar e-mail: ' + error.message, 'error');
+    } finally {
+        // Reabilita o botão, independentemente do resultado
+        btn.disabled = false;
+        btn.textContent = '📧 Enviar';
+    }
+}
 
         // ===== RECIBO =====
         async function generateReceipt(participantId) {
