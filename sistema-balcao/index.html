@@ -393,6 +393,47 @@
         .status-pendente { background: var(--danger); }
         .status-pago-parcialmente { background: var(--warning); }
         .status-pago { background: var(--success); }
+
+        /* ========================================== */
+        /* CORREÇÃO DO MODAL DE RECIBO (COLAR NO FINAL) */
+        /* ========================================== */
+
+        /* Define um layout flexível e altura máxima para o modal */
+        .receipt-modal .modal-content {
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh; /* Altura máxima de 90% da tela */
+            padding: 30px;
+        }
+
+        /* Faz o CONTEÚDO do recibo (texto e histórico) ser a área de rolagem */
+        .receipt-content {
+            flex-grow: 1;      /* Faz esta área crescer para preencher o espaço */
+            overflow-y: auto;  /* ADICIONA A BARRA DE ROLAGEM SÓ AQUI */
+            margin-bottom: 20px;
+        }
+
+        /* Garante que a DIV DOS BOTÕES fique sempre visível embaixo */
+        .receipt-modal .modal-content > div:last-child {
+            flex-shrink: 0;   /* Impede os botões de encolherem */
+            margin-top: auto; /* Garante que fiquem no final */
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        /* Ajustes específicos para o CELULAR */
+        @media (max-width: 768px) {
+            .receipt-modal .modal-content {
+                width: 95%;     /* Modal mais largo no celular */
+                padding: 20px;    /* Menos espaçamento interno */
+            }
+
+            .receipt-content {
+                font-size: 0.9em; /* Fonte um pouco menor no celular */
+            }
+        }
+
+        /* --- Fim da correção --- */
     </style>
 </head>
 <body>
