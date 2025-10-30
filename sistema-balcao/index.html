@@ -283,10 +283,23 @@
         
         @media (max-width: 768px) {
             body { padding: 10px; }
-            .user-info { position: static; margin-bottom: 15px; justify-content: center; }
-            .stats-grid { grid-template-columns: 1fr; }
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .resumo-sections { grid-template-columns: 1fr; gap: 20px; }
+            .user-info { /* ... (código existente) ... */ }
+            .stats-grid { /* ... (código existente) ... */ }
+            .dashboard-grid { /* ... (código existente) ... */ }
+            .resumo-sections { /* ... (código existente) ... */ }
+
+            /* --- COLE ESTAS NOVAS REGRAS AQUI --- */
+            .receipt-modal .modal-content {
+                width: 95%;     /* Fazer o modal usar 95% da tela */
+                padding: 20px;    /* Diminuir o padding interno */
+                max-height: 95vh; /* Permitir ser um pouco mais alto */
+            }
+
+            .receipt-content {
+                /* Diminuir a fonte do recibo no celular para ajudar a caber */
+                font-size: 0.9em; 
+            }
+            /* --- FIM DA ADIÇÃO --- */
         }
         
         /* Animações */
@@ -2006,11 +2019,21 @@
         }
 
         function emailReceiptFromModal() {
-            if (!currentReceipt) return;
-            
-            closeReceiptModal();
-            openEmailModal(currentReceipt.participant.id);
+        // 1. Verificar se o recibo e o participante existem
+        if (!currentReceipt || !currentReceipt.participant) {
+            console.error('Dados do recibo ou participante não encontrados.');
+            return;
         }
+        
+        // 2. Salvar o ID ANTES de fechar o modal
+        const participantId = currentReceipt.participant.id;
+        
+        // 3. Fechar o modal do recibo (isso vai apagar currentReceipt)
+        closeReceiptModal();
+        
+        // 4. Abrir o modal de e-mail usando o ID salvo
+        openEmailModal(participantId);
+    }
 
         // ===== LISTA DE GANHADORES =====
         async function generateWinnersList() {
