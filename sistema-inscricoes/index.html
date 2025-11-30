@@ -44,6 +44,7 @@
             --rede-vermelha: #ef4444;
             --rede-verde: #22c55e;
             --rede-marrom: #92400e;
+            --rede-roxa: #9333ea;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -323,6 +324,7 @@
         .color-dot.vermelha { background: var(--rede-vermelha); }
         .color-dot.verde { background: var(--rede-verde); }
         .color-dot.marrom { background: var(--rede-marrom); }
+        .color-dot.roxa { background: var(--rede-roxa); }
         
         .loading {
             border: 4px solid var(--borda-secundaria);
@@ -571,20 +573,31 @@
                                 <div class="color-dot marrom"></div>
                                 <span>Marrom</span>
                             </div>
+                            <div class="color-item">
+                                <div class="color-dot roxa"></div>
+                                <span>Roxa</span>
+                            </div>
                         </div>
                     </div>
                     
                     <label for="cor-rede">Cor da Rede <span class="required">*</span></label>
                     <select id="cor-rede" name="cor-rede" required>
-                        <option value="">Selecione a cor da sua rede</option>
-                        <option value="BRANCA">🤍 Rede Branca</option>
-                        <option value="AZUL">💙 Rede Azul</option>
-                        <option value="AMARELA">💛 Rede Amarela</option>
-                        <option value="VERMELHA">❤️ Rede Vermelha</option>
-                        <option value="VERDE">💚 Rede Verde</option>
-                        <option value="MARROM">🤎 Rede Marrom</option>
-                        <option value="NÃO-POSSUO">🆕 Não possuo rede ainda</option>
-                    </select>
+                    <option value="">Selecione a cor da sua rede</option>
+                    <option value="BRANCA">🤍 Rede Branca</option>
+                    <option value="AZUL">💙 Rede Azul</option>
+                    <option value="AMARELA">💛 Rede Amarela</option>
+                    <option value="VERMELHA">❤️ Rede Vermelha</option>
+                    <option value="VERDE">💚 Rede Verde</option>
+                    <option value="MARROM">🤎 Rede Marrom</option>
+                    <option value="ROXA">💜 Rede Roxa</option>
+                    
+                    <option value="ALVO SJP">📍 Alvo SJP</option>
+                    <option value="ALVO ITAPECERICA">📍 Alvo Itapecerica</option>
+                    <option value="ALVO MONTE MOR">📍 Alvo Monte Mor</option>
+                    <option value="ALVO CAMPINAS">📍 Alvo Campinas</option>
+                    
+                    <option value="NÃO-POSSUO">🆕 Não possuo rede ainda</option>
+                </select>
                 </div>
 
                 <div class="form-group">
