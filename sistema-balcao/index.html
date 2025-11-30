@@ -1767,9 +1767,24 @@
                                 </select>
                             </div>
                             <div>
-                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cor da Rede:</label>
-                                <input type="text" id="edit-rede" class="input" value="${participant.cor_rede || ''}" 
-                                    onblur="updateParticipantField('${participantId}', 'cor_rede', this.value)">
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cor da Rede / Unidade:</label>
+                                <select id="edit-rede" class="input" onchange="updateParticipantField('${participantId}', 'cor_rede', this.value)">
+                                    <option value="">Selecione...</option>
+                                    <option value="BRANCA" ${participant.cor_rede === 'BRANCA' ? 'selected' : ''}>🤍 Rede Branca</option>
+                                    <option value="AZUL" ${participant.cor_rede === 'AZUL' ? 'selected' : ''}>💙 Rede Azul</option>
+                                    <option value="AMARELA" ${participant.cor_rede === 'AMARELA' ? 'selected' : ''}>💛 Rede Amarela</option>
+                                    <option value="VERMELHA" ${participant.cor_rede === 'VERMELHA' ? 'selected' : ''}>❤️ Rede Vermelha</option>
+                                    <option value="VERDE" ${participant.cor_rede === 'VERDE' ? 'selected' : ''}>💚 Rede Verde</option>
+                                    <option value="MARROM" ${participant.cor_rede === 'MARROM' ? 'selected' : ''}>🤎 Rede Marrom</option>
+                                    <option value="ROXA" ${participant.cor_rede === 'ROXA' ? 'selected' : ''}>💜 Rede Roxa</option>
+                                    
+                                    <option value="ALVO SJP" ${participant.cor_rede === 'ALVO SJP' ? 'selected' : ''}>📍 Alvo SJP</option>
+                                    <option value="ALVO ITAPECERICA" ${participant.cor_rede === 'ALVO ITAPECERICA' ? 'selected' : ''}>📍 Alvo Itapecerica</option>
+                                    <option value="ALVO MONTE MOR" ${participant.cor_rede === 'ALVO MONTE MOR' ? 'selected' : ''}>📍 Alvo Monte Mor</option>
+                                    <option value="ALVO CAMPINAS" ${participant.cor_rede === 'ALVO CAMPINAS' ? 'selected' : ''}>📍 Alvo Campinas</option>
+                                    
+                                    <option value="NÃO-POSSUO" ${participant.cor_rede === 'NÃO-POSSUO' ? 'selected' : ''}>🆕 Não possuo rede ainda</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -1799,7 +1814,7 @@
                     <div style="display: grid; grid-template-columns: ${showDeleteButton ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr'}; gap: 10px; margin-top: 20px;">
                         <button onclick="openPaymentsModal('${participantId}')" class="btn btn-success">💰 Gerenciar Pagamentos</button>
                         <button onclick="generateReceipt('${participantId}')" class="btn btn-info">🧾 Gerar Recibo</button>
-                        <button onclick="openEmailModal('${participantId}')" class="btn btn-warning">📧 Enviar E-mail</button>
+                        <button onclick="emailReceiptFromModal()" class="btn btn-warning">📧 Enviar E-mail</button>
                         ${showDeleteButton ? `<button onclick="deleteParticipant('${participantId}')" class="btn btn-danger">🗑️ Excluir</button>` : ''}
                     </div>
                 `;
