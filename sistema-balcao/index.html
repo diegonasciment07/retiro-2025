@@ -861,7 +861,67 @@
             } catch (error) {
                 console.error('Erro ao converter data:', error);
                 return new Date();
-            }    
+            }
+        }
+
+        function getUTCDateRangeForLocalDate(dateString) {
+            if (!dateString) return null;
+
+            const [year, month, day] = dateString.split('-').map(Number);
+            const startLocal = new Date(year, month - 1, day, 0, 0, 0, 0);
+            const endLocal = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+            if (isNaN(startLocal.getTime()) || isNaN(endLocal.getTime())) {
+                console.warn('Data inválida informada para filtro:', dateString);
+                return null;
+            }
+
+            // Converte o intervalo local (ex.: BRT) para UTC para comparar corretamente no Supabase
+            return {
+                start: startLocal.toISOString(),
+                end: endLocal.toISOString()
+            };
+        }
+
+        const PARTICIPANT_CHUNK_SIZE = 1000;
+
+        async function fetchParticipantsStatus(ids = []) {
+            const uniqueIds = [...new Set(ids.filter(Boolean))];
+            if (uniqueIds.length === 0) return [];
+
+            const participants = [];
+            for (let i = 0; i < uniqueIds.length; i += PARTICIPANT_CHUNK_SIZE) {
+                const chunk = uniqueIds.slice(i, i + PARTICIPANT_CHUNK_SIZE);
+                const { data, error } = await supabase
+                    .from('inscricoes')
+                    .select('id, status_pagamento')
+                    .in('id', chunk);
+
+                if (error) throw error;
+                participants.push(...(data || []));
+            }
+
+            return participants;
+        }
+
+        function applyStatusFilter(pagamentos, participants, status) {
+            if (!status) {
+                return {
+                    pagamentos,
+                    participants
+                };
+            }
+
+            const allowedIds = new Set(
+                participants
+                    .filter(p => p.status_pagamento === status)
+                    .map(p => p.id)
+            );
+
+            return {
+                pagamentos: pagamentos.filter(p => allowedIds.has(p.inscricao_id)),
+                participants: participants.filter(p => allowedIds.has(p.id))
+            };
         }
 
         function getStatusClass(status) {
@@ -986,20 +1046,39 @@
 
         async function loadParticipants() {
             try {
-                const { data, error } = await supabase
-                    .from('inscricoes')
-                    .select('*')
-                    .eq('status', 'ATIVO')
-                    .order('data_inscricao', { ascending: false });
+                allParticipants = [];
+                let page = 0;
+                let keepFetching = true;
 
-                if (error) {
-                    console.error('Erro Supabase:', error);
-                    throw error;
+                while (keepFetching) {
+                    const from = page * PARTICIPANT_CHUNK_SIZE;
+                    const to = from + PARTICIPANT_CHUNK_SIZE - 1;
+
+                    const { data, error } = await supabase
+                        .from('inscricoes')
+                        .select('*')
+                        .eq('status', 'ATIVO')
+                        .order('data_inscricao', { ascending: false })
+                        .range(from, to);
+
+                    if (error) {
+                        console.error('Erro Supabase:', error);
+                        throw error;
+                    }
+
+                    if (!data || data.length === 0) {
+                        keepFetching = false;
+                    } else {
+                        allParticipants = allParticipants.concat(data);
+                        page += 1;
+                        if (data.length < PARTICIPANT_CHUNK_SIZE) {
+                            keepFetching = false;
+                        }
+                    }
                 }
-                
-                allParticipants = data || [];
+
                 console.log('✅ Participantes carregados:', allParticipants.length);
-                
+
             } catch (error) {
                 console.error('❌ Erro ao carregar participantes:', error);
                 showNotification('Erro ao conectar com servidor: ' + error.message, 'error');
@@ -1533,44 +1612,60 @@
 
         async function updateDashboard() {
             console.log('🔄 Atualizando dashboard com lógica corrigida...');
-            
+
             try {
                 const filterData = document.getElementById('filter-data').value;
                 const filterAtendente = document.getElementById('filter-atendente').value;
                 const filterForma = document.getElementById('filter-forma').value;
                 const filterStatus = document.getElementById('filter-status').value;
-                
-                // 1. Get ALL participants that match the STATUS filter.
-                let pQuery = supabase.from('inscricoes').select('id, status_pagamento');
-                if (filterStatus) {
-                    pQuery = pQuery.eq('status_pagamento', filterStatus);
+
+                // 1. Carrega pagamentos aplicando filtros diretos
+                let payQuery = supabase.from('pagamentos_históricos').select('*');
+
+                const dateRange = getUTCDateRangeForLocalDate(filterData);
+                if (dateRange) {
+                    payQuery = payQuery
+                        .gte('data_pagamento', dateRange.start)
+                        .lte('data_pagamento', dateRange.end);
                 }
-                const { data: participants, error: pError } = await pQuery;
-                if (pError) throw pError;
-                
-                const participantIds = participants.map(p => p.id);
-                
-                if (participantIds.length === 0) {
+
+                const normalizedAtendente = filterAtendente ? filterAtendente.trim() : '';
+                if (normalizedAtendente) {
+                    payQuery = payQuery.ilike('atendente', normalizedAtendente);
+                }
+
+                if (filterForma) payQuery = payQuery.eq('forma_pagamento', filterForma);
+
+                const { data: pagamentos, error: payError } = await payQuery;
+                if (payError) throw payError;
+
+                if (!pagamentos || pagamentos.length === 0) {
                     resetDashboardMetrics();
-                    console.log('Nenhum participante encontrado para o status.');
+                    console.log('Nenhum pagamento encontrado para os filtros selecionados.');
                     return;
                 }
 
-                // 2. Get all PAYMENTS that match the OTHER filters AND belong to the participants from step 1
-                let payQuery = supabase.from('pagamentos_históricos').select('*').in('inscricao_id', participantIds);
-                
-                if (filterData) {
-                    payQuery = payQuery
-                        .gte('data_pagamento', filterData + 'T00:00:00')
-                        .lte('data_pagamento', filterData + 'T23:59:59');
+                // 2. Carrega status dos participantes apenas para os pagamentos encontrados
+                const participantsInfo = await fetchParticipantsStatus(
+                    pagamentos.map(p => p.inscricao_id)
+                );
+
+                let { pagamentos: filteredPayments, participants: filteredParticipants } =
+                    applyStatusFilter(pagamentos, participantsInfo, filterStatus);
+
+                if (!filteredPayments.length) {
+                    resetDashboardMetrics();
+                    console.log('Nenhum pagamento encontrado após aplicar filtro de status.');
+                    return;
                 }
-                if (filterAtendente) payQuery = payQuery.eq('atendente', filterAtendente);
-                if (filterForma) payQuery = payQuery.eq('forma_pagamento', filterForma);
-                
-                const { data: pagamentos, error: payError } = await payQuery;
-                if (payError) throw payError;
-                
-                // 3. Calculate financial stats (based on 'pagamentos' from step 2)
+
+                const participantLookup = new Map(
+                    filteredParticipants.map(p => [p.id, p])
+                );
+                const participantsForMetrics = [...new Set(filteredPayments.map(p => p.inscricao_id))]
+                    .map(id => participantLookup.get(id) || { id, status_pagamento: 'N/A' });
+
+                // 3. Calcula estatísticas financeiras com base nos pagamentos filtrados
                 const stats = {
                     totalArrecadado: 0,
                     formas: {
@@ -1581,46 +1676,42 @@
                         'RECIBO': { qtd: 0, valor: 0 }
                     }
                 };
-                
-                pagamentos?.forEach(p => {
+
+                filteredPayments.forEach(p => {
                     const valor = parseFloat(p.valor_pago) || 0;
                     stats.totalArrecadado += valor;
-                    
+
                     if (stats.formas[p.forma_pagamento]) {
                         stats.formas[p.forma_pagamento].qtd += 1;
                         stats.formas[p.forma_pagamento].valor += valor;
                     }
                 });
 
-                // 4. Calculate participant stats (based on 'participants' from step 1, but *only* those who also appear in 'pagamentos')
-                const finalParticipantIds = [...new Set(pagamentos.map(p => p.inscricao_id))];
-                const finalParticipants = participants.filter(p => finalParticipantIds.includes(p.id));
+                // 4. Atualiza métricas visuais
+                document.getElementById('dash-total-inscricoes').textContent = participantsForMetrics.length;
+                document.getElementById('dash-pagos-completo').textContent = participantsForMetrics.filter(p => p.status_pagamento === 'PAGO').length;
+                document.getElementById('dash-pre-inscricoes').textContent = participantsForMetrics.filter(p => p.status_pagamento === 'PAGO PARCIALMENTE').length;
 
-                // 5. Update DOM
-                document.getElementById('dash-total-inscricoes').textContent = finalParticipants.length;
-                document.getElementById('dash-pagos-completo').textContent = finalParticipants.filter(p => p.status_pagamento === 'PAGO').length;
-                document.getElementById('dash-pre-inscricoes').textContent = finalParticipants.filter(p => p.status_pagamento === 'PAGO PARCIALMENTE').length;
-                
-                document.getElementById('total-arrecadado').textContent = 
+                document.getElementById('total-arrecadado').textContent =
                     `R$ ${stats.totalArrecadado.toFixed(2).replace('.', ',')}`;
-                
+
                 const updateFormaCard = (id, forma) => {
                     document.getElementById(id).innerHTML = `
                         <div style="font-size: 1.8em; font-weight: bold;">${stats.formas[forma]?.qtd || 0}</div>
                         <div style="font-size: 0.9em;">R$ ${stats.formas[forma]?.valor.toFixed(2).replace('.', ',') || '0,00'}</div>
                     `;
                 };
-                
+
                 updateFormaCard('dash-valor-pix', 'PIX');
                 updateFormaCard('dash-valor-dinheiro', 'DINHEIRO');
                 updateFormaCard('dash-valor-cartao', 'CARTÃO DE CRÉDITO');
                 updateFormaCard('dash-valor-debito', 'CARTÃO DE DÉBITO');
-                
-                // 6. Update table
-                await updateInscricoesTableFromPayments(pagamentos);
-                
-                console.log(`✅ Dashboard: ${finalParticipants.length} participantes, R$ ${stats.totalArrecadado.toFixed(2)}`);
-                
+
+                // 5. Atualiza tabela detalhada
+                await updateInscricoesTableFromPayments(filteredPayments);
+
+                console.log(`✅ Dashboard: ${participantsForMetrics.length} participantes, R$ ${stats.totalArrecadado.toFixed(2)}`);
+
             } catch (error) {
                 console.error('❌ Erro no dashboard:', error);
                 showNotification('Erro ao atualizar dashboard: ' + error.message, 'error');
@@ -2261,7 +2352,10 @@
                 
                 // Re-run the filter logic
                 const filterStatus = document.getElementById('filter-status').value;
-                let pQuery = supabase.from('inscricoes').select('id');
+                let pQuery = supabase
+                    .from('inscricoes')
+                    .select('id')
+                    .range(0, 9999);
                 if (filterStatus) pQuery = pQuery.eq('status_pagamento', filterStatus);
                 const { data: participants, error: pError } = await pQuery;
                 if (pError) throw pError;
@@ -2277,7 +2371,12 @@
                 const filterForma = document.getElementById('filter-forma').value;
                 
                 let payQuery = supabase.from('pagamentos_históricos').select('*').in('inscricao_id', participantIds);
-                if (filterData) payQuery = payQuery.gte('data_pagamento', filterData + 'T00:00:00').lte('data_pagamento', filterData + 'T23:59:59');
+                const dateRange = getUTCDateRangeForLocalDate(filterData);
+                if (dateRange) {
+                    payQuery = payQuery
+                        .gte('data_pagamento', dateRange.start)
+                        .lte('data_pagamento', dateRange.end);
+                }
                 if (filterAtendente) payQuery = payQuery.eq('atendente', filterAtendente);
                 if (filterForma) payQuery = payQuery.eq('forma_pagamento', filterForma);
                 
