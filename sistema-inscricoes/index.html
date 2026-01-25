@@ -153,13 +153,6 @@
             margin-bottom: 25px;
         }
         
-        .conditional-field { 
-            margin-top: 15px;
-            padding-left: 20px;
-            border-left: 3px solid var(--cor-primaria);
-            display: none;
-        }
-        
         label { 
             display: block;
             margin-bottom: 8px;
@@ -465,80 +458,10 @@
                 <div class="section-title">🏥 Informações de Saúde e Acessibilidade</div>
 
                 <div class="form-group">
-                    <label for="comorbidade">Possui alguma comorbidade? <span class="required">*</span></label>
-                    <select id="comorbidade" name="comorbidade" required>
-                        <option value="">Selecione uma opção</option>
-                        <option value="NÃO">❌ Não</option>
-                        <option value="SIM">✅ Sim</option>
-                    </select>
-                    <div id="comorbidade-detalhes" class="conditional-field">
-                        <label for="comorbidade-qual">Qual comorbidade?</label>
-                        <textarea id="comorbidade-qual" name="comorbidade-qual" placeholder="Descreva a comorbidade..."></textarea>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="gravida">Está grávida? <span class="required">*</span></label>
-                    <select id="gravida" name="gravida" required>
-                        <option value="">Selecione uma opção</option>
-                        <option value="NÃO">❌ Não</option>
-                        <option value="SIM">✅ Sim</option>
-                    </select>
-                    <div id="gravida-detalhes" class="conditional-field">
-                        <label for="gravida-observacao">Tem alguma observação sobre a gravidez?</label>
-                        <textarea id="gravida-observacao" name="gravida-observacao" placeholder="Observações sobre a gravidez..."></textarea>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="medicacao">Usa medicação contínua? <span class="required">*</span></label>
-                    <select id="medicacao" name="medicacao" required>
-                        <option value="">Selecione uma opção</option>
-                        <option value="NÃO">❌ Não</option>
-                        <option value="SIM">✅ Sim</option>
-                    </select>
-                    <div id="medicacao-detalhes" class="conditional-field">
-                        <label for="medicacao-qual">Qual medicação?</label>
-                        <textarea id="medicacao-qual" name="medicacao-qual" placeholder="Descreva as medicações..."></textarea>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="restricoes">Tem restrições alimentares? <span class="required">*</span></label>
-                    <select id="restricoes" name="restricoes" required>
-                        <option value="">Selecione uma opção</option>
-                        <option value="NÃO">❌ Não</option>
-                        <option value="SIM">✅ Sim</option>
-                    </select>
-                    <div id="restricoes-detalhes" class="conditional-field">
-                        <label for="restricoes-quais">Quais restrições alimentares?</label>
-                        <textarea id="restricoes-quais" name="restricoes-quais" placeholder="Descreva as restrições alimentares..."></textarea>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="alergias">Tem alergias? <span class="required">*</span></label>
-                    <select id="alergias" name="alergias" required>
-                        <option value="">Selecione uma opção</option>
-                        <option value="NÃO">❌ Não</option>
-                        <option value="SIM">✅ Sim</option>
-                    </select>
-                    <div id="alergias-detalhes" class="conditional-field">
-                        <label for="alergias-quais">Quais alergias?</label>
-                        <textarea id="alergias-quais" name="alergias-quais" placeholder="Descreva as alergias..."></textarea>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="locomocao">Tem alguma limitação de locomoção? <span class="required">*</span></label>
-                    <select id="locomocao" name="locomocao" required>
-                        <option value="">Selecione uma opção</option>
-                        <option value="NÃO">❌ Não</option>
-                        <option value="SIM">✅ Sim</option>
-                    </select>
-                    <div id="locomocao-detalhes" class="conditional-field">
-                        <label for="locomocao-qual">Qual limitação de locomoção?</label>
-                        <textarea id="locomocao-qual" name="locomocao-qual" placeholder="Descreva a limitação de locomoção..."></textarea>
+                    <label for="observacoes-saude">Observações</label>
+                    <textarea id="observacoes-saude" name="observacoes-saude" placeholder="Informe se precisa de alguma atenção com alimentação, medicamentos, alergias, acessibilidade, etc."></textarea>
+                    <div style="font-size: 0.9em; color: #ccc; margin-top: 5px;">
+                        ⚠️ Escreva apenas se houver algo importante para a organização do retiro.
                     </div>
                 </div>
 
@@ -704,26 +627,6 @@
         }
 
         // ==========================================
-        // 🔧 CAMPOS CONDICIONAIS
-        // ==========================================
-        function configurarCampoCondicional(selectId, detailsId) {
-            const select = document.getElementById(selectId);
-            const details = document.getElementById(detailsId);
-            const textarea = details.querySelector('textarea');
-            
-            select.addEventListener('change', function() {
-                if (this.value === 'SIM') {
-                    details.style.display = 'block';
-                    textarea.required = true;
-                } else {
-                    details.style.display = 'none';
-                    textarea.required = false;
-                    textarea.value = '';
-                }
-            });
-        }
-
-        // ==========================================
         // 📤 ENVIAR PARA SUPABASE
         // ==========================================
         async function enviarParaSupabase(dados) {
@@ -742,18 +645,7 @@
                         numero: dados.numero,
                         bairro: dados.bairro,
                         cidade: dados.cidade,
-                        comorbidade: dados.comorbidade,
-                        comorbidade_qual: dados.comorbidadeQual || null,
-                        gravida: dados.gravida,
-                        gravidez_observacao: dados.gravidaObservacao || null,
-                        medicacao: dados.medicacao,
-                        medicacao_qual: dados.medicacaoQual || null,
-                        restricoes_alimentares: dados.restricoes,
-                        restricoes_quais: dados.restricoesQuais || null,
-                        alergias: dados.alergias,
-                        alergias_quais: dados.alergiasQuais || null,
-                        limitacao_locomocao: dados.locomocao,
-                        locomocao_qual: dados.locomocaoQual || null,
+                        observacoes_saude: dados.observacoesSaude || null,
                         cor_rede: dados.corRede,
                         vai_servir_receber: dados.vaiServirReceber,
                         autorizacao_imagem: dados.autorizacaoImagem,
@@ -805,18 +697,7 @@
                 numero: formData.get('numero'),
                 bairro: formData.get('bairro'),
                 cidade: formData.get('cidade'),
-                comorbidade: formData.get('comorbidade'),
-                comorbidadeQual: formData.get('comorbidade-qual') || '',
-                gravida: formData.get('gravida'),
-                gravidaObservacao: formData.get('gravida-observacao') || '',
-                medicacao: formData.get('medicacao'),
-                medicacaoQual: formData.get('medicacao-qual') || '',
-                restricoes: formData.get('restricoes'),
-                restricoesQuais: formData.get('restricoes-quais') || '',
-                alergias: formData.get('alergias'),
-                alergiasQuais: formData.get('alergias-quais') || '',
-                locomocao: formData.get('locomocao'),
-                locomocaoQual: formData.get('locomocao-qual') || '',
+                observacoesSaude: formData.get('observacoes-saude') || '',
                 corRede: formData.get('cor-rede'),
                 vaiServirReceber: formData.get('vai-servir-receber'),
                 autorizacaoImagem: formData.get('autorizacao-imagem') ? true : false
@@ -845,9 +726,6 @@
                     
                     // Reset do formulário
                     this.reset();
-                    document.querySelectorAll('.conditional-field').forEach(field => {
-                        field.style.display = 'none';
-                    });
                     
                     // Reset da data display
                     atualizarDataRetiro();
@@ -891,14 +769,6 @@
             document.getElementById('whatsapp').addEventListener('input', function() {
                 formatarWhatsApp(this);
             });
-
-            // Configurar campos condicionais
-            configurarCampoCondicional('comorbidade', 'comorbidade-detalhes');
-            configurarCampoCondicional('gravida', 'gravida-detalhes');
-            configurarCampoCondicional('medicacao', 'medicacao-detalhes');
-            configurarCampoCondicional('restricoes', 'restricoes-detalhes');
-            configurarCampoCondicional('alergias', 'alergias-detalhes');
-            configurarCampoCondicional('locomocao', 'locomocao-detalhes');
 
             // Converter para MAIÚSCULA (exceto email)
             document.querySelectorAll('input[type="text"], textarea').forEach(input => {
