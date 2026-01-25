@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     const { data, error } = await resend.emails.send({
       from: 'Inscrição Retiro <info@alvocuritiba.com.br>', 
       to: [toEmail], 
-      subject: `Comprovante - Inscrição O Retiro 2025 - ${participantName}`,
+      subject: `Comprovante - Inscrição O Retiro 2026 - ${participantName}`,
       html: receiptBody, 
     })
 

@@ -1218,7 +1218,7 @@
                     <head><style>body { font-family: Arial, sans-serif; line-height: 1.6; } pre { font-family: Arial, sans-serif; line-height: 1.6; white-space: pre-wrap; margin: 0; }</style></head>
                     <body>
                         <h2>Olá, ${currentParticipant.nome_completo}!</h2>
-                        <p>Segue seu comprovante de inscrição para O Retiro 2025:</p>
+                        <p>Segue seu comprovante de inscrição para O Retiro 2026:</p>
                         <div style="background-color: #f4f4f4; padding: 15px; border-radius: 8px;">
                             <pre>${summaryText}</pre>
                         </div>
@@ -1301,7 +1301,7 @@
 
                 const receiptHTML = `
                     <div class="receipt-header">
-                        <h2 style="margin: 0; color: #ff6b35; font-size: 1.8em;">🏕️ O RETIRO 2025</h2>
+                        <h2 style="margin: 0; color: #ff6b35; font-size: 1.8em;">🏕️ O RETIRO 2026</h2>
                         <div style="font-weight: bold; margin: 5px 0;">VISÃO • MISSÃO • PRESSÃO</div>
                         <div style="font-size: 0.9em; color: #666;">COMPROVANTE DE PAGAMENTO</div>
                     </div>
@@ -1470,7 +1470,7 @@
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.json_to_sheet(winnersData);
                 XLSX.utils.book_append_sheet(wb, ws, 'Ganhadores de Camisa');
-                XLSX.writeFile(wb, `ganhadores_camisa_retiro_2025_${new Date().toISOString().split('T')[0]}.xlsx`);
+                XLSX.writeFile(wb, `ganhadores_camisa_retiro_2026_${new Date().toISOString().split('T')[0]}.xlsx`);
                 
                 showNotification('Lista de ganhadores exportada com sucesso!', 'success');
             } catch (error) {
@@ -1488,7 +1488,7 @@
             const printContent = `
                 <div style="font-family: Arial, sans-serif; padding: 20px;">
                     <div style="text-align: center; margin-bottom: 30px;">
-                        <h1 style="color: #ff6b35;">🏕️ O RETIRO 2025</h1>
+                        <h1 style="color: #ff6b35;">🏕️ O RETIRO 2026</h1>
                         <h2>🏆 LISTA DOS 150 GANHADORES DE CAMISA</h2>
                         <p>VISÃO • MISSÃO • PRESSÃO</p>
                         <p>Total: ${winners.length}/150 ganhadores</p>
@@ -1518,7 +1518,7 @@
                     </table>
                     
                     <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">
-                        Gerado em ${formatDateTime(new Date())} - Sistema de Balcão O Retiro 2025
+                        Gerado em ${formatDateTime(new Date())} - Sistema de Balcão O Retiro 2026
                     </div>
                 </div>
             `;
@@ -1625,7 +1625,7 @@
         
         // ===== INICIALIZAÇÃO DO SISTEMA =====
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('Sistema de Balcão v4.0.0 - O Retiro 2025 - Carregado');
+            console.log('Sistema de Balcão v4.0.0 - O Retiro 2026 - Carregado');
             
             supabase.auth.getSession().then(({ data: { session } }) => {
                 if (session) {

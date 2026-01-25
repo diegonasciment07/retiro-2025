@@ -1,6 +1,6 @@
-# 🏕️ Sistema de Balcão - O Retiro 2025
+# 🏕️ Sistema de Balcão - O Retiro 2026
 
-Sistema completo para gestão de inscrições e pagamentos do Retiro 2025 - ALVO Church
+Sistema completo para gestão de inscrições e pagamentos do Retiro 2026 - ALVO Church
 
 ## 📁 Estrutura do Projeto
 ```
