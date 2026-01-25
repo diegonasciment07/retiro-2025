@@ -569,7 +569,7 @@
             anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raWZpdWVubWl3dmFxdndma3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyNTEyNDYsImV4cCI6MjA3NjgyNzI0Nn0.Kis_dGXTLT0KGhC3HkKwAsGi6OMXPlzhOYmhdzWpiTM'
         };
 
-        let supabase;
+        let supabaseClient;
         let isSubmitting = false;
 
         // ==========================================
@@ -577,7 +577,7 @@
         // ==========================================
         function inicializarSistema() {
             try {
-                supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+                supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
                 console.log('✅ Sistema inicializado com sucesso!');
                 return true;
             } catch (error) {
@@ -633,7 +633,7 @@
             try {
                 console.log('📤 Enviando dados:', dados);
 
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('inscricoes')
                     .insert([{
                         nome_completo: dados.nome,
@@ -793,7 +793,7 @@
         window.testarConexao = async function() {
             console.log('🧪 Testando conexão com Supabase...');
             try {
-                const { count, error } = await supabase
+                const { count, error } = await supabaseClient
                     .from('inscricoes')
                     .select('*', { count: 'exact', head: true });
                 
