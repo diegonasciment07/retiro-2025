@@ -1087,6 +1087,7 @@
                                     <option value="ALVO ITAPECERICA" ${participant.cor_rede === 'ALVO ITAPECERICA' ? 'selected' : ''}>📍 Alvo Itapecerica</option>
                                     <option value="ALVO MONTE MOR" ${participant.cor_rede === 'ALVO MONTE MOR' ? 'selected' : ''}>📍 Alvo Monte Mor</option>
                                     <option value="ALVO CAMPINAS" ${participant.cor_rede === 'ALVO CAMPINAS' ? 'selected' : ''}>📍 Alvo Campinas</option>
+                                    <option value="ALVO LITORAL PR" ${participant.cor_rede === 'ALVO LITORAL PR' ? 'selected' : ''}>📍 Alvo Litoral PR</option>
                                     
                                     <option value="NÃO-POSSUO" ${participant.cor_rede === 'NÃO-POSSUO' ? 'selected' : ''}>🆕 Não possuo rede ainda</option>
                                 </select>
@@ -1175,6 +1176,7 @@
             const summary = `
                 Nome: ${participant.nome_completo}
                 WhatsApp: ${participant.whatsapp}
+                Rede/Unidade: ${participant.cor_rede || 'N/A'}
                 Status: ${getStatusText(participant.status_pagamento)}
                 Valor Pago: ${participant.valor_pago || 'N/A'}
                 Forma Pagamento: ${participant.forma_pagamento || 'N/A'}
@@ -1312,6 +1314,9 @@
                         
                         <div style="margin-bottom: 8px;"><strong>WHATSAPP:</strong></div>
                         <div style="margin-bottom: 15px;">${participant.whatsapp || 'N/A'}</div>
+
+                        <div style="margin-bottom: 8px;"><strong>REDE / UNIDADE:</strong></div>
+                        <div style="margin-bottom: 15px;">${participant.cor_rede || 'N/A'}</div>
                         
                         <div style="margin-bottom: 8px;"><strong>VALOR TOTAL PAGO:</strong></div>
                         <div style="margin-bottom: 15px; font-size: 1.2em; font-weight: bold;">${formatCurrency(totalPago)}</div>
