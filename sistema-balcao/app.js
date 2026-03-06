@@ -212,10 +212,14 @@
 
                 currentUser = data.user;
                 document.getElementById('user-name').textContent = currentUser.email.split('@')[0];
-                
+
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('main-system').style.display = 'block';
-                
+
+                if (currentUser.email.includes('adm')) {
+                    document.getElementById('adm-report-btn').style.display = 'block';
+                }
+
                 await loadInitialData();
                 showNotification('Login realizado com sucesso!', 'success');
 
@@ -235,6 +239,7 @@
                 await supabase.auth.signOut();
                 currentUser = null;
                 allParticipants = [];
+                document.getElementById('adm-report-btn').style.display = 'none';
                 document.getElementById('login-container').style.display = 'flex';
                 document.getElementById('main-system').style.display = 'none';
                 showNotification('Logout realizado com sucesso!', 'success');
@@ -820,6 +825,7 @@
             zeroCard('dash-valor-dinheiro');
             zeroCard('dash-valor-cartao');
             zeroCard('dash-valor-debito');
+            zeroCard('dash-valor-recibo');
             
             document.getElementById('inscricoes-tbody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">Nenhum resultado encontrado</td></tr>';
         }
@@ -920,6 +926,7 @@
                 updateFormaCard('dash-valor-dinheiro', 'DINHEIRO');
                 updateFormaCard('dash-valor-cartao', 'CARTÃO DE CRÉDITO');
                 updateFormaCard('dash-valor-debito', 'CARTÃO DE DÉBITO');
+                updateFormaCard('dash-valor-recibo', 'RECIBO');
 
                 // 5. Atualiza tabela detalhada
                 await updateInscricoesTableFromPayments(filteredPayments);
@@ -1401,6 +1408,213 @@
         openEmailModal(participantId);
     }
 
+        // ===== RELATÓRIO ADM =====
+        let admReportData = null;
+
+        function openAdmReport() {
+            document.getElementById('adm-report-modal').style.display = 'flex';
+            document.getElementById('adm-report-content').innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Selecione o período e clique em Gerar Relatório</div>';
+            document.getElementById('adm-export-btn').style.display = 'none';
+            admReportData = null;
+        }
+
+        function closeAdmReportModal() {
+            document.getElementById('adm-report-modal').style.display = 'none';
+            admReportData = null;
+        }
+
+        async function generateAttendantReport() {
+            const startDate = document.getElementById('adm-report-start').value;
+            const endDate = document.getElementById('adm-report-end').value;
+            const contentDiv = document.getElementById('adm-report-content');
+            contentDiv.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading"></div> Carregando...</div>';
+            document.getElementById('adm-export-btn').style.display = 'none';
+
+            try {
+                let query = supabase.from('pagamentos_históricos').select('*');
+
+                if (startDate) {
+                    const startRange = getUTCDateRangeForLocalDate(startDate);
+                    if (startRange) query = query.gte('data_pagamento', startRange.start);
+                }
+                if (endDate) {
+                    const endRange = getUTCDateRangeForLocalDate(endDate);
+                    if (endRange) query = query.lte('data_pagamento', endRange.end);
+                }
+
+                const { data: pagamentos, error } = await query;
+                if (error) throw error;
+
+                if (!pagamentos || pagamentos.length === 0) {
+                    contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Nenhum pagamento encontrado no período</div>';
+                    return;
+                }
+
+                const byAtendente = {};
+                pagamentos.forEach(p => {
+                    const atendente = (p.atendente || 'SEM ATENDENTE').trim();
+                    if (!byAtendente[atendente]) {
+                        byAtendente[atendente] = { dinheiro: 0, debito: 0, credito: 0, pix: 0, recibo: 0, participantes: new Set() };
+                    }
+                    const valor = parseFloat(p.valor_pago) || 0;
+                    const forma = p.forma_pagamento || '';
+                    if (forma === 'DINHEIRO') byAtendente[atendente].dinheiro += valor;
+                    else if (forma === 'CARTÃO DE DÉBITO') byAtendente[atendente].debito += valor;
+                    else if (forma === 'CARTÃO DE CRÉDITO') byAtendente[atendente].credito += valor;
+                    else if (forma === 'PIX') byAtendente[atendente].pix += valor;
+                    else if (forma === 'RECIBO') byAtendente[atendente].recibo += valor;
+                    if (p.inscricao_id) byAtendente[atendente].participantes.add(p.inscricao_id);
+                });
+
+                admReportData = Object.entries(byAtendente)
+                    .map(([atendente, a]) => ({
+                        atendente,
+                        dinheiro: a.dinheiro,
+                        debito: a.debito,
+                        credito: a.credito,
+                        pix: a.pix,
+                        acumulado: a.debito + a.credito + a.pix,
+                        recibo: a.recibo,
+                        totalComRecibo: a.dinheiro + a.debito + a.credito + a.pix + a.recibo,
+                        totalSemRecibo: a.dinheiro + a.debito + a.credito + a.pix,
+                        unicos: a.participantes.size
+                    }))
+                    .sort((a, b) => a.atendente.localeCompare(b.atendente));
+
+                const totals = admReportData.reduce((acc, r) => ({
+                    dinheiro: acc.dinheiro + r.dinheiro,
+                    debito: acc.debito + r.debito,
+                    credito: acc.credito + r.credito,
+                    pix: acc.pix + r.pix,
+                    acumulado: acc.acumulado + r.acumulado,
+                    recibo: acc.recibo + r.recibo,
+                    totalComRecibo: acc.totalComRecibo + r.totalComRecibo,
+                    totalSemRecibo: acc.totalSemRecibo + r.totalSemRecibo,
+                    unicos: acc.unicos + r.unicos
+                }), { dinheiro: 0, debito: 0, credito: 0, pix: 0, acumulado: 0, recibo: 0, totalComRecibo: 0, totalSemRecibo: 0, unicos: 0 });
+
+                const fmt = v => `R$ ${v.toFixed(2).replace('.', ',')}`;
+
+                const rows = admReportData.map(r => `
+                    <tr>
+                        <td style="padding: 10px; font-weight: bold; color: var(--primary);">${r.atendente}</td>
+                        <td style="padding: 10px; text-align: right;">${fmt(r.dinheiro)}</td>
+                        <td style="padding: 10px; text-align: right;">${fmt(r.debito)}</td>
+                        <td style="padding: 10px; text-align: right;">${fmt(r.credito)}</td>
+                        <td style="padding: 10px; text-align: right;">${fmt(r.pix)}</td>
+                        <td style="padding: 10px; text-align: right; color: #22c55e;">${fmt(r.acumulado)}</td>
+                        <td style="padding: 10px; text-align: right;">${fmt(r.recibo)}</td>
+                        <td style="padding: 10px; text-align: right; color: var(--primary); font-weight: bold;">${fmt(r.totalComRecibo)}</td>
+                        <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: bold;">${fmt(r.totalSemRecibo)}</td>
+                        <td style="padding: 10px; text-align: center;">${r.unicos}</td>
+                    </tr>
+                `).join('');
+
+                const periodoLabel = (startDate || endDate)
+                    ? `Período: ${startDate ? new Date(startDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'início'} até ${endDate ? new Date(endDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'hoje'}`
+                    : 'Todos os períodos';
+
+                contentDiv.innerHTML = `
+                    <div style="margin-bottom: 15px; color: #ccc; font-size: 0.9em;">${periodoLabel} · ${pagamentos.length} pagamentos encontrados</div>
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="font-size: 0.85em; min-width: 950px;">
+                            <thead>
+                                <tr style="background: #222;">
+                                    <th style="padding: 10px; white-space: nowrap;">Atendente</th>
+                                    <th style="padding: 10px; text-align: right; white-space: nowrap;">💵 Dinheiro</th>
+                                    <th style="padding: 10px; text-align: right; white-space: nowrap;">💳 Débito</th>
+                                    <th style="padding: 10px; text-align: right; white-space: nowrap;">💳 Crédito</th>
+                                    <th style="padding: 10px; text-align: right; white-space: nowrap;">🏦 PIX</th>
+                                    <th style="padding: 10px; text-align: right; white-space: nowrap;">📊 Acumulado ¹</th>
+                                    <th style="padding: 10px; text-align: right; white-space: nowrap;">🧾 Recibo</th>
+                                    <th style="padding: 10px; text-align: right; white-space: nowrap;">✅ Total c/ Recibo</th>
+                                    <th style="padding: 10px; text-align: right; white-space: nowrap;">🔹 Total s/ Recibo</th>
+                                    <th style="padding: 10px; text-align: center; white-space: nowrap;">👥 Únicos</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                            <tfoot>
+                                <tr style="background: var(--primary); color: white; font-weight: bold;">
+                                    <td style="padding: 10px;">TOTAL GERAL</td>
+                                    <td style="padding: 10px; text-align: right;">${fmt(totals.dinheiro)}</td>
+                                    <td style="padding: 10px; text-align: right;">${fmt(totals.debito)}</td>
+                                    <td style="padding: 10px; text-align: right;">${fmt(totals.credito)}</td>
+                                    <td style="padding: 10px; text-align: right;">${fmt(totals.pix)}</td>
+                                    <td style="padding: 10px; text-align: right;">${fmt(totals.acumulado)}</td>
+                                    <td style="padding: 10px; text-align: right;">${fmt(totals.recibo)}</td>
+                                    <td style="padding: 10px; text-align: right;">${fmt(totals.totalComRecibo)}</td>
+                                    <td style="padding: 10px; text-align: right;">${fmt(totals.totalSemRecibo)}</td>
+                                    <td style="padding: 10px; text-align: center;">${totals.unicos}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.75em; color: #888;">¹ Acumulado = Crédito + Débito + PIX</div>
+                `;
+
+                document.getElementById('adm-export-btn').style.display = 'block';
+
+            } catch (error) {
+                console.error('❌ Erro ao gerar relatório ADM:', error);
+                contentDiv.innerHTML = `<div style="text-align: center; padding: 40px; color: #ff6666;">Erro: ${error.message}</div>`;
+                showNotification('Erro ao gerar relatório: ' + error.message, 'error');
+            }
+        }
+
+        function exportAdmReport() {
+            if (!admReportData) return;
+
+            const startDate = document.getElementById('adm-report-start').value;
+            const endDate = document.getElementById('adm-report-end').value;
+            const fmt = v => parseFloat(v.toFixed(2));
+
+            const totals = admReportData.reduce((acc, r) => ({
+                dinheiro: acc.dinheiro + r.dinheiro,
+                debito: acc.debito + r.debito,
+                credito: acc.credito + r.credito,
+                pix: acc.pix + r.pix,
+                acumulado: acc.acumulado + r.acumulado,
+                recibo: acc.recibo + r.recibo,
+                totalComRecibo: acc.totalComRecibo + r.totalComRecibo,
+                totalSemRecibo: acc.totalSemRecibo + r.totalSemRecibo,
+                unicos: acc.unicos + r.unicos
+            }), { dinheiro: 0, debito: 0, credito: 0, pix: 0, acumulado: 0, recibo: 0, totalComRecibo: 0, totalSemRecibo: 0, unicos: 0 });
+
+            const data = [
+                ...admReportData.map(r => ({
+                    'Atendente': r.atendente,
+                    'Valor Dinheiro (R$)': fmt(r.dinheiro),
+                    'Valor Débito (R$)': fmt(r.debito),
+                    'Valor Crédito (R$)': fmt(r.credito),
+                    'Valor PIX (R$)': fmt(r.pix),
+                    'Acumulado Créd+Déb+PIX (R$)': fmt(r.acumulado),
+                    'Valor Recibo (R$)': fmt(r.recibo),
+                    'Total c/ Recibo (R$)': fmt(r.totalComRecibo),
+                    'Total s/ Recibo (R$)': fmt(r.totalSemRecibo),
+                    'Atendimentos Únicos': r.unicos
+                })),
+                {
+                    'Atendente': 'TOTAL GERAL',
+                    'Valor Dinheiro (R$)': fmt(totals.dinheiro),
+                    'Valor Débito (R$)': fmt(totals.debito),
+                    'Valor Crédito (R$)': fmt(totals.credito),
+                    'Valor PIX (R$)': fmt(totals.pix),
+                    'Acumulado Créd+Déb+PIX (R$)': fmt(totals.acumulado),
+                    'Valor Recibo (R$)': fmt(totals.recibo),
+                    'Total c/ Recibo (R$)': fmt(totals.totalComRecibo),
+                    'Total s/ Recibo (R$)': fmt(totals.totalSemRecibo),
+                    'Atendimentos Únicos': totals.unicos
+                }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Fechamento por Atendente');
+            const periodoStr = (startDate && endDate) ? `_${startDate}_a_${endDate}` : '';
+            XLSX.writeFile(wb, `relatorio_atendentes${periodoStr}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showNotification('Relatório exportado com sucesso!', 'success');
+        }
+
         // ===== LISTA DE GANHADORES =====
         async function generateWinnersList() {
             try {
@@ -1638,6 +1852,9 @@
                     document.getElementById('user-name').textContent = currentUser.email.split('@')[0];
                     document.getElementById('login-container').style.display = 'none';
                     document.getElementById('main-system').style.display = 'block';
+                    if (currentUser.email.includes('adm')) {
+                        document.getElementById('adm-report-btn').style.display = 'block';
+                    }
                     loadInitialData();
                 }
             });
@@ -1654,6 +1871,10 @@
 
         // ===== FUNÇÕES GLOBAIS =====
         window.logout = logout;
+        window.openAdmReport = openAdmReport;
+        window.closeAdmReportModal = closeAdmReportModal;
+        window.generateAttendantReport = generateAttendantReport;
+        window.exportAdmReport = exportAdmReport;
         window.showDashboard = showDashboard;
         window.hideDashboard = hideDashboard;
         window.updateDashboard = updateDashboard;

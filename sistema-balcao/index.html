@@ -504,6 +504,11 @@
                         🏆 LISTA DE GANHADORES
                     </button>
                 </div>
+                <div id="adm-report-btn" style="display: none; margin-top: 15px;">
+                    <button onclick="openAdmReport()" class="btn btn-danger" style="width: 100%; padding: 15px;">
+                        📋 RELATÓRIO ADM — FECHAMENTO POR ATENDENTE
+                    </button>
+                </div>
             </div>
 
             <div id="main-content">
@@ -620,6 +625,10 @@
                     <div class="metric-card">
                         <div class="metric-value" id="dash-valor-debito">0</div>
                         <div class="metric-label">💳 Cartão Débito</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="dash-valor-recibo">0</div>
+                        <div class="metric-label">🧾 Recibo</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value" id="total-arrecadado">R$ 0,00</div>
@@ -773,6 +782,40 @@
                 <button onclick="printReceipt()" class="btn btn-info">🖨️ Imprimir</button>
                 <button onclick="emailReceiptFromModal()" class="btn btn-warning">📧 Enviar E-mail</button>
                 <button onclick="closeReceiptModal()" class="btn btn-secondary">❌ Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="adm-report-modal" class="modal">
+        <div class="modal-content" style="max-width: 1100px; width: 95%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--primary); font-size: 1.8em;">📋 Relatório de Fechamento por Atendente</h3>
+                <button onclick="closeAdmReportModal()" class="btn btn-secondary">❌ Fechar</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; margin-bottom: 20px; align-items: end;">
+                <div>
+                    <label style="color: white; margin-bottom: 5px; display: block;">📅 Data Início:</label>
+                    <input type="date" id="adm-report-start" class="input">
+                </div>
+                <div>
+                    <label style="color: white; margin-bottom: 5px; display: block;">📅 Data Fim:</label>
+                    <input type="date" id="adm-report-end" class="input">
+                </div>
+                <button onclick="generateAttendantReport()" class="btn btn-primary" style="padding: 12px 20px;">
+                    🔍 Gerar Relatório
+                </button>
+            </div>
+
+            <div id="adm-report-content" style="max-height: 60vh; overflow-y: auto;">
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    Selecione o período e clique em Gerar Relatório
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <button onclick="exportAdmReport()" class="btn btn-success" id="adm-export-btn" style="display: none;">📊 Exportar Excel</button>
+                <button onclick="closeAdmReportModal()" class="btn btn-secondary" style="grid-column: 2;">❌ Fechar</button>
             </div>
         </div>
     </div>
