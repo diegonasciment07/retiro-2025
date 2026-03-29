@@ -215,6 +215,7 @@
 
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('main-system').style.display = 'block';
+                document.getElementById('main-system-footer').style.display = 'block';
 
                 if (currentUser.email.includes('adm')) {
                     document.getElementById('adm-report-btn').style.display = 'block';
@@ -242,6 +243,7 @@
                 document.getElementById('adm-report-btn').style.display = 'none';
                 document.getElementById('login-container').style.display = 'flex';
                 document.getElementById('main-system').style.display = 'none';
+                document.getElementById('main-system-footer').style.display = 'none';
                 showNotification('Logout realizado com sucesso!', 'success');
             } catch (error) {
                 console.error('Erro no logout:', error);
@@ -1852,6 +1854,7 @@
                     document.getElementById('user-name').textContent = currentUser.email.split('@')[0];
                     document.getElementById('login-container').style.display = 'none';
                     document.getElementById('main-system').style.display = 'block';
+                    document.getElementById('main-system-footer').style.display = 'block';
                     if (currentUser.email.includes('adm')) {
                         document.getElementById('adm-report-btn').style.display = 'block';
                     }

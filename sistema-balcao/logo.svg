@@ -1,0 +1,19 @@
+<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="g" cx="38%" cy="30%" r="72%" gradientUnits="objectBoundingBox">
+      <stop offset="0%"   stop-color="#ffc46e"/>
+      <stop offset="40%"  stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c23e06"/>
+    </radialGradient>
+  </defs>
+  <!-- Outer complete ring -->
+  <circle cx="100" cy="100" r="88" stroke="url(#g)" stroke-width="15" fill="none"/>
+  <!-- Middle arc — ~330° sweep, gap at 7–8 o'clock -->
+  <path d="M 43.7 132.5 A 65 65 0 1 1 67.5 156.3"
+        stroke="url(#g)" stroke-width="13" stroke-linecap="round" fill="none"/>
+  <!-- Inner arc — ~330° sweep, gap at 7–8 o'clock -->
+  <path d="M 63.6 121 A 42 42 0 1 1 79 136.4"
+        stroke="url(#g)" stroke-width="11" stroke-linecap="round" fill="none"/>
+  <!-- Center dot -->
+  <circle cx="100" cy="100" r="13" fill="url(#g)"/>
+</svg>
