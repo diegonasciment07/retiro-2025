@@ -79,8 +79,11 @@
         }
         
         .church-logo img {
-            max-width: 120px;
-            height: auto;
+            width: 112px;
+            height: 112px;
+            object-fit: contain;
+            box-sizing: border-box;
+            padding: 6px;
             border-radius: 50%;
             border: 4px solid var(--cor-primaria);
             box-shadow: 0 4px 15px rgba(255, 107, 53, 0.5);
@@ -378,7 +381,7 @@
             body { padding: 10px; }
             .container { margin: 0; border-radius: 10px; }
             .header { padding: 20px; }
-            .church-logo img { max-width: 100px; }
+            .church-logo img { width: 96px; height: 96px; padding: 5px; }
             .church-name { font-size: 0.95em; letter-spacing: 1px; }
             .titulo-retiro { font-size: 2.2em; letter-spacing: 2px; }
             .subtitle-retiro { font-size: 1em; letter-spacing: 1px; }
