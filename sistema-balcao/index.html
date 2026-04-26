@@ -138,6 +138,34 @@
         .main-system { display: none; }
 
         /* ── Header ──────────────────────── */
+        .brand-logo {
+            display: block;
+            width: 84px;
+            height: auto;
+            object-fit: contain;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            filter: drop-shadow(0 0 16px rgba(249,115,22,0.4));
+        }
+        .login-logo {
+            width: 112px;
+            margin: 0 auto 16px;
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            margin-bottom: 8px;
+        }
+        .header-brand .brand-logo { flex: 0 0 auto; }
+        .signature-logo {
+            width: 26px;
+            height: auto;
+            opacity: 0.65;
+            object-fit: contain;
+        }
         .header {
             background: rgba(0,0,0,0.5);
             border: 1px solid var(--border);
@@ -364,7 +392,7 @@
             border-top: 1px solid var(--border);
             margin-top: 20px;
         }
-        .system-signature img { width: 20px; height: 20px; opacity: 0.5; }
+        .system-signature img { opacity: 0.65; }
 
         /* ── Animations ──────────────────── */
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -380,6 +408,9 @@
         @media (max-width: 768px) {
             body { padding: 12px; }
             .user-info { position: static; transform: none; margin-bottom: 12px; justify-content: center; }
+            .header-brand { gap: 12px; }
+            .header-brand .brand-logo { width: 70px; }
+            .login-logo { width: 96px; }
             .receipt-modal .modal-content { width: 95%; padding: 20px; }
             .receipt-content { font-size: 0.9em; }
         }
@@ -397,7 +428,7 @@
     <div id="login-container" class="login-container">
         <div class="card" style="width: 420px; max-width: 95vw; text-align: center; border-color: var(--border-accent); box-shadow: 0 0 60px rgba(249,115,22,0.12);">
             <div style="margin-bottom: 24px;">
-                <img src="./logo.svg" alt="ALVO" style="width: 64px; height: 64px; margin-bottom: 16px;">
+                <img src="https://i.imgur.com/T5QABfl.jpeg" alt="O Retiro" class="brand-logo login-logo">
                 <div style="color: var(--text-light); font-size: 0.72em; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px;">ALVO CHURCH</div>
                 <h1 style="color: var(--primary); font-size: 1.9em; font-weight: 800; letter-spacing: -0.5px;">Sistema de Balcão</h1>
                 <div style="color: var(--text-muted); font-size: 0.82em; margin-top: 4px; letter-spacing: 1px;">O RETIRO 2026</div>
@@ -432,8 +463,8 @@
                     <button onclick="logout()" class="btn btn-danger" style="padding: 4px 10px; font-size: 0.75em;">Sair</button>
                 </div>
 
-                <div style="display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 8px;">
-                    <img src="./logo.svg" alt="ALVO" style="width: 42px; height: 42px;">
+                <div class="header-brand">
+                    <img src="https://i.imgur.com/T5QABfl.jpeg" alt="O Retiro" class="brand-logo">
                     <div style="text-align: left;">
                         <div style="color: var(--text-light); font-size: 0.68em; letter-spacing: 3px; text-transform: uppercase;">VISÃO • MISSÃO • PRESSÃO</div>
                         <h1 style="color: var(--primary); font-size: 2em; font-weight: 900; letter-spacing: -0.5px; line-height: 1.1;">SISTEMA DE BALCÃO</h1>
@@ -789,7 +820,7 @@
 
     <div id="main-system-footer" style="display: none;">
         <div class="system-signature">
-            <img src="./logo.svg" alt="ALVO">
+            <img src="https://i.imgur.com/T5QABfl.jpeg" alt="O Retiro" class="signature-logo">
             <span style="color: var(--text-muted);">ALVO CHURCH</span>
             <span class="sig-dot"></span>
             <span>Sistema de Balcão</span>
