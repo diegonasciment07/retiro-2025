@@ -1105,6 +1105,14 @@
                     </div>
 
                     <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--primary); margin-bottom: 15px;">🏥 Saúde e Acessibilidade</h4>
+                        <div>
+                            <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Observações:</label>
+                            <div style="color: white; background: #222; padding: 12px; border-radius: 5px; font-size: 16px; white-space: pre-wrap;">${participant.observacoes_saude || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
                         <h4 style="color: var(--primary); margin-bottom: 15px;">💰 Informações de Pagamento</h4>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div>
