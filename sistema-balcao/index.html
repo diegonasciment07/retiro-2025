@@ -415,6 +415,75 @@
             .receipt-content { font-size: 0.9em; }
         }
 
+        /* ── Tabs ────────────────────────── */
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 28px;
+            background: var(--bg-medium);
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius-lg);
+            padding: 6px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            background: transparent;
+            color: var(--text-light);
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 0.82em;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            box-shadow: 0 2px 16px var(--primary-glow);
+        }
+
+        /* ── Event Config (ADM) ──────────── */
+        .event-config-panel {
+            background: linear-gradient(135deg, rgba(249,115,22,0.08) 0%, rgba(249,115,22,0.03) 100%);
+            border: 1px solid var(--border-accent);
+            border-radius: var(--border-radius-xl);
+            padding: 28px;
+            margin-bottom: 24px;
+            display: none;
+        }
+        .event-config-panel.visible { display: block; }
+
+        /* ── Event Stats ─────────────────── */
+        .event-stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .event-stat-item {
+            background: var(--bg-medium);
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius);
+            padding: 18px;
+            text-align: center;
+        }
+        .event-stat-value { font-size: 2em; font-weight: 800; color: var(--primary); }
+        .event-stat-label { font-size: 0.72em; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); margin-top: 4px; }
+
+        /* ── No event banner ─────────────── */
+        .no-event-banner {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        .no-event-banner .icon { font-size: 3em; margin-bottom: 12px; }
+        .no-event-banner h3 { font-size: 1.3em; color: var(--text-light); margin-bottom: 8px; }
+
         /* ── Print ───────────────────────── */
         @media print {
             body * { visibility: hidden; }
@@ -472,6 +541,15 @@
                 </div>
                 <div style="color: var(--text-muted); font-size: 0.78em; letter-spacing: 2px; text-transform: uppercase;">O Retiro • Gestão de Pagamentos</div>
             </div>
+
+            <!-- ── Tabs de navegação ────────────────────── -->
+            <div class="tab-nav">
+                <button class="tab-btn active" id="tab-retiro" onclick="switchTab('retiro')">🏕️ RETIRO 2026</button>
+                <button class="tab-btn" id="tab-eventos" onclick="switchTab('eventos')">📅 EVENTOS</button>
+            </div>
+
+            <!-- ══════════════ SEÇÃO RETIRO (existente) ══════════════ -->
+            <div id="section-retiro">
 
             <div class="stats-panel">
                 <h2 style="color: white; font-size: 2em; margin-bottom: 15px; text-align: center; text-transform: uppercase; letter-spacing: 3px;">
@@ -546,7 +624,7 @@
                 </div>
             </div>
 
-            <div id="dashboard-container" class="dashboard-container">
+            <div id="dashboard-container" class="dashboard-container" style="display:none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
                     <h2 style="color: var(--primary); font-size: 2em;">📈 Dashboard de Fechamento</h2>
                     <button onclick="hideDashboard()" class="btn btn-secondary">← Voltar</button>
@@ -655,6 +733,163 @@
                     <button onclick="exportInscricoes()" class="btn btn-info">📋 Exportar Pagamentos Filtrados</button>
                 </div>
             </div>
+
+            </div><!-- /section-retiro -->
+
+            <!-- ══════════════ SEÇÃO EVENTOS ══════════════ -->
+            <div id="section-eventos" style="display:none;">
+
+                <!-- Painel de configuração — somente ADM -->
+                <div id="event-config-panel" class="event-config-panel">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                        <h2 style="color:var(--primary); font-size:1.4em; font-weight:800; letter-spacing:-0.3px;">⚙️ Configurar Evento</h2>
+                        <div style="display:flex; gap:10px;">
+                            <button onclick="toggleEventActive()" id="event-toggle-btn" class="btn btn-warning" style="padding:10px 18px;">
+                                ▶️ Ativar Evento
+                            </button>
+                            <button onclick="openEventConfigEdit()" id="event-edit-btn" class="btn btn-secondary" style="padding:10px 18px; display:none;">
+                                ✏️ Editar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Formulário de configuração -->
+                    <div id="event-form-area">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                            <div>
+                                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Nome do Evento *</label>
+                                <input type="text" id="ev-nome" class="input" placeholder="Ex: Seminário de Escatologia">
+                            </div>
+                            <div>
+                                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Data</label>
+                                <input type="date" id="ev-data" class="input">
+                            </div>
+                        </div>
+                        <div style="margin-bottom:16px;">
+                            <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Descrição (opcional)</label>
+                            <input type="text" id="ev-descricao" class="input" placeholder="Breve descrição do evento">
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
+                            <div>
+                                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Capacidade (0 = ilimitado)</label>
+                                <input type="number" id="ev-capacidade" class="input" placeholder="0" min="0">
+                            </div>
+                            <div>
+                                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Tipo</label>
+                                <select id="ev-gratuito" class="input" onchange="toggleEventValueField()">
+                                    <option value="true">Gratuito</option>
+                                    <option value="false">Pago</option>
+                                </select>
+                            </div>
+                            <div id="ev-valor-wrap">
+                                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Valor (R$)</label>
+                                <input type="text" id="ev-valor" class="input" placeholder="Ex: 30,00" disabled>
+                            </div>
+                        </div>
+                        <button onclick="saveEventConfig()" class="btn btn-primary" style="width:100%; padding:15px; font-size:0.9em; letter-spacing:2px;">
+                            💾 SALVAR CONFIGURAÇÃO
+                        </button>
+                    </div>
+
+                    <!-- Resumo do evento ativo -->
+                    <div id="event-active-summary" style="display:none;">
+                        <div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); border-radius:var(--border-radius); padding:16px;">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                                <span style="color:var(--success); font-size:1.4em;">✅</span>
+                                <strong id="ev-active-nome" style="color:var(--text-primary); font-size:1.1em;"></strong>
+                            </div>
+                            <div style="color:var(--text-light); font-size:0.85em; display:flex; gap:20px; flex-wrap:wrap;">
+                                <span id="ev-active-data"></span>
+                                <span id="ev-active-tipo"></span>
+                                <span id="ev-active-capacidade"></span>
+                            </div>
+                            <div id="ev-active-descricao" style="color:var(--text-muted); font-size:0.82em; margin-top:6px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sem evento ativo (usuários comuns) -->
+                <div id="no-event-banner" class="no-event-banner" style="display:none;">
+                    <div class="icon">📅</div>
+                    <h3>Nenhum evento ativo no momento</h3>
+                    <p>Aguarde o administrador configurar e ativar um evento.</p>
+                </div>
+
+                <!-- Balcão de inscrições do evento -->
+                <div id="event-desk" style="display:none;">
+                    <div class="event-stats-bar">
+                        <div class="event-stat-item">
+                            <div class="event-stat-value" id="ev-stat-inscritos">0</div>
+                            <div class="event-stat-label">Inscritos</div>
+                        </div>
+                        <div class="event-stat-item" id="ev-stat-vagas-wrap">
+                            <div class="event-stat-value" id="ev-stat-vagas">∞</div>
+                            <div class="event-stat-label">Vagas Restantes</div>
+                        </div>
+                        <div class="event-stat-item">
+                            <div class="event-stat-value" id="ev-stat-hoje">0</div>
+                            <div class="event-stat-label">Inscrições Hoje</div>
+                        </div>
+                    </div>
+
+                    <div class="main-layout">
+                        <!-- Formulário de nova inscrição -->
+                        <div class="card">
+                            <h2 style="color:var(--primary); font-size:1.4em; margin-bottom:20px; text-align:center;">✍️ Nova Inscrição</h2>
+
+                            <div style="margin-bottom:14px;">
+                                <label style="color:var(--text-light); font-weight:600; margin-bottom:6px; display:block; font-size:0.85em; text-transform:uppercase; letter-spacing:0.5px;">Nome Completo *</label>
+                                <input type="text" id="ev-reg-nome" class="input" placeholder="Nome completo do participante">
+                            </div>
+                            <div style="margin-bottom:14px;">
+                                <label style="color:var(--text-light); font-weight:600; margin-bottom:6px; display:block; font-size:0.85em; text-transform:uppercase; letter-spacing:0.5px;">Telefone / WhatsApp</label>
+                                <input type="text" id="ev-reg-telefone" class="input" placeholder="(00) 00000-0000">
+                            </div>
+                            <div style="margin-bottom:14px;">
+                                <label style="color:var(--text-light); font-weight:600; margin-bottom:6px; display:block; font-size:0.85em; text-transform:uppercase; letter-spacing:0.5px;">Rede</label>
+                                <select id="ev-reg-rede" class="input">
+                                    <option value="">Selecione a rede...</option>
+                                    <option value="Rede Branca">Rede Branca</option>
+                                    <option value="Rede Azul">Rede Azul</option>
+                                    <option value="Rede Amarela">Rede Amarela</option>
+                                    <option value="Rede Vermelha">Rede Vermelha</option>
+                                    <option value="Rede Verde">Rede Verde</option>
+                                    <option value="Rede Marrom">Rede Marrom</option>
+                                    <option value="Rede Roxa">Rede Roxa</option>
+                                    <option value="Visitante">Visitante</option>
+                                </select>
+                            </div>
+                            <div style="margin-bottom:20px;">
+                                <label style="color:var(--text-light); font-weight:600; margin-bottom:6px; display:block; font-size:0.85em; text-transform:uppercase; letter-spacing:0.5px;">Observação</label>
+                                <input type="text" id="ev-reg-obs" class="input" placeholder="Opcional">
+                            </div>
+
+                            <button onclick="registerForEvent()" class="btn btn-success" style="width:100%; padding:15px; font-size:0.9em; letter-spacing:2px;">
+                                ✅ REGISTRAR INSCRIÇÃO
+                            </button>
+
+                            <div style="padding-top:20px; border-top:1px solid var(--border); margin-top:20px;">
+                                <button onclick="exportEventRegistrations()" class="btn btn-secondary" style="width:100%;">
+                                    📊 Exportar Lista (Excel)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lista de inscrições do evento -->
+                        <div class="card">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                                <h2 style="color:var(--primary); font-size:1.4em;">📋 Inscritos</h2>
+                                <input type="text" id="ev-search" class="input" placeholder="Buscar por nome..." style="width:200px;" oninput="filterEventList()">
+                            </div>
+                            <div id="event-list-container" style="max-height:560px; overflow-y:auto;">
+                                <div style="text-align:center; padding:40px; color:#666;">Carregando...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /section-eventos -->
+
         </div>
     </div>
 

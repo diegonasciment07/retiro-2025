@@ -219,6 +219,7 @@
 
                 if (currentUser.email.includes('adm')) {
                     document.getElementById('adm-report-btn').style.display = 'block';
+                    isAdm = true;
                 }
 
                 await loadInitialData();
@@ -240,6 +241,9 @@
                 await supabase.auth.signOut();
                 currentUser = null;
                 allParticipants = [];
+                isAdm = false;
+                activeEvent = null;
+                eventRegistrations = [];
                 document.getElementById('adm-report-btn').style.display = 'none';
                 document.getElementById('login-container').style.display = 'flex';
                 document.getElementById('main-system').style.display = 'none';
@@ -1926,4 +1930,407 @@
         });
 
         console.log('✅ Sistema carregado completamente!');
+
+        // ═══════════════════════════════════════════════════════════
+        //  MÓDULO DE EVENTOS AVULSOS
+        // ═══════════════════════════════════════════════════════════
+
+        let activeEvent = null;
+        let eventRegistrations = [];
+        let isAdm = false;
+
+        // ── Troca de abas ─────────────────────────────────────────
+        function switchTab(tab) {
+            const retiroSection = document.getElementById('section-retiro');
+            const eventosSection = document.getElementById('section-eventos');
+            const btnRetiro = document.getElementById('tab-retiro');
+            const btnEventos = document.getElementById('tab-eventos');
+
+            if (tab === 'retiro') {
+                retiroSection.style.display = 'block';
+                eventosSection.style.display = 'none';
+                btnRetiro.classList.add('active');
+                btnEventos.classList.remove('active');
+            } else {
+                retiroSection.style.display = 'none';
+                eventosSection.style.display = 'block';
+                btnRetiro.classList.remove('active');
+                btnEventos.classList.add('active');
+                loadActiveEvent();
+            }
+        }
+
+        // ── Carrega o evento ativo do Supabase ────────────────────
+        async function loadActiveEvent() {
+            try {
+                const { data, error } = await supabase
+                    .from('eventos')
+                    .select('*')
+                    .eq('ativo', true)
+                    .maybeSingle();
+
+                if (error) throw error;
+                activeEvent = data;
+                renderEventosSection();
+            } catch (err) {
+                console.error('Erro ao carregar evento:', err);
+                showNotification('Erro ao carregar evento', 'error');
+            }
+        }
+
+        // ── Renderiza a seção de eventos conforme o estado ────────
+        function renderEventosSection() {
+            const configPanel = document.getElementById('event-config-panel');
+            const noEventBanner = document.getElementById('no-event-banner');
+            const eventDesk = document.getElementById('event-desk');
+            const toggleBtn = document.getElementById('event-toggle-btn');
+            const editBtn = document.getElementById('event-edit-btn');
+            const formArea = document.getElementById('event-form-area');
+            const activeSummary = document.getElementById('event-active-summary');
+
+            // Mostra painel de config apenas para ADM
+            if (isAdm) {
+                configPanel.classList.add('visible');
+            } else {
+                configPanel.classList.remove('visible');
+            }
+
+            if (activeEvent) {
+                noEventBanner.style.display = 'none';
+                eventDesk.style.display = 'block';
+                updateEventStats();
+                loadEventRegistrationsList();
+
+                // ADM: mostra resumo e botão de desativar
+                if (isAdm) {
+                    formArea.style.display = 'none';
+                    activeSummary.style.display = 'block';
+                    document.getElementById('ev-active-nome').textContent = activeEvent.nome;
+                    document.getElementById('ev-active-data').textContent = activeEvent.data
+                        ? '📅 ' + new Date(activeEvent.data + 'T12:00:00').toLocaleDateString('pt-BR')
+                        : '';
+                    document.getElementById('ev-active-tipo').textContent = activeEvent.gratuito
+                        ? '🎟️ Gratuito'
+                        : `💰 R$ ${parseFloat(activeEvent.valor || 0).toFixed(2).replace('.', ',')}`;
+                    document.getElementById('ev-active-capacidade').textContent = activeEvent.capacidade > 0
+                        ? `👥 ${activeEvent.capacidade} vagas`
+                        : '👥 Ilimitado';
+                    document.getElementById('ev-active-descricao').textContent = activeEvent.descricao || '';
+                    toggleBtn.textContent = '⏹️ Desativar Evento';
+                    toggleBtn.className = 'btn btn-danger';
+                    editBtn.style.display = 'inline-block';
+                }
+            } else {
+                eventDesk.style.display = 'none';
+
+                if (isAdm) {
+                    formArea.style.display = 'block';
+                    activeSummary.style.display = 'none';
+                    toggleBtn.textContent = '▶️ Ativar Evento';
+                    toggleBtn.className = 'btn btn-warning';
+                    editBtn.style.display = 'none';
+                    noEventBanner.style.display = 'none';
+                } else {
+                    noEventBanner.style.display = 'block';
+                }
+            }
+        }
+
+        // ── Salva configuração do evento (ADM) ────────────────────
+        async function saveEventConfig() {
+            const nome = document.getElementById('ev-nome').value.trim();
+            const data = document.getElementById('ev-data').value;
+            const descricao = document.getElementById('ev-descricao').value.trim();
+            const capacidade = parseInt(document.getElementById('ev-capacidade').value) || 0;
+            const gratuito = document.getElementById('ev-gratuito').value === 'true';
+            const valorRaw = document.getElementById('ev-valor').value.trim().replace(',', '.');
+            const valor = gratuito ? 0 : (parseFloat(valorRaw) || 0);
+
+            if (!nome) {
+                showNotification('Informe o nome do evento', 'error');
+                return;
+            }
+
+            try {
+                showNotification('Salvando...', 'info');
+
+                const payload = {
+                    nome,
+                    data: data || null,
+                    descricao: descricao || null,
+                    capacidade,
+                    gratuito,
+                    valor,
+                    ativo: false,
+                    criado_por: currentUser.email,
+                    atualizado_em: new Date().toISOString()
+                };
+
+                let result;
+                if (activeEvent && activeEvent.id) {
+                    result = await supabase.from('eventos').update(payload).eq('id', activeEvent.id).select().single();
+                } else {
+                    result = await supabase.from('eventos').insert(payload).select().single();
+                }
+
+                if (result.error) throw result.error;
+                activeEvent = result.data;
+
+                showNotification('Evento salvo! Ative quando quiser.', 'success');
+                renderEventosSection();
+            } catch (err) {
+                console.error('Erro ao salvar evento:', err);
+                showNotification('Erro ao salvar: ' + err.message, 'error');
+            }
+        }
+
+        // ── Ativa ou desativa o evento (ADM) ─────────────────────
+        async function toggleEventActive() {
+            if (!activeEvent) {
+                showNotification('Salve a configuração do evento primeiro', 'error');
+                return;
+            }
+
+            const novoEstado = !activeEvent.ativo;
+
+            try {
+                const { data, error } = await supabase
+                    .from('eventos')
+                    .update({ ativo: novoEstado, atualizado_em: new Date().toISOString() })
+                    .eq('id', activeEvent.id)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                activeEvent = novoEstado ? data : null;
+
+                showNotification(novoEstado ? '✅ Evento ativado!' : '⏹️ Evento desativado.', 'success');
+                renderEventosSection();
+            } catch (err) {
+                console.error('Erro ao alternar evento:', err);
+                showNotification('Erro: ' + err.message, 'error');
+            }
+        }
+
+        // ── Abre formulário de edição (ADM) ───────────────────────
+        function openEventConfigEdit() {
+            if (!activeEvent) return;
+            const formArea = document.getElementById('event-form-area');
+            const activeSummary = document.getElementById('event-active-summary');
+
+            document.getElementById('ev-nome').value = activeEvent.nome || '';
+            document.getElementById('ev-data').value = activeEvent.data || '';
+            document.getElementById('ev-descricao').value = activeEvent.descricao || '';
+            document.getElementById('ev-capacidade').value = activeEvent.capacidade || 0;
+            document.getElementById('ev-gratuito').value = activeEvent.gratuito ? 'true' : 'false';
+            document.getElementById('ev-valor').value = activeEvent.valor
+                ? parseFloat(activeEvent.valor).toFixed(2).replace('.', ',')
+                : '';
+            toggleEventValueField();
+
+            formArea.style.display = 'block';
+            activeSummary.style.display = 'none';
+        }
+
+        // ── Habilita/desabilita campo de valor conforme tipo ──────
+        function toggleEventValueField() {
+            const gratuito = document.getElementById('ev-gratuito').value === 'true';
+            const valorInput = document.getElementById('ev-valor');
+            valorInput.disabled = gratuito;
+            if (gratuito) valorInput.value = '';
+        }
+
+        // ── Registra inscrição no evento ──────────────────────────
+        async function registerForEvent() {
+            if (!activeEvent) {
+                showNotification('Nenhum evento ativo', 'error');
+                return;
+            }
+
+            const nome = document.getElementById('ev-reg-nome').value.trim();
+            const telefone = document.getElementById('ev-reg-telefone').value.trim();
+            const rede = document.getElementById('ev-reg-rede').value;
+            const obs = document.getElementById('ev-reg-obs').value.trim();
+
+            if (!nome) {
+                showNotification('Informe o nome do participante', 'error');
+                return;
+            }
+
+            // Verifica capacidade
+            if (activeEvent.capacidade > 0 && eventRegistrations.length >= activeEvent.capacidade) {
+                showNotification('Evento com capacidade esgotada!', 'error');
+                return;
+            }
+
+            // Verifica duplicata por nome
+            const duplicado = eventRegistrations.find(r =>
+                r.nome.toLowerCase().trim() === nome.toLowerCase()
+            );
+            if (duplicado) {
+                showNotification(`"${nome}" já está inscrito(a) neste evento.`, 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('inscricoes_eventos')
+                    .insert({
+                        evento_id: activeEvent.id,
+                        nome,
+                        telefone: telefone || null,
+                        rede: rede || null,
+                        observacao: obs || null,
+                        atendente: currentUser.email.split('@')[0]
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                eventRegistrations.unshift(data);
+                updateEventStats();
+                renderEventList();
+
+                // Limpa campos
+                document.getElementById('ev-reg-nome').value = '';
+                document.getElementById('ev-reg-telefone').value = '';
+                document.getElementById('ev-reg-rede').value = '';
+                document.getElementById('ev-reg-obs').value = '';
+                document.getElementById('ev-reg-nome').focus();
+
+                showNotification(`✅ ${nome} inscrito(a) com sucesso!`, 'success');
+            } catch (err) {
+                console.error('Erro ao registrar:', err);
+                showNotification('Erro ao registrar: ' + err.message, 'error');
+            }
+        }
+
+        // ── Carrega lista de inscrições do evento ativo ───────────
+        async function loadEventRegistrationsList() {
+            if (!activeEvent) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('inscricoes_eventos')
+                    .select('*')
+                    .eq('evento_id', activeEvent.id)
+                    .order('criado_em', { ascending: false });
+
+                if (error) throw error;
+                eventRegistrations = data || [];
+                updateEventStats();
+                renderEventList();
+            } catch (err) {
+                console.error('Erro ao carregar inscrições do evento:', err);
+                document.getElementById('event-list-container').innerHTML =
+                    '<div style="text-align:center;padding:20px;color:#ef4444;">Erro ao carregar inscrições</div>';
+            }
+        }
+
+        // ── Atualiza contadores do evento ─────────────────────────
+        function updateEventStats() {
+            const total = eventRegistrations.length;
+            document.getElementById('ev-stat-inscritos').textContent = total;
+
+            if (activeEvent && activeEvent.capacidade > 0) {
+                const vagas = Math.max(0, activeEvent.capacidade - total);
+                document.getElementById('ev-stat-vagas').textContent = vagas;
+            } else {
+                document.getElementById('ev-stat-vagas').textContent = '∞';
+            }
+
+            const hoje = new Date().toDateString();
+            const hoje_count = eventRegistrations.filter(r =>
+                new Date(r.criado_em).toDateString() === hoje
+            ).length;
+            document.getElementById('ev-stat-hoje').textContent = hoje_count;
+        }
+
+        // ── Renderiza a lista de inscritos ────────────────────────
+        function renderEventList(filter = '') {
+            const container = document.getElementById('event-list-container');
+            const lower = filter.toLowerCase();
+            const list = filter
+                ? eventRegistrations.filter(r => r.nome.toLowerCase().includes(lower))
+                : eventRegistrations;
+
+            if (list.length === 0) {
+                container.innerHTML = `<div style="text-align:center;padding:40px;color:#666;">
+                    ${filter ? 'Nenhum resultado encontrado' : 'Nenhuma inscrição ainda'}
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = list.map((r, idx) => `
+                <div class="person-card" style="margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+                        <div style="flex:1;">
+                            <div style="font-weight:700; color:var(--text-primary); font-size:1em;">${r.nome}</div>
+                            <div style="color:var(--text-muted); font-size:0.8em; margin-top:3px; display:flex; gap:12px; flex-wrap:wrap;">
+                                ${r.telefone ? `<span>📱 ${r.telefone}</span>` : ''}
+                                ${r.rede ? `<span>🔵 ${r.rede}</span>` : ''}
+                                ${r.observacao ? `<span>📝 ${r.observacao}</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="text-align:right; flex-shrink:0;">
+                            <div style="font-size:0.72em; color:var(--text-muted);">${formatDateTime(new Date(r.criado_em))}</div>
+                            <div style="font-size:0.72em; color:var(--primary); margin-top:2px;">por ${r.atendente || '—'}</div>
+                            ${isAdm ? `<button onclick="removeEventRegistration('${r.id}')" class="btn btn-danger" style="padding:3px 8px; font-size:0.7em; margin-top:4px;">🗑️</button>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ── Filtra lista ao digitar no campo de busca ─────────────
+        function filterEventList() {
+            const q = document.getElementById('ev-search').value;
+            renderEventList(q);
+        }
+
+        // ── Remove inscrição (ADM) ────────────────────────────────
+        async function removeEventRegistration(id) {
+            if (!confirm('Remover esta inscrição?')) return;
+
+            try {
+                const { error } = await supabase
+                    .from('inscricoes_eventos')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+                eventRegistrations = eventRegistrations.filter(r => r.id !== id);
+                updateEventStats();
+                renderEventList(document.getElementById('ev-search').value);
+                showNotification('Inscrição removida', 'info');
+            } catch (err) {
+                showNotification('Erro ao remover: ' + err.message, 'error');
+            }
+        }
+
+        // ── Exporta lista do evento para Excel ────────────────────
+        function exportEventRegistrations() {
+            if (!activeEvent || eventRegistrations.length === 0) {
+                showNotification('Nenhuma inscrição para exportar', 'error');
+                return;
+            }
+
+            const rows = eventRegistrations.map((r, i) => ({
+                'Nº': i + 1,
+                'Nome': r.nome,
+                'Telefone': r.telefone || '',
+                'Rede': r.rede || '',
+                'Observação': r.observacao || '',
+                'Atendente': r.atendente || '',
+                'Data/Hora': formatDateTime(new Date(r.criado_em))
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Inscrições');
+            XLSX.writeFile(wb, `inscricoes_${activeEvent.nome.replace(/\s+/g, '_')}.xlsx`);
+        }
+
+        // isAdm é definido no bloco de login acima (currentUser.email.includes('adm'))
     
