@@ -2308,13 +2308,18 @@
 
         function updateEventStats() {
             const t = eventRegistrations.length;
+            const pagos = eventRegistrations.filter(r => r.pago).length;
+            const pendentes = t - pagos;
+            const arrecadado = eventRegistrations.reduce((s, r) => s + parseFloat(r.valor_pago || 0), 0);
             document.getElementById('ev-stat-inscritos').textContent = t;
-            document.getElementById('ev-stat-vagas').textContent =
-                (selectedEvent && selectedEvent.capacidade > 0)
-                    ? Math.max(0, selectedEvent.capacidade - t) : '∞';
+            document.getElementById('ev-stat-pagos').textContent = pagos;
+            document.getElementById('ev-stat-pendentes').textContent = pendentes;
+            document.getElementById('ev-stat-arrecadado').textContent = 'R$ ' + arrecadado.toFixed(2).replace('.', ',');
             const hoje = new Date().toDateString();
             document.getElementById('ev-stat-hoje').textContent =
                 eventRegistrations.filter(r => new Date(r.criado_em).toDateString() === hoje).length;
+            const ft = document.getElementById('ev-financial-toolbar');
+            if (ft) ft.style.display = isCurrentUserAdm() ? 'flex' : 'none';
         }
 
 function renderEventList(filter) {
@@ -2333,26 +2338,39 @@ function renderEventList(filter) {
                     + (filter ? 'Nenhum resultado' : 'Nenhuma inscrição ainda') + '</div>';
                 return;
             }
-            container.innerHTML = list.map(r =>
-                '<div class="person-card">'
-                + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
-                + '<div style="flex:1;">'
-                + '<div style="font-weight:700;color:var(--text-primary);">' + r.nome + '</div>'
-                + '<div style="color:var(--text-muted);font-size:0.78em;margin-top:3px;display:flex;gap:12px;flex-wrap:wrap;">'
-                + (r.telefone ? '<span>📱 ' + r.telefone + '</span>' : '')
-                + (r.email ? '<span>📧 ' + r.email + '</span>' : '')
-                + (r.rede ? '<span>🔵 ' + r.rede + '</span>' : '')
-                + (typeof r.ja_foi_retiro === 'boolean' ? '<span>🏕️ Retiro: ' + (r.ja_foi_retiro ? 'SIM' : 'NAO') + '</span>' : '')
-                + (r.observacao ? '<span>📝 ' + r.observacao + '</span>' : '')
-                + '</div></div>'
-                + '<div style="text-align:right;flex-shrink:0;">'
-                + '<div style="font-size:0.72em;color:var(--text-muted);">' + formatDateTime(new Date(r.criado_em)) + '</div>'
-                + '<div style="font-size:0.72em;color:var(--primary);margin-top:2px;">por ' + (r.atendente || '—') + '</div>'
-                + (isCurrentUserAdm()
-                    ? '<button onclick="removeEventRegistration(&apos;' + r.id + '&apos;)" class="btn btn-danger" style="padding:3px 8px;font-size:0.7em;margin-top:4px;">🗑️</button>'
-                    : '')
-                + '</div></div></div>'
-            ).join('');
+            const isPaid = !selectedEvent.gratuito;
+            container.innerHTML = list.map(r => {
+                const pagoBadge = r.pago
+                    ? '<span style="background:var(--success);color:#fff;padding:2px 10px;border-radius:100px;font-size:0.7em;font-weight:700;">✅ PAGO</span>'
+                    : (isPaid ? '<span style="background:var(--warning);color:#000;padding:2px 10px;border-radius:100px;font-size:0.7em;font-weight:700;">⏳ PENDENTE</span>' : '');
+                const formaTag = r.pago && r.forma_pagamento
+                    ? '<span style="color:var(--text-muted);font-size:0.72em;"> · ' + r.forma_pagamento + '</span>' : '';
+                const pagarBtn = isCurrentUserAdm() && isPaid && !r.pago
+                    ? '<button onclick="openEvPaymentModal(&apos;' + r.id + '&apos;)" class="btn btn-success" style="padding:4px 10px;font-size:0.72em;margin-top:4px;">💳 Pagar</button>'
+                    : '';
+                const delBtn = isCurrentUserAdm()
+                    ? '<button onclick="removeEventRegistration(&apos;' + r.id + '&apos;)" class="btn btn-danger" style="padding:4px 8px;font-size:0.7em;margin-top:4px;">🗑️</button>'
+                    : '';
+                return '<div class="person-card" style="' + (r.pago ? 'border-left:3px solid var(--success);' : (isPaid ? 'border-left:3px solid var(--warning);' : '')) + '">'
+                    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
+                    + '<div style="flex:1;">'
+                    + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">'
+                    + '<span style="font-weight:700;color:var(--text-primary);">' + r.nome + '</span>'
+                    + pagoBadge + formaTag
+                    + '</div>'
+                    + '<div style="color:var(--text-muted);font-size:0.78em;display:flex;gap:12px;flex-wrap:wrap;">'
+                    + (r.telefone ? '<span>📱 ' + r.telefone + '</span>' : '')
+                    + (r.email ? '<span>📧 ' + r.email + '</span>' : '')
+                    + (r.rede ? '<span>🔵 ' + r.rede + '</span>' : '')
+                    + (typeof r.ja_foi_retiro === 'boolean' ? '<span>🏕️ Retiro: ' + (r.ja_foi_retiro ? 'SIM' : 'NAO') + '</span>' : '')
+                    + (r.observacao ? '<span>📝 ' + r.observacao + '</span>' : '')
+                    + '</div></div>'
+                    + '<div style="text-align:right;flex-shrink:0;">'
+                    + '<div style="font-size:0.72em;color:var(--text-muted);">' + formatDateTime(new Date(r.criado_em)) + '</div>'
+                    + '<div style="font-size:0.72em;color:var(--primary);margin-top:2px;">por ' + (r.atendente || '—') + '</div>'
+                    + '<div style="display:flex;gap:4px;justify-content:flex-end;margin-top:2px;">' + pagarBtn + delBtn + '</div>'
+                    + '</div></div></div>';
+            }).join('');
         }
 
         function filterEventList() {
@@ -2388,6 +2406,167 @@ function exportEventRegistrations() {
             XLSX.writeFile(wb, 'inscricoes_' + selectedEvent.nome.replace(/\s+/g, '_') + '.xlsx');
         }
 
+        // ── Pagamento ─────────────────────────────────────────────
+        let payingRegistrationId = null;
+        let selectedFormaPagamento = null;
+
+        function openEvPaymentModal(id) {
+            const r = eventRegistrations.find(x => x.id === id);
+            if (!r) return;
+            payingRegistrationId = id;
+            selectedFormaPagamento = null;
+            document.getElementById('ev-payment-nome').textContent = r.nome;
+            const valor = selectedEvent && !selectedEvent.gratuito
+                ? 'R$ ' + parseFloat(selectedEvent.valor || 0).toFixed(2).replace('.', ',')
+                : 'Gratuito';
+            document.getElementById('ev-payment-valor').textContent = valor;
+            ['pix','dinheiro','cartao'].forEach(f => {
+                const btn = document.getElementById('fp-' + f);
+                if (btn) { btn.classList.remove('btn-primary'); btn.classList.add('btn-secondary'); }
+            });
+            document.getElementById('ev-payment-confirm-btn').disabled = true;
+            document.getElementById('ev-payment-modal').style.display = 'flex';
+        }
+
+        function closeEvPaymentModal() {
+            document.getElementById('ev-payment-modal').style.display = 'none';
+            payingRegistrationId = null;
+            selectedFormaPagamento = null;
+        }
+
+        function selectFormaPagamento(forma) {
+            selectedFormaPagamento = forma;
+            ['pix','dinheiro','cartao'].forEach(f => {
+                const btn = document.getElementById('fp-' + f);
+                if (!btn) return;
+                if (f === forma.toLowerCase()) {
+                    btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary');
+                } else {
+                    btn.classList.remove('btn-primary'); btn.classList.add('btn-secondary');
+                }
+            });
+            document.getElementById('ev-payment-confirm-btn').disabled = false;
+        }
+
+        async function confirmEventPayment() {
+            if (!payingRegistrationId || !selectedFormaPagamento) return;
+            const btn = document.getElementById('ev-payment-confirm-btn');
+            btn.disabled = true;
+            btn.textContent = 'Salvando...';
+            try {
+                const valorPago = selectedEvent && !selectedEvent.gratuito
+                    ? parseFloat(selectedEvent.valor || 0) : 0;
+                const { data, error } = await supabase.from('inscricoes_eventos')
+                    .update({ pago: true, valor_pago: valorPago, forma_pagamento: selectedFormaPagamento })
+                    .eq('id', payingRegistrationId).select().single();
+                if (error) throw error;
+                const idx = eventRegistrations.findIndex(r => r.id === payingRegistrationId);
+                if (idx >= 0) eventRegistrations[idx] = Object.assign({}, eventRegistrations[idx], data);
+                closeEvPaymentModal();
+                updateEventStats();
+                renderEventList(document.getElementById('ev-search').value);
+                showNotification('✅ Pagamento registrado!', 'success');
+            } catch (err) {
+                showNotification('Erro: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = '✅ CONFIRMAR PAGAMENTO';
+            }
+        }
+
+        // ── Fechamento de caixa ───────────────────────────────────
+        function showEventFechamento() {
+            if (!selectedEvent) { showNotification('Nenhum evento selecionado', 'error'); return; }
+            const regs = eventRegistrations;
+            const isPaid = !selectedEvent.gratuito;
+            const total = regs.length;
+            const pagos = regs.filter(r => r.pago);
+            const pendentes = regs.filter(r => !r.pago);
+            const arrecadado = pagos.reduce((s, r) => s + parseFloat(r.valor_pago || 0), 0);
+            const esperado = isPaid ? total * parseFloat(selectedEvent.valor || 0) : 0;
+            const fmtR = v => 'R$ ' + v.toFixed(2).replace('.', ',');
+
+            const byForma = {};
+            pagos.forEach(r => {
+                const f = r.forma_pagamento || 'N/D';
+                byForma[f] = (byForma[f] || 0) + parseFloat(r.valor_pago || 0);
+            });
+            const formaRows = Object.entries(byForma).map(([f, v]) =>
+                '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">'
+                + '<span style="color:var(--text-light);">' + f + '</span>'
+                + '<span style="font-weight:700;color:var(--success);">' + fmtR(v) + '</span></div>'
+            ).join('') || '<div style="color:var(--text-muted);font-size:0.9em;">Nenhum pagamento ainda.</div>';
+
+            const pendRow = pendentes.length === 0
+                ? '<div style="color:var(--success);font-size:0.9em;text-align:center;padding:12px;">🎉 Todos os inscritos pagaram!</div>'
+                : pendentes.map(r => '<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">'
+                    + '<span style="color:var(--text-primary);font-size:0.9em;">' + r.nome + '</span>'
+                    + (r.telefone ? '<span style="color:var(--text-muted);font-size:0.8em;">📱 ' + r.telefone + '</span>' : '')
+                    + '</div>').join('');
+
+            document.getElementById('ev-fechamento-content').innerHTML =
+                '<div style="font-size:1.1em;font-weight:800;color:var(--primary);margin-bottom:16px;">' + selectedEvent.nome + '</div>'
+
+                + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;">'
+                + '<div style="background:var(--bg-light);border-radius:12px;padding:16px;text-align:center;">'
+                +   '<div style="font-size:1.8em;font-weight:900;">' + total + '</div>'
+                +   '<div style="color:var(--text-muted);font-size:0.8em;text-transform:uppercase;letter-spacing:1px;">Inscritos</div></div>'
+                + '<div style="background:var(--bg-light);border-radius:12px;padding:16px;text-align:center;">'
+                +   '<div style="font-size:1.8em;font-weight:900;color:var(--success);">' + pagos.length + '</div>'
+                +   '<div style="color:var(--text-muted);font-size:0.8em;text-transform:uppercase;letter-spacing:1px;">Pagos</div></div>'
+                + '<div style="background:var(--bg-light);border-radius:12px;padding:16px;text-align:center;">'
+                +   '<div style="font-size:1.8em;font-weight:900;color:var(--warning);">' + pendentes.length + '</div>'
+                +   '<div style="color:var(--text-muted);font-size:0.8em;text-transform:uppercase;letter-spacing:1px;">Pendentes</div></div>'
+                + '</div>'
+
+                + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">'
+                + '<div style="background:rgba(249,115,22,0.08);border:1px solid var(--border-accent);border-radius:12px;padding:16px;">'
+                +   '<div style="color:var(--text-muted);font-size:0.75em;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Total Arrecadado</div>'
+                +   '<div style="font-size:1.6em;font-weight:900;color:var(--primary);">' + fmtR(arrecadado) + '</div></div>'
+                + (isPaid ? '<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:16px;">'
+                +   '<div style="color:var(--text-muted);font-size:0.75em;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Total Esperado</div>'
+                +   '<div style="font-size:1.6em;font-weight:900;color:var(--text-light);">' + fmtR(esperado) + '</div>'
+                +   '<div style="font-size:0.8em;color:' + (esperado - arrecadado > 0 ? 'var(--warning)' : 'var(--success)') + ';margin-top:4px;">'
+                +   (esperado - arrecadado > 0 ? '⏳ Faltam ' + fmtR(esperado - arrecadado) : '✅ Quitado') + '</div></div>'
+                : '<div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:16px;">'
+                +   '<div style="color:var(--text-muted);font-size:0.75em;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Tipo</div>'
+                +   '<div style="font-size:1.4em;font-weight:700;color:var(--success);">Gratuito</div></div>')
+                + '</div>'
+
+                + '<div style="margin-bottom:20px;">'
+                + '<div style="font-weight:700;color:var(--text-primary);margin-bottom:12px;font-size:0.9em;text-transform:uppercase;letter-spacing:1px;">Por forma de pagamento</div>'
+                + formaRows + '</div>'
+
+                + '<div>'
+                + '<div style="font-weight:700;color:var(--warning);margin-bottom:12px;font-size:0.9em;text-transform:uppercase;letter-spacing:1px;">Pendentes (' + pendentes.length + ')</div>'
+                + pendRow + '</div>';
+
+            document.getElementById('ev-fechamento-modal').style.display = 'flex';
+        }
+
+        function closeEventFechamento() {
+            document.getElementById('ev-fechamento-modal').style.display = 'none';
+        }
+
+        function exportEventFechamento() {
+            if (!selectedEvent) return;
+            const rows = eventRegistrations.map((r, i) => ({
+                'Nº': i + 1,
+                'Nome': r.nome,
+                'Telefone': r.telefone || '',
+                'Email': r.email || '',
+                'Rede': r.rede || '',
+                'Pago': r.pago ? 'SIM' : 'NÃO',
+                'Valor Pago': r.pago ? parseFloat(r.valor_pago || 0).toFixed(2).replace('.', ',') : '0,00',
+                'Forma': r.forma_pagamento || '',
+                'Atendente': r.atendente || '',
+                'Data/Hora': formatDateTime(new Date(r.criado_em))
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Fechamento');
+            XLSX.writeFile(wb, 'fechamento_' + selectedEvent.nome.replace(/\s+/g, '_') + '.xlsx');
+        }
+
         // Expõe ao escopo global (necessário em type="module")
         window.switchTab                  = switchTab;
         window.backToEventsList           = backToEventsList;
@@ -2405,6 +2584,13 @@ function exportEventRegistrations() {
         window.filterEventList            = filterEventList;
         window.removeEventRegistration    = removeEventRegistration;
         window.exportEventRegistrations   = exportEventRegistrations;
+        window.openEvPaymentModal         = openEvPaymentModal;
+        window.closeEvPaymentModal        = closeEvPaymentModal;
+        window.selectFormaPagamento       = selectFormaPagamento;
+        window.confirmEventPayment        = confirmEventPayment;
+        window.showEventFechamento        = showEventFechamento;
+        window.closeEventFechamento       = closeEventFechamento;
+        window.exportEventFechamento      = exportEventFechamento;
         // ── Upload de imagem para Supabase Storage ────────────────
         async function uploadEventImageFile(file) {
             if (!file) return null;

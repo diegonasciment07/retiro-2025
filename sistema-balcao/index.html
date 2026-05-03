@@ -777,13 +777,28 @@
                             <div class="event-stat-label">Inscritos</div>
                         </div>
                         <div class="event-stat-item">
-                            <div class="event-stat-value" id="ev-stat-vagas">∞</div>
-                            <div class="event-stat-label">Vagas Restantes</div>
+                            <div class="event-stat-value" id="ev-stat-pagos" style="color:var(--success);">0</div>
+                            <div class="event-stat-label">Pagos</div>
+                        </div>
+                        <div class="event-stat-item">
+                            <div class="event-stat-value" id="ev-stat-pendentes" style="color:var(--warning);">0</div>
+                            <div class="event-stat-label">Pendentes</div>
+                        </div>
+                        <div class="event-stat-item">
+                            <div class="event-stat-value" id="ev-stat-arrecadado" style="color:var(--primary); font-size:1.1em;">R$ 0,00</div>
+                            <div class="event-stat-label">Arrecadado</div>
                         </div>
                         <div class="event-stat-item">
                             <div class="event-stat-value" id="ev-stat-hoje">0</div>
                             <div class="event-stat-label">Inscrições Hoje</div>
                         </div>
+                    </div>
+
+                    <!-- Toolbar financeiro (ADM) -->
+                    <div id="ev-financial-toolbar" style="display:none; margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+                        <button onclick="showEventFechamento()" class="btn btn-warning" style="padding:12px 24px; font-size:0.85em; letter-spacing:1px;">
+                            💰 FECHAMENTO DE CAIXA
+                        </button>
                     </div>
 
                     <div class="main-layout">
@@ -823,7 +838,8 @@
                             <button onclick="registerForEvent()" class="btn btn-success" style="width:100%; padding:15px; font-size:0.9em; letter-spacing:2px;">
                                 ✅ REGISTRAR INSCRIÇÃO
                             </button>
-                            <div style="padding-top:16px; border-top:1px solid var(--border); margin-top:16px;">
+                            <div style="padding-top:16px; border-top:1px solid var(--border); margin-top:16px; display:grid; gap:8px;">
+                                <button onclick="showEventFechamento()" class="btn btn-warning" style="width:100%;">💰 Fechamento de Caixa</button>
                                 <button onclick="exportEventRegistrations()" class="btn btn-secondary" style="width:100%;">📊 Exportar Lista (Excel)</button>
                             </div>
                         </div>
@@ -998,6 +1014,44 @@
             <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <button onclick="exportAdmReport()" class="btn btn-success" id="adm-export-btn" style="display: none;">📊 Exportar Excel</button>
                 <button onclick="closeAdmReportModal()" class="btn btn-secondary" style="grid-column: 2;">❌ Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pagamento Evento -->
+    <div id="ev-payment-modal" class="modal">
+        <div class="card" style="max-width:420px; width:92%; border-color:var(--border-accent);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="color:var(--success); font-size:1.2em; font-weight:800;">💳 Registrar Pagamento</h3>
+                <button onclick="closeEvPaymentModal()" class="btn btn-secondary" style="padding:6px 12px;">✕</button>
+            </div>
+            <div id="ev-payment-nome" style="font-size:1.1em; font-weight:700; color:var(--text-primary); margin-bottom:6px;"></div>
+            <div id="ev-payment-valor" style="font-size:1.5em; font-weight:900; color:var(--primary); margin-bottom:20px;"></div>
+            <div style="margin-bottom:16px;">
+                <label style="color:var(--text-light); font-size:0.85em; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:8px;">Forma de Pagamento *</label>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                    <button onclick="selectFormaPagamento('PIX')" id="fp-pix" class="btn btn-secondary" style="padding:14px 8px; font-size:0.85em;">💸 PIX</button>
+                    <button onclick="selectFormaPagamento('DINHEIRO')" id="fp-dinheiro" class="btn btn-secondary" style="padding:14px 8px; font-size:0.85em;">💵 Dinheiro</button>
+                    <button onclick="selectFormaPagamento('CARTAO')" id="fp-cartao" class="btn btn-secondary" style="padding:14px 8px; font-size:0.85em;">💳 Cartão</button>
+                </div>
+            </div>
+            <button id="ev-payment-confirm-btn" onclick="confirmEventPayment()" class="btn btn-success" style="width:100%; padding:14px; font-size:0.95em; letter-spacing:1px;" disabled>
+                ✅ CONFIRMAR PAGAMENTO
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Fechamento de Caixa Evento -->
+    <div id="ev-fechamento-modal" class="modal">
+        <div class="card" style="max-width:680px; width:92%; max-height:92vh; overflow-y:auto; border-color:var(--border-accent);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                <h3 style="color:var(--warning); font-size:1.3em; font-weight:800;">💰 Fechamento de Caixa</h3>
+                <button onclick="closeEventFechamento()" class="btn btn-secondary" style="padding:8px 14px;">✕ Fechar</button>
+            </div>
+            <div id="ev-fechamento-content"></div>
+            <div style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border); display:flex; gap:10px;">
+                <button onclick="exportEventFechamento()" class="btn btn-success" style="flex:1; padding:12px;">📊 Exportar Excel</button>
+                <button onclick="closeEventFechamento()" class="btn btn-secondary" style="flex:1; padding:12px;">Fechar</button>
             </div>
         </div>
     </div>
