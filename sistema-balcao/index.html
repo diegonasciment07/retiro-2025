@@ -800,14 +800,19 @@
                                 <label style="color:var(--text-light); font-weight:600; margin-bottom:6px; display:block; font-size:0.85em; text-transform:uppercase; letter-spacing:0.5px;">Rede</label>
                                 <select id="ev-reg-rede" class="input">
                                     <option value="">Selecione a rede...</option>
-                                    <option value="Rede Branca">Rede Branca</option>
-                                    <option value="Rede Azul">Rede Azul</option>
-                                    <option value="Rede Amarela">Rede Amarela</option>
-                                    <option value="Rede Vermelha">Rede Vermelha</option>
-                                    <option value="Rede Verde">Rede Verde</option>
-                                    <option value="Rede Marrom">Rede Marrom</option>
-                                    <option value="Rede Roxa">Rede Roxa</option>
-                                    <option value="Visitante">Visitante</option>
+                                    <option value="BRANCA">Rede Branca</option>
+                                    <option value="AZUL">Rede Azul</option>
+                                    <option value="AMARELA">Rede Amarela</option>
+                                    <option value="VERMELHA">Rede Vermelha</option>
+                                    <option value="VERDE">Rede Verde</option>
+                                    <option value="MARROM">Rede Marrom</option>
+                                    <option value="ROXA">Rede Roxa</option>
+                                    <option value="ALVO SJP">Alvo SJP</option>
+                                    <option value="ALVO ITAPECERICA">Alvo Itapecerica</option>
+                                    <option value="ALVO MONTE MOR">Alvo Monte Mor</option>
+                                    <option value="ALVO CAMPINAS">Alvo Campinas</option>
+                                    <option value="ALVO LITORAL PR">Alvo Litoral PR</option>
+                                    <option value="NAO-POSSUO">Nao possuo rede ainda</option>
                                 </select>
                             </div>
                             <div style="margin-bottom:20px;">
@@ -1003,13 +1008,34 @@
                 <h3 id="ev-modal-title" style="color:var(--primary); font-size:1.4em; font-weight:800;">➕ Novo Evento</h3>
                 <button onclick="closeEventModal()" class="btn btn-secondary" style="padding:8px 14px;">❌ Fechar</button>
             </div>
-            <div id="ev-image-preview" style="display:none; margin-bottom:16px; border-radius:var(--border-radius); overflow:hidden;">
+            <!-- Preview da imagem -->
+            <div id="ev-image-preview" style="display:none; margin-bottom:16px; border-radius:var(--border-radius); overflow:hidden; position:relative;">
                 <img id="ev-preview-img" src="" alt="Preview" style="width:100%; height:200px; object-fit:cover; display:block;">
+                <button onclick="clearEventImage()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:1em;display:flex;align-items:center;justify-content:center;">✕</button>
             </div>
+
+            <!-- Upload de imagem -->
             <div style="margin-bottom:16px;">
-                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">🖼️ URL da Imagem</label>
-                <input type="url" id="ev-imagem" class="input" placeholder="https://...imagem.jpg" oninput="previewEventImage()">
-                <div style="color:var(--text-muted); font-size:0.75em; margin-top:4px;">Cole a URL de uma imagem (Imgur, Google Fotos, etc.)</div>
+                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">🖼️ Imagem do Evento</label>
+                <input type="file" id="ev-imagem-file" accept="image/*" style="display:none;" onchange="handleEventImageUpload(this)">
+                <input type="hidden" id="ev-imagem">
+
+                <div id="ev-upload-area"
+                     onclick="document.getElementById('ev-imagem-file').click()"
+                     ondragover="event.preventDefault(); this.style.borderColor='var(--primary)'"
+                     ondragleave="this.style.borderColor='var(--border-strong)'"
+                     ondrop="handleEventImageDrop(event)"
+                     style="border:2px dashed var(--border-strong); border-radius:var(--border-radius); padding:28px 20px; text-align:center; cursor:pointer; transition:border-color 0.2s, background 0.2s; background:rgba(255,255,255,0.02);">
+                    <div id="ev-upload-icon" style="font-size:2em; margin-bottom:8px;">📤</div>
+                    <div id="ev-upload-text" style="color:var(--text-light); font-size:0.9em; font-weight:600;">Clique ou arraste uma imagem aqui</div>
+                    <div style="color:var(--text-muted); font-size:0.75em; margin-top:6px;">Tamanho recomendado: <strong style="color:var(--primary);">1280 × 480 px</strong> · JPG, PNG, WEBP · máx 5 MB</div>
+                </div>
+                <div id="ev-upload-progress" style="display:none; margin-top:10px;">
+                    <div style="background:var(--bg-light); border-radius:100px; height:6px; overflow:hidden;">
+                        <div id="ev-progress-bar" style="height:100%; background:linear-gradient(90deg, var(--primary), var(--primary-light)); width:0%; transition:width 0.3s ease;"></div>
+                    </div>
+                    <div style="color:var(--text-muted); font-size:0.78em; margin-top:4px; text-align:center;" id="ev-upload-status">Enviando...</div>
+                </div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
                 <div>

@@ -2088,6 +2088,9 @@
             document.getElementById('ev-valor').value = '';
             document.getElementById('ev-imagem').value = '';
             document.getElementById('ev-image-preview').style.display = 'none';
+            document.getElementById('ev-upload-area').style.display = 'block';
+            const fi = document.getElementById('ev-imagem-file');
+            if (fi) fi.value = '';
             toggleEventValueField();
             if (eventId) {
                 const ev = allEvents.find(e => e.id === eventId);
@@ -2104,6 +2107,7 @@
                     if (ev.imagem_url) {
                         document.getElementById('ev-preview-img').src = ev.imagem_url;
                         document.getElementById('ev-image-preview').style.display = 'block';
+                        document.getElementById('ev-upload-area').style.display = 'none';
                     }
                 }
             }
@@ -2269,12 +2273,16 @@
                 eventRegistrations.filter(r => new Date(r.criado_em).toDateString() === hoje).length;
         }
 
-        function renderEventList(filter) {
+function renderEventList(filter) {
             filter = filter || '';
             const container = document.getElementById('event-list-container');
             const lower = filter.toLowerCase();
             const list = filter
-                ? eventRegistrations.filter(r => r.nome.toLowerCase().includes(lower))
+                ? eventRegistrations.filter(r =>
+                    (r.nome || '').toLowerCase().includes(lower)
+                    || (r.email || '').toLowerCase().includes(lower)
+                    || (r.telefone || '').toLowerCase().includes(lower)
+                )
                 : eventRegistrations;
             if (list.length === 0) {
                 container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">'
@@ -2288,7 +2296,9 @@
                 + '<div style="font-weight:700;color:var(--text-primary);">' + r.nome + '</div>'
                 + '<div style="color:var(--text-muted);font-size:0.78em;margin-top:3px;display:flex;gap:12px;flex-wrap:wrap;">'
                 + (r.telefone ? '<span>📱 ' + r.telefone + '</span>' : '')
+                + (r.email ? '<span>📧 ' + r.email + '</span>' : '')
                 + (r.rede ? '<span>🔵 ' + r.rede + '</span>' : '')
+                + (typeof r.ja_foi_retiro === 'boolean' ? '<span>🏕️ Retiro: ' + (r.ja_foi_retiro ? 'SIM' : 'NAO') + '</span>' : '')
                 + (r.observacao ? '<span>📝 ' + r.observacao + '</span>' : '')
                 + '</div></div>'
                 + '<div style="text-align:right;flex-shrink:0;">'
@@ -2317,13 +2327,14 @@
             } catch (err) { showNotification('Erro: ' + err.message, 'error'); }
         }
 
-        function exportEventRegistrations() {
+function exportEventRegistrations() {
             if (!selectedEvent || eventRegistrations.length === 0) {
                 showNotification('Nenhuma inscrição para exportar', 'error'); return;
             }
             const rows = eventRegistrations.map((r, i) => ({
                 'Nº': i + 1, 'Nome': r.nome,
-                'Telefone': r.telefone || '', 'Rede': r.rede || '',
+                'Telefone': r.telefone || '', 'Email': r.email || '', 'Rede': r.rede || '',
+                'Ja foi para o Retiro?': typeof r.ja_foi_retiro === 'boolean' ? (r.ja_foi_retiro ? 'SIM' : 'NAO') : '',
                 'Observação': r.observacao || '', 'Atendente': r.atendente || '',
                 'Data/Hora': formatDateTime(new Date(r.criado_em))
             }));
@@ -2348,4 +2359,73 @@
         window.filterEventList            = filterEventList;
         window.removeEventRegistration    = removeEventRegistration;
         window.exportEventRegistrations   = exportEventRegistrations;
+        // ── Upload de imagem para Supabase Storage ────────────────
+        async function uploadEventImageFile(file) {
+            if (!file) return null;
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification('Imagem muito grande. Máximo 5 MB.', 'error');
+                return null;
+            }
+            const ext = file.name.split('.').pop().toLowerCase();
+            const path = 'events/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+            const progress = document.getElementById('ev-upload-progress');
+            const bar = document.getElementById('ev-progress-bar');
+            const status = document.getElementById('ev-upload-status');
+            progress.style.display = 'block';
+            bar.style.width = '30%';
+            status.textContent = 'Enviando imagem...';
+            try {
+                const { data, error } = await supabase.storage
+                    .from('event-images')
+                    .upload(path, file, { upsert: true, contentType: file.type });
+                if (error) throw error;
+                bar.style.width = '100%';
+                status.textContent = 'Concluido!';
+                const { data: urlData } = supabase.storage.from('event-images').getPublicUrl(path);
+                setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 1500);
+                return urlData.publicUrl;
+            } catch (err) {
+                progress.style.display = 'none';
+                bar.style.width = '0%';
+                throw err;
+            }
+        }
+
+        async function handleEventImageUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                const url = await uploadEventImageFile(file);
+                if (!url) return;
+                document.getElementById('ev-imagem').value = url;
+                document.getElementById('ev-preview-img').src = url;
+                document.getElementById('ev-image-preview').style.display = 'block';
+                document.getElementById('ev-upload-area').style.display = 'none';
+                showNotification('Imagem enviada!', 'success');
+            } catch (err) {
+                showNotification('Erro no upload: ' + err.message, 'error');
+            }
+        }
+
+        function handleEventImageDrop(e) {
+            e.preventDefault();
+            document.getElementById('ev-upload-area').style.borderColor = 'var(--border-strong)';
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const fakeInput = { files: [file] };
+                handleEventImageUpload(fakeInput);
+            }
+        }
+
+        function clearEventImage() {
+            document.getElementById('ev-imagem').value = '';
+            document.getElementById('ev-image-preview').style.display = 'none';
+            document.getElementById('ev-upload-area').style.display = 'block';
+            const fi = document.getElementById('ev-imagem-file');
+            if (fi) fi.value = '';
+        }
+
+        window.handleEventImageUpload = handleEventImageUpload;
+        window.handleEventImageDrop   = handleEventImageDrop;
+        window.clearEventImage        = clearEventImage;
     
