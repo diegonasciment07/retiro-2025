@@ -1956,7 +1956,8 @@
                 eventosSection.style.display = 'block';
                 btnRetiro.classList.remove('active');
                 btnEventos.classList.add('active');
-                loadActiveEvent();
+                renderEventosSection(); // mostra imediatamente com estado atual
+                loadActiveEvent();      // atualiza quando Supabase responder
             }
         }
 
@@ -1969,12 +1970,16 @@
                     .eq('ativo', true)
                     .maybeSingle();
 
-                if (error) throw error;
-                activeEvent = data;
+                if (error) {
+                    console.error('Supabase eventos error:', error);
+                    showNotification('Erro ao carregar evento: ' + error.message, 'error');
+                    return;
+                }
+                activeEvent = data || null;
                 renderEventosSection();
             } catch (err) {
                 console.error('Erro ao carregar evento:', err);
-                showNotification('Erro ao carregar evento', 'error');
+                showNotification('Erro ao carregar evento: ' + err.message, 'error');
             }
         }
 
