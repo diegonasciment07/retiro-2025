@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscricao de Evento | ALVO Curitiba</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070707;
+            --bg-soft: #121212;
+            --bg-card: rgba(18, 18, 18, 0.9);
+            --line: rgba(255, 255, 255, 0.14);
+            --text: #f7f4ef;
+            --muted: #b8afa6;
+            --accent: #ff6a00;
+            --accent-soft: #ff8d3a;
+            --success: #1f9d55;
+            --success-bg: rgba(31, 157, 85, 0.14);
+            --danger: #ff5b5b;
+            --danger-bg: rgba(255, 91, 91, 0.12);
+            --radius: 28px;
+            --shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            color: var(--text);
+            font-family: "Space Grotesk", sans-serif;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(255, 106, 0, 0.18), transparent 30%),
+                radial-gradient(circle at 85% 25%, rgba(255, 106, 0, 0.12), transparent 22%),
+                linear-gradient(135deg, #050505 0%, #101010 55%, #090909 100%);
+            overflow-x: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            border: 1px solid rgba(255, 106, 0, 0.18);
+            border-radius: 999px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            width: 440px;
+            height: 440px;
+            right: -140px;
+            top: 140px;
+        }
+
+        body::after {
+            width: 280px;
+            height: 280px;
+            left: -90px;
+            bottom: 100px;
+        }
+
+        .page {
+            position: relative;
+            z-index: 1;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 28px 18px 64px;
+        }
+
+        .loading-screen,
+        .empty-state {
+            min-height: 70vh;
+            display: grid;
+            place-items: center;
+            text-align: center;
+        }
+
+        .loading-card,
+        .empty-card {
+            width: min(560px, 100%);
+            padding: 36px 28px;
+            border-radius: var(--radius);
+            background: var(--bg-card);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 18px;
+            border-radius: 999px;
+            border: 3px solid rgba(255, 255, 255, 0.16);
+            border-top-color: var(--accent);
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 22px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-mark {
+            width: 18px;
+            height: 18px;
+            border: 4px solid var(--accent);
+            border-radius: 999px;
+            position: relative;
+        }
+
+        .brand-mark::after {
+            content: "";
+            position: absolute;
+            inset: 2px;
+            border-radius: 999px;
+            background: var(--accent);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+            gap: 24px;
+            align-items: stretch;
+            margin-bottom: 24px;
+        }
+
+        .hero-copy,
+        .hero-side,
+        .content-card,
+        .form-card {
+            background: var(--bg-card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+        }
+
+        .hero-copy {
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-copy::before {
+            content: "";
+            position: absolute;
+            inset: 18px auto auto 18px;
+            width: 110px;
+            height: 110px;
+            border-top: 2px solid rgba(255, 255, 255, 0.32);
+            border-left: 2px solid rgba(255, 255, 255, 0.32);
+            border-top-left-radius: 26px;
+        }
+
+        .event-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.26);
+            font-size: 0.88rem;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--text);
+            margin-bottom: 22px;
+        }
+
+        .eyebrow {
+            color: var(--muted);
+            letter-spacing: 0.26em;
+            text-transform: uppercase;
+            font-size: 0.82rem;
+            margin-bottom: 14px;
+        }
+
+        .event-title {
+            font-family: "Bebas Neue", sans-serif;
+            font-size: clamp(3.6rem, 9vw, 7.2rem);
+            line-height: 0.9;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            text-shadow: 0 0 28px rgba(255, 106, 0, 0.24);
+        }
+
+        .event-subtitle {
+            font-size: 1.08rem;
+            line-height: 1.7;
+            color: var(--muted);
+            max-width: 640px;
+            margin-bottom: 26px;
+        }
+
+        .hero-meta {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .meta-card {
+            padding: 16px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .meta-label {
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 0.72rem;
+            margin-bottom: 8px;
+        }
+
+        .meta-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .hero-side {
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hero-side::before {
+            content: "";
+            position: absolute;
+            inset: 14% 12% auto auto;
+            width: 220px;
+            height: 220px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 106, 0, 0.26);
+        }
+
+        .hero-side::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 46%;
+            transform: translate(-50%, -50%);
+            width: 230px;
+            height: 230px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(255, 106, 0, 0.5) 0%, rgba(255, 106, 0, 0.12) 35%, transparent 68%);
+            filter: blur(8px);
+        }
+
+        .side-kicker,
+        .side-copy,
+        .side-note {
+            position: relative;
+            z-index: 1;
+        }
+
+        .side-kicker {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.24em;
+            color: var(--muted);
+            margin-bottom: 18px;
+        }
+
+        .side-copy {
+            font-family: "Bebas Neue", sans-serif;
+            font-size: clamp(2.8rem, 6vw, 4.7rem);
+            line-height: 0.92;
+            text-transform: uppercase;
+            max-width: 260px;
+        }
+
+        .side-copy span {
+            color: var(--accent);
+        }
+
+        .side-note {
+            margin-top: 22px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.14);
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.9fr);
+            gap: 24px;
+            align-items: start;
+        }
+
+        .content-card,
+        .form-card {
+            padding: 28px;
+        }
+
+        .section-kicker {
+            color: var(--accent-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-size: 0.78rem;
+            margin-bottom: 10px;
+        }
+
+        .section-title {
+            font-size: 1.9rem;
+            line-height: 1.1;
+            margin-bottom: 14px;
+        }
+
+        .section-text {
+            color: var(--muted);
+            line-height: 1.75;
+            margin-bottom: 22px;
+        }
+
+        .feature-list {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .feature-item {
+            display: grid;
+            grid-template-columns: 44px 1fr;
+            gap: 14px;
+            align-items: start;
+            padding: 16px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 16px;
+            background: rgba(255, 106, 0, 0.12);
+            color: var(--accent);
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+        }
+
+        .feature-item strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .feature-item p {
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 0.96rem;
+        }
+
+        .alert-box,
+        .message-box {
+            border-radius: 20px;
+            padding: 16px 18px;
+            margin-bottom: 18px;
+            line-height: 1.65;
+        }
+
+        .alert-box {
+            background: rgba(255, 106, 0, 0.1);
+            border: 1px solid rgba(255, 106, 0, 0.24);
+            color: #ffd8bf;
+        }
+
+        .message-box {
+            display: none;
+        }
+
+        .message-box.success {
+            background: var(--success-bg);
+            border: 1px solid rgba(31, 157, 85, 0.34);
+            color: #dff7e8;
+        }
+
+        .message-box.error {
+            background: var(--danger-bg);
+            border: 1px solid rgba(255, 91, 91, 0.34);
+            color: #ffd4d4;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 14px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.94rem;
+            font-weight: 500;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            border-radius: 18px;
+            padding: 15px 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: rgba(255, 106, 0, 0.66);
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-1px);
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .checkbox-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 0.94rem;
+        }
+
+        .checkbox-row input {
+            width: 18px;
+            height: 18px;
+            margin-top: 4px;
+            accent-color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .submit-btn {
+            width: 100%;
+            border: 0;
+            border-radius: 999px;
+            padding: 17px 24px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-soft) 100%);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            box-shadow: 0 18px 30px rgba(255, 106, 0, 0.24);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.72;
+            cursor: wait;
+            transform: none;
+        }
+
+        .footer-note {
+            margin-top: 22px;
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 980px) {
+            .hero,
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-meta {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-side {
+                min-height: 280px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                padding: 14px 12px 40px;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .hero-copy,
+            .hero-side,
+            .content-card,
+            .form-card {
+                padding: 22px 18px;
+                border-radius: 24px;
+            }
+
+            .event-title {
+                font-size: clamp(3rem, 20vw, 4.6rem);
+            }
+
+            .section-title {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div id="loading-screen" class="loading-screen">
+            <div class="loading-card">
+                <div class="spinner"></div>
+                <h2 style="margin-bottom: 10px;">Carregando evento</h2>
+                <p style="color: var(--muted); line-height: 1.7;">
+                    Estamos buscando as informacoes da inscricao para montar sua pagina.
+                </p>
+            </div>
+        </div>
+
+        <div id="empty-state" class="empty-state hidden">
+            <div class="empty-card">
+                <h2 style="margin-bottom: 12px;">Evento nao encontrado</h2>
+                <p style="color: var(--muted); line-height: 1.7;">
+                    Este link nao encontrou nenhum evento publicado. Confirme o parametro da URL ou ative o evento no sistema de balcao.
+                </p>
+            </div>
+        </div>
+
+        <main id="app" class="hidden">
+            <div class="topbar">
+                <div class="brand">
+                    <span class="brand-mark" aria-hidden="true"></span>
+                    <span>ALVO Curitiba | Uma igreja, uma visao</span>
+                </div>
+                <span id="topbar-status">Inscricao online</span>
+            </div>
+
+            <section class="hero">
+                <div class="hero-copy">
+                    <div class="event-pill">Seminario | Evento especial</div>
+                    <div class="eyebrow">Ficha de inscricao</div>
+                    <h1 id="event-title" class="event-title">Carregando</h1>
+                    <p id="event-subtitle" class="event-subtitle">
+                        Complete sua inscricao abaixo para garantir sua participacao neste encontro especial da ALVO Curitiba.
+                    </p>
+
+                    <div class="hero-meta">
+                        <div class="meta-card">
+                            <div class="meta-label">Data</div>
+                            <div id="meta-date" class="meta-value">A confirmar</div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-label">Investimento</div>
+                            <div id="meta-price" class="meta-value">A confirmar</div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-label">Vagas</div>
+                            <div id="meta-capacity" class="meta-value">Limitadas</div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="hero-side">
+                    <div>
+                        <div class="side-kicker">Inscricao vinculada ao evento criado no balcao</div>
+                        <div class="side-copy">
+                            O retorno de <span>Cristo</span>
+                        </div>
+                    </div>
+
+                    <div id="side-note" class="side-note">
+                        Preencha sua ficha com atencao. Assim que o cadastro for enviado, a equipe consegue localizar sua inscricao diretamente no evento correto dentro do sistema.
+                    </div>
+                </aside>
+            </section>
+
+            <section class="content">
+                <div class="content-card">
+                    <div class="section-kicker">Sobre o encontro</div>
+                    <h2 class="section-title">Uma LP pronta para eventos paralelos</h2>
+                    <p class="section-text">
+                        Esta pagina busca o evento pelo identificador informado na URL. Isso permite ter mais de uma landing page ativa ao mesmo tempo, cada uma apontando para o seu proprio cadastro dentro do sistema.
+                    </p>
+
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <div class="feature-icon">01</div>
+                            <div>
+                                <strong id="feature-event-name">Evento vinculado automaticamente</strong>
+                                <p>
+                                    O formulario grava a inscricao diretamente em <code>inscricoes_eventos</code> usando o <code>id</code> do evento carregado.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="feature-item">
+                            <div class="feature-icon">02</div>
+                            <div>
+                                <strong>Ficha alinhada ao fluxo do retiro</strong>
+                                <p>
+                                    A pagina coleta nome, telefone, email, rede e se a pessoa ja foi para o Retiro.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="feature-item">
+                            <div class="feature-icon">03</div>
+                            <div>
+                                <strong>Visual inspirado na arte enviada</strong>
+                                <p>
+                                    Mantivemos a direcao preto, branco e laranja com uma composicao mais forte para pagina de conversao.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="description-box" class="alert-box">
+                        Carregando descricao do evento...
+                    </div>
+
+                    <p class="footer-note">
+                        Dica de uso: publique a LP com a URL no formato <code>evento.html?evento=UUID_DO_EVENTO</code>. Se nenhum parametro for informado, a pagina tenta usar o evento marcado como ativo.
+                    </p>
+                </div>
+
+                <div class="form-card">
+                    <div class="section-kicker">Inscricao</div>
+                    <h2 class="section-title">Faca sua inscricao</h2>
+
+                    <div id="success-box" class="message-box success"></div>
+                    <div id="error-box" class="message-box error"></div>
+
+                    <div id="price-alert" class="alert-box">
+                        Investimento deste evento: <strong id="price-alert-value">R$ 0,00</strong>.
+                    </div>
+
+                    <form id="event-form" class="form-grid">
+                        <div>
+                            <label for="nome">Nome completo *</label>
+                            <input type="text" id="nome" name="nome" placeholder="Digite seu nome completo" required>
+                        </div>
+
+                        <div>
+                            <label for="telefone">Telefone *</label>
+                            <input type="tel" id="telefone" name="telefone" placeholder="(41) 99999-9999" required>
+                        </div>
+
+                        <div>
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" name="email" placeholder="voce@email.com" required>
+                        </div>
+
+                        <div>
+                            <label for="rede">Rede *</label>
+                            <select id="rede" name="rede" required>
+                                <option value="">Selecione sua rede</option>
+                                <option value="BRANCA">Rede Branca</option>
+                                <option value="AZUL">Rede Azul</option>
+                                <option value="AMARELA">Rede Amarela</option>
+                                <option value="VERMELHA">Rede Vermelha</option>
+                                <option value="VERDE">Rede Verde</option>
+                                <option value="MARROM">Rede Marrom</option>
+                                <option value="ROXA">Rede Roxa</option>
+                                <option value="ALVO SJP">Alvo SJP</option>
+                                <option value="ALVO ITAPECERICA">Alvo Itapecerica</option>
+                                <option value="ALVO MONTE MOR">Alvo Monte Mor</option>
+                                <option value="ALVO CAMPINAS">Alvo Campinas</option>
+                                <option value="ALVO LITORAL PR">Alvo Litoral PR</option>
+                                <option value="NAO-POSSUO">Nao possuo rede ainda</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="ja-foi-retiro">Ja foi para o Retiro? *</label>
+                            <select id="ja-foi-retiro" name="ja_foi_retiro" required>
+                                <option value="">Selecione uma opcao</option>
+                                <option value="true">Sim</option>
+                                <option value="false">Nao</option>
+                            </select>
+                        </div>
+
+                        <label class="checkbox-row" for="consentimento">
+                            <input type="checkbox" id="consentimento" name="consentimento" required>
+                            <span>Confirmo que os dados acima podem ser usados pela equipe da ALVO Curitiba para administrar esta inscricao.</span>
+                        </label>
+
+                        <button id="submit-btn" class="submit-btn" type="submit">Garantir minha inscricao</button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_CONFIG = {
+            url: "https://nkifiuenmiwvaqvwfktf.supabase.co",
+            anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raWZpdWVubWl3dmFxdndma3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyNTEyNDYsImV4cCI6MjA3NjgyNzI0Nn0.Kis_dGXTLT0KGhC3HkKwAsGi6OMXPlzhOYmhdzWpiTM"
+        };
+
+        const params = new URLSearchParams(window.location.search);
+        const eventIdParam = params.get("evento") || params.get("id");
+
+        const supabaseClient = window.supabase.createClient(
+            SUPABASE_CONFIG.url,
+            SUPABASE_CONFIG.anonKey
+        );
+
+        let currentEvent = null;
+        let isSubmitting = false;
+
+        function showLoading() {
+            document.getElementById("loading-screen").classList.remove("hidden");
+            document.getElementById("empty-state").classList.add("hidden");
+            document.getElementById("app").classList.add("hidden");
+        }
+
+        function showEmpty() {
+            document.getElementById("loading-screen").classList.add("hidden");
+            document.getElementById("empty-state").classList.remove("hidden");
+            document.getElementById("app").classList.add("hidden");
+        }
+
+        function showApp() {
+            document.getElementById("loading-screen").classList.add("hidden");
+            document.getElementById("empty-state").classList.add("hidden");
+            document.getElementById("app").classList.remove("hidden");
+        }
+
+        function formatCurrency(value) {
+            const numeric = Number(value || 0);
+            return new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL"
+            }).format(numeric);
+        }
+
+        function formatEventDate(value) {
+            if (!value) return "A confirmar";
+
+            const date = new Date(value + "T12:00:00");
+            if (Number.isNaN(date.getTime())) return "A confirmar";
+
+            return new Intl.DateTimeFormat("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+            }).format(date);
+        }
+
+        function formatPhone(value) {
+            const digits = value.replace(/\D/g, "").slice(0, 11);
+
+            if (digits.length <= 2) return digits;
+            if (digits.length <= 7) return digits.replace(/(\d{2})(\d+)/, "($1) $2");
+            if (digits.length <= 10) return digits.replace(/(\d{2})(\d{4})(\d+)/, "($1) $2-$3");
+            return digits.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+        }
+
+        function setMessage(type, html) {
+            const successBox = document.getElementById("success-box");
+            const errorBox = document.getElementById("error-box");
+
+            successBox.style.display = "none";
+            errorBox.style.display = "none";
+
+            if (type === "success") {
+                successBox.innerHTML = html;
+                successBox.style.display = "block";
+                successBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+
+            if (type === "error") {
+                errorBox.innerHTML = html;
+                errorBox.style.display = "block";
+                errorBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+        }
+
+        function renderEvent(eventData) {
+            currentEvent = eventData;
+
+            const isPaid = !eventData.gratuito;
+            const priceLabel = isPaid ? formatCurrency(eventData.valor || 0) : "Gratuito";
+            const capacityLabel = eventData.capacidade && eventData.capacidade > 0
+                ? eventData.capacidade + " vagas"
+                : "Vagas abertas";
+            const description = eventData.descricao && eventData.descricao.trim()
+                ? eventData.descricao.trim()
+                : "Inscricao aberta para este evento especial da ALVO Curitiba.";
+
+            document.title = eventData.nome + " | Inscricao";
+            document.getElementById("event-title").textContent = eventData.nome;
+            document.getElementById("feature-event-name").textContent = eventData.nome;
+            document.getElementById("event-subtitle").textContent = description;
+            document.getElementById("meta-date").textContent = formatEventDate(eventData.data);
+            document.getElementById("meta-price").textContent = priceLabel;
+            document.getElementById("meta-capacity").textContent = capacityLabel;
+            document.getElementById("description-box").innerHTML = "<strong>Descricao:</strong> " + description;
+            document.getElementById("price-alert-value").textContent = priceLabel;
+            document.getElementById("topbar-status").textContent = eventIdParam
+                ? "LP vinculada por ID do evento"
+                : "LP usando evento ativo";
+
+            const sideNote = [
+                eventData.data ? "Data: <strong>" + formatEventDate(eventData.data) + "</strong>." : null,
+                isPaid ? "Valor da inscricao: <strong>" + priceLabel + "</strong>." : "Evento <strong>gratuito</strong>.",
+                eventData.capacidade > 0 ? "Capacidade configurada: <strong>" + eventData.capacidade + " vagas</strong>." : null
+            ].filter(Boolean).join(" ");
+
+            if (sideNote) {
+                document.getElementById("side-note").innerHTML = sideNote;
+            }
+
+            const priceAlert = document.getElementById("price-alert");
+            priceAlert.innerHTML = isPaid
+                ? "Investimento deste evento: <strong>" + priceLabel + "</strong>."
+                : "Este evento esta configurado como <strong>gratuito</strong>.";
+        }
+
+        async function loadEvent() {
+            showLoading();
+
+            try {
+                let query = supabaseClient.from("eventos").select("*");
+
+                if (eventIdParam) {
+                    query = query.eq("id", eventIdParam).single();
+                } else {
+                    query = query.eq("ativo", true).maybeSingle();
+                }
+
+                const { data, error } = await query;
+
+                if (error) throw error;
+                if (!data) {
+                    showEmpty();
+                    return;
+                }
+
+                renderEvent(data);
+                showApp();
+            } catch (error) {
+                console.error("Erro ao carregar evento:", error);
+                showEmpty();
+            }
+        }
+
+        async function submitRegistration(formData) {
+            const payload = {
+                evento_id: currentEvent.id,
+                nome: formData.get("nome").trim(),
+                telefone: formatPhone(formData.get("telefone").trim()),
+                email: formData.get("email").trim().toLowerCase(),
+                rede: formData.get("rede") || null,
+                ja_foi_retiro: formData.get("ja_foi_retiro") === "true",
+                atendente: "LP"
+            };
+
+            const { error } = await supabaseClient
+                .from("inscricoes_eventos")
+                .insert(payload);
+
+            if (error) throw error;
+        }
+
+        document.getElementById("telefone").addEventListener("input", function() {
+            this.value = formatPhone(this.value);
+        });
+
+        document.getElementById("nome").addEventListener("input", function() {
+            this.value = this.value.toUpperCase();
+        });
+
+        document.getElementById("email").addEventListener("input", function() {
+            this.value = this.value.toLowerCase();
+        });
+
+        document.getElementById("event-form").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            if (!currentEvent || isSubmitting) return;
+
+            const submitBtn = document.getElementById("submit-btn");
+            const formData = new FormData(this);
+            const phoneDigits = formData.get("telefone").replace(/\D/g, "");
+
+            if (!formData.get("nome").trim()) {
+                setMessage("error", "Informe seu nome completo.");
+                return;
+            }
+
+            if (phoneDigits.length < 10) {
+                setMessage("error", "Informe um WhatsApp valido para continuar.");
+                return;
+            }
+
+            if (!formData.get("email").trim()) {
+                setMessage("error", "Informe um email valido para continuar.");
+                return;
+            }
+
+            if (!formData.get("rede")) {
+                setMessage("error", "Selecione a rede para continuar.");
+                return;
+            }
+
+            if (!formData.get("ja_foi_retiro")) {
+                setMessage("error", "Informe se voce ja foi para o Retiro.");
+                return;
+            }
+
+            isSubmitting = true;
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Enviando...";
+
+            try {
+                await submitRegistration(formData);
+                setMessage(
+                    "success",
+                    "Inscricao enviada com sucesso!<br><br>Sua ficha foi vinculada ao evento <strong>" +
+                        currentEvent.nome +
+                        "</strong>."
+                );
+                this.reset();
+            } catch (error) {
+                console.error("Erro ao enviar inscricao:", error);
+
+                if (error.code === "23505") {
+                    setMessage(
+                        "error",
+                        "Ja existe uma inscricao com este WhatsApp para este evento. Se precisar, fale com a equipe da ALVO Curitiba."
+                    );
+                } else {
+                    setMessage(
+                        "error",
+                        "Nao foi possivel concluir sua inscricao agora. Tente novamente em instantes."
+                    );
+                }
+            } finally {
+                isSubmitting = false;
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Garantir minha inscricao";
+            }
+        });
+
+        loadEvent();
+    </script>
+</body>
+</html>

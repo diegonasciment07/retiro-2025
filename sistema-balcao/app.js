@@ -1993,6 +1993,47 @@
         }
 
         // ── Renderiza grid de cards ───────────────────────────────
+        function buildEventLandingPageUrl(eventId) {
+            const url = new URL('../sistema-inscricoes/evento.html', window.location.href);
+            url.searchParams.set('evento', eventId);
+            return url.toString();
+        }
+
+        async function copyEventLandingPageLink(eventId) {
+            const ev = allEvents.find(e => e.id === eventId);
+            if (!ev) {
+                showNotification('Evento nao encontrado', 'error');
+                return;
+            }
+
+            const lpUrl = buildEventLandingPageUrl(eventId);
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(lpUrl);
+                } else {
+                    const input = document.createElement('input');
+                    input.value = lpUrl;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(input);
+                }
+                showNotification('Link da LP copiado para "' + ev.nome + '"', 'success');
+            } catch (err) {
+                console.error('Erro ao copiar link da LP:', err);
+                showNotification('Copie manualmente este link: ' + lpUrl, 'info');
+            }
+        }
+
+        function copySelectedEventLandingPageLink() {
+            if (!selectedEvent || !selectedEvent.id) {
+                showNotification('Nenhum evento selecionado', 'error');
+                return;
+            }
+            copyEventLandingPageLink(selectedEvent.id);
+        }
+
         function renderEventsGrid() {
             const grid   = document.getElementById('events-grid');
             const banner = document.getElementById('no-event-banner');
@@ -2027,9 +2068,10 @@
                     : '<span style="color:var(--warning);font-weight:700;">R$ ' + parseFloat(ev.valor||0).toFixed(2).replace('.',',') + '</span>';
 
                 const admBtns = adm
-                    ? '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);" onclick="event.stopPropagation()">'
+                    ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);" onclick="event.stopPropagation()">'
                     + '<button onclick="openEventModal(&apos;' + ev.id + '&apos;)" class="btn btn-info" style="padding:8px 4px;font-size:0.72em;">✏️ Editar</button>'
                     + '<button onclick="toggleEventById(&apos;' + ev.id + '&apos;)" class="btn ' + (ev.ativo ? 'btn-warning' : 'btn-success') + '" style="padding:8px 4px;font-size:0.72em;">' + (ev.ativo ? '⏹️ Desativar' : '▶️ Ativar') + '</button>'
+                    + '<button onclick="copyEventLandingPageLink(&apos;' + ev.id + '&apos;)" class="btn btn-secondary" style="padding:8px 4px;font-size:0.72em;">🔗 Copiar LP</button>'
                     + '<button onclick="deleteEventById(&apos;' + ev.id + '&apos;)" class="btn btn-danger" style="padding:8px 4px;font-size:0.72em;">🗑️ Excluir</button>'
                     + '</div>'
                     : '';
@@ -2066,6 +2108,10 @@
             document.getElementById('events-grid-container').style.display = 'none';
             document.getElementById('event-registration-view').style.display = 'block';
             document.getElementById('ev-desk-title').textContent = selectedEvent.nome;
+            const copyLpBtn = document.getElementById('ev-copy-lp-btn');
+            if (copyLpBtn) {
+                copyLpBtn.style.display = isCurrentUserAdm() ? 'inline-flex' : 'none';
+            }
             const banner = document.getElementById('ev-desk-banner');
             if (selectedEvent.imagem_url) {
                 document.getElementById('ev-desk-banner-img').src = selectedEvent.imagem_url;
@@ -2354,6 +2400,8 @@ function exportEventRegistrations() {
         window.saveEventFromModal         = saveEventFromModal;
         window.toggleEventById            = toggleEventById;
         window.deleteEventById            = deleteEventById;
+        window.copyEventLandingPageLink   = copyEventLandingPageLink;
+        window.copySelectedEventLandingPageLink = copySelectedEventLandingPageLink;
         window.selectEventForRegistration = selectEventForRegistration;
         window.registerForEvent           = registerForEvent;
         window.filterEventList            = filterEventList;
