@@ -2495,13 +2495,38 @@ function exportEventRegistrations() {
             const byForma = {};
             pagos.forEach(r => {
                 const f = r.forma_pagamento || 'N/D';
-                byForma[f] = (byForma[f] || 0) + parseFloat(r.valor_pago || 0);
+                if (!byForma[f]) byForma[f] = { total: 0, count: 0 };
+                byForma[f].total += parseFloat(r.valor_pago || 0);
+                byForma[f].count++;
             });
-            const formaRows = Object.entries(byForma).map(([f, v]) =>
-                '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">'
-                + '<span style="color:var(--text-light);">' + f + '</span>'
-                + '<span style="font-weight:700;color:var(--success);">' + fmtR(v) + '</span></div>'
+            const formaRows = Object.entries(byForma).map(([f, d]) =>
+                '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">'
+                + '<span style="color:var(--text-light);">' + f + ' <span style="color:var(--text-muted);font-size:0.85em;">(' + d.count + 'x)</span></span>'
+                + '<span style="font-weight:700;color:var(--success);">' + fmtR(d.total) + '</span></div>'
             ).join('') || '<div style="color:var(--text-muted);font-size:0.9em;">Nenhum pagamento ainda.</div>';
+
+            // Por atendente
+            const byAtendente = {};
+            pagos.forEach(r => {
+                const a = r.pago_por || r.atendente || 'N/D';
+                if (!byAtendente[a]) byAtendente[a] = { total: 0, count: 0, formas: {} };
+                byAtendente[a].total += parseFloat(r.valor_pago || 0);
+                byAtendente[a].count++;
+                const f = r.forma_pagamento || 'N/D';
+                byAtendente[a].formas[f] = (byAtendente[a].formas[f] || 0) + 1;
+            });
+            const atendenteRows = Object.entries(byAtendente).map(([a, d]) => {
+                const formasStr = Object.entries(d.formas).map(([f, c]) => f + ': ' + c + 'x').join(' · ');
+                return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">'
+                    + '<div>'
+                    + '<span style="color:var(--primary);font-weight:700;">' + a + '</span>'
+                    + '<div style="color:var(--text-muted);font-size:0.78em;margin-top:2px;">' + formasStr + '</div>'
+                    + '</div>'
+                    + '<div style="text-align:right;">'
+                    + '<div style="font-weight:700;color:var(--success);">' + fmtR(d.total) + '</div>'
+                    + '<div style="color:var(--text-muted);font-size:0.8em;">' + d.count + ' pagamento' + (d.count !== 1 ? 's' : '') + '</div>'
+                    + '</div></div>';
+            }).join('') || '<div style="color:var(--text-muted);font-size:0.9em;">Nenhum pagamento ainda.</div>';
 
             const pagoRows = pagos.length === 0
                 ? '<div style="color:var(--text-muted);font-size:0.9em;padding:8px;">Nenhum pagamento ainda.</div>'
@@ -2561,9 +2586,15 @@ function exportEventRegistrations() {
                 +   '<div style="font-size:1.4em;font-weight:700;color:var(--success);">Gratuito</div></div>')
                 + '</div>'
 
-                + '<div style="margin-bottom:20px;">'
-                + '<div style="font-weight:700;color:var(--text-primary);margin-bottom:12px;font-size:0.9em;text-transform:uppercase;letter-spacing:1px;">Por forma de pagamento</div>'
+                + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">'
+
+                + '<div><div style="font-weight:700;color:var(--text-primary);margin-bottom:10px;font-size:0.85em;text-transform:uppercase;letter-spacing:1px;">Por Forma de Pagamento</div>'
                 + formaRows + '</div>'
+
+                + '<div><div style="font-weight:700;color:var(--text-primary);margin-bottom:10px;font-size:0.85em;text-transform:uppercase;letter-spacing:1px;">Por Atendente</div>'
+                + atendenteRows + '</div>'
+
+                + '</div>'
 
                 + '<div style="margin-bottom:20px;">'
                 + '<div style="font-weight:700;color:var(--success);margin-bottom:12px;font-size:0.9em;text-transform:uppercase;letter-spacing:1px;">Pagamentos Confirmados (' + pagos.length + ')</div>'
