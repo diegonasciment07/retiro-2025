@@ -739,90 +739,43 @@
             <!-- ══════════════ SEÇÃO EVENTOS ══════════════ -->
             <div id="section-eventos" style="display:none;">
 
-                <!-- Painel de configuração — somente ADM -->
-                <div id="event-config-panel" class="event-config-panel">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
-                        <h2 style="color:var(--primary); font-size:1.4em; font-weight:800; letter-spacing:-0.3px;">⚙️ Configurar Evento</h2>
-                        <div style="display:flex; gap:10px;">
-                            <button onclick="toggleEventActive()" id="event-toggle-btn" class="btn btn-warning" style="padding:10px 18px;">
-                                ▶️ Ativar Evento
-                            </button>
-                            <button onclick="openEventConfigEdit()" id="event-edit-btn" class="btn btn-secondary" style="padding:10px 18px; display:none;">
-                                ✏️ Editar
-                            </button>
-                        </div>
-                    </div>
+                <!-- Toolbar ADM -->
+                <div id="ev-adm-toolbar" style="display:none; margin-bottom:24px;">
+                    <button onclick="openEventModal()" class="btn btn-primary" style="padding:14px 28px; font-size:0.9em; letter-spacing:1.5px;">
+                        ➕ CRIAR NOVO EVENTO
+                    </button>
+                </div>
 
-                    <!-- Formulário de configuração -->
-                    <div id="event-form-area">
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
-                            <div>
-                                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Nome do Evento *</label>
-                                <input type="text" id="ev-nome" class="input" placeholder="Ex: Seminário de Escatologia">
-                            </div>
-                            <div>
-                                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Data</label>
-                                <input type="date" id="ev-data" class="input">
-                            </div>
-                        </div>
-                        <div style="margin-bottom:16px;">
-                            <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Descrição (opcional)</label>
-                            <input type="text" id="ev-descricao" class="input" placeholder="Breve descrição do evento">
-                        </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
-                            <div>
-                                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Capacidade (0 = ilimitado)</label>
-                                <input type="number" id="ev-capacidade" class="input" placeholder="0" min="0">
-                            </div>
-                            <div>
-                                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Tipo</label>
-                                <select id="ev-gratuito" class="input" onchange="toggleEventValueField()">
-                                    <option value="true">Gratuito</option>
-                                    <option value="false">Pago</option>
-                                </select>
-                            </div>
-                            <div id="ev-valor-wrap">
-                                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Valor (R$)</label>
-                                <input type="text" id="ev-valor" class="input" placeholder="Ex: 30,00" disabled>
-                            </div>
-                        </div>
-                        <button onclick="saveEventConfig()" class="btn btn-primary" style="width:100%; padding:15px; font-size:0.9em; letter-spacing:2px;">
-                            💾 SALVAR CONFIGURAÇÃO
-                        </button>
-                    </div>
-
-                    <!-- Resumo do evento ativo -->
-                    <div id="event-active-summary" style="display:none;">
-                        <div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); border-radius:var(--border-radius); padding:16px;">
-                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                                <span style="color:var(--success); font-size:1.4em;">✅</span>
-                                <strong id="ev-active-nome" style="color:var(--text-primary); font-size:1.1em;"></strong>
-                            </div>
-                            <div style="color:var(--text-light); font-size:0.85em; display:flex; gap:20px; flex-wrap:wrap;">
-                                <span id="ev-active-data"></span>
-                                <span id="ev-active-tipo"></span>
-                                <span id="ev-active-capacidade"></span>
-                            </div>
-                            <div id="ev-active-descricao" style="color:var(--text-muted); font-size:0.82em; margin-top:6px;"></div>
-                        </div>
+                <!-- Grid de cards de eventos -->
+                <div id="events-grid-container">
+                    <div id="events-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:20px;"></div>
+                    <div id="no-event-banner" class="no-event-banner" style="display:none;">
+                        <div class="icon">📅</div>
+                        <h3>Nenhum evento ativo no momento</h3>
+                        <p>Aguarde o administrador configurar e ativar um evento.</p>
                     </div>
                 </div>
 
-                <!-- Sem evento ativo (usuários comuns) -->
-                <div id="no-event-banner" class="no-event-banner" style="display:none;">
-                    <div class="icon">📅</div>
-                    <h3>Nenhum evento ativo no momento</h3>
-                    <p>Aguarde o administrador configurar e ativar um evento.</p>
-                </div>
+                <!-- Balcão de inscrições (exibido ao selecionar um evento) -->
+                <div id="event-registration-view" style="display:none;">
+                    <div style="display:flex; align-items:center; gap:14px; margin-bottom:24px; flex-wrap:wrap;">
+                        <button onclick="backToEventsList()" class="btn btn-secondary" style="padding:10px 18px;">← Voltar</button>
+                        <div>
+                            <div style="color:var(--text-muted); font-size:0.72em; text-transform:uppercase; letter-spacing:2px;">Evento</div>
+                            <h2 id="ev-desk-title" style="color:var(--primary); font-size:1.6em; font-weight:900; letter-spacing:-0.3px;"></h2>
+                        </div>
+                    </div>
 
-                <!-- Balcão de inscrições do evento -->
-                <div id="event-desk" style="display:none;">
+                    <div id="ev-desk-banner" style="display:none; margin-bottom:24px; border-radius:var(--border-radius-lg); overflow:hidden;">
+                        <img id="ev-desk-banner-img" src="" alt="" style="width:100%; max-height:280px; object-fit:cover; display:block;">
+                    </div>
+
                     <div class="event-stats-bar">
                         <div class="event-stat-item">
                             <div class="event-stat-value" id="ev-stat-inscritos">0</div>
                             <div class="event-stat-label">Inscritos</div>
                         </div>
-                        <div class="event-stat-item" id="ev-stat-vagas-wrap">
+                        <div class="event-stat-item">
                             <div class="event-stat-value" id="ev-stat-vagas">∞</div>
                             <div class="event-stat-label">Vagas Restantes</div>
                         </div>
@@ -833,10 +786,8 @@
                     </div>
 
                     <div class="main-layout">
-                        <!-- Formulário de nova inscrição -->
                         <div class="card">
                             <h2 style="color:var(--primary); font-size:1.4em; margin-bottom:20px; text-align:center;">✍️ Nova Inscrição</h2>
-
                             <div style="margin-bottom:14px;">
                                 <label style="color:var(--text-light); font-weight:600; margin-bottom:6px; display:block; font-size:0.85em; text-transform:uppercase; letter-spacing:0.5px;">Nome Completo *</label>
                                 <input type="text" id="ev-reg-nome" class="input" placeholder="Nome completo do participante">
@@ -863,21 +814,16 @@
                                 <label style="color:var(--text-light); font-weight:600; margin-bottom:6px; display:block; font-size:0.85em; text-transform:uppercase; letter-spacing:0.5px;">Observação</label>
                                 <input type="text" id="ev-reg-obs" class="input" placeholder="Opcional">
                             </div>
-
                             <button onclick="registerForEvent()" class="btn btn-success" style="width:100%; padding:15px; font-size:0.9em; letter-spacing:2px;">
                                 ✅ REGISTRAR INSCRIÇÃO
                             </button>
-
-                            <div style="padding-top:20px; border-top:1px solid var(--border); margin-top:20px;">
-                                <button onclick="exportEventRegistrations()" class="btn btn-secondary" style="width:100%;">
-                                    📊 Exportar Lista (Excel)
-                                </button>
+                            <div style="padding-top:16px; border-top:1px solid var(--border); margin-top:16px;">
+                                <button onclick="exportEventRegistrations()" class="btn btn-secondary" style="width:100%;">📊 Exportar Lista (Excel)</button>
                             </div>
                         </div>
 
-                        <!-- Lista de inscrições do evento -->
                         <div class="card">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
                                 <h2 style="color:var(--primary); font-size:1.4em;">📋 Inscritos</h2>
                                 <input type="text" id="ev-search" class="input" placeholder="Buscar por nome..." style="width:200px;" oninput="filterEventList()">
                             </div>
@@ -1046,6 +992,59 @@
             <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <button onclick="exportAdmReport()" class="btn btn-success" id="adm-export-btn" style="display: none;">📊 Exportar Excel</button>
                 <button onclick="closeAdmReportModal()" class="btn btn-secondary" style="grid-column: 2;">❌ Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Criar/Editar Evento (ADM) -->
+    <div id="event-form-modal" class="modal">
+        <div class="card" style="max-width:640px; width:92%; max-height:92vh; overflow-y:auto; border-color:var(--border-accent);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                <h3 id="ev-modal-title" style="color:var(--primary); font-size:1.4em; font-weight:800;">➕ Novo Evento</h3>
+                <button onclick="closeEventModal()" class="btn btn-secondary" style="padding:8px 14px;">❌ Fechar</button>
+            </div>
+            <div id="ev-image-preview" style="display:none; margin-bottom:16px; border-radius:var(--border-radius); overflow:hidden;">
+                <img id="ev-preview-img" src="" alt="Preview" style="width:100%; height:200px; object-fit:cover; display:block;">
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">🖼️ URL da Imagem</label>
+                <input type="url" id="ev-imagem" class="input" placeholder="https://...imagem.jpg" oninput="previewEventImage()">
+                <div style="color:var(--text-muted); font-size:0.75em; margin-top:4px;">Cole a URL de uma imagem (Imgur, Google Fotos, etc.)</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                <div>
+                    <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Nome do Evento *</label>
+                    <input type="text" id="ev-nome" class="input" placeholder="Ex: Seminário de Escatologia">
+                </div>
+                <div>
+                    <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Data</label>
+                    <input type="date" id="ev-data" class="input">
+                </div>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Descrição</label>
+                <input type="text" id="ev-descricao" class="input" placeholder="Breve descrição do evento">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:24px;">
+                <div>
+                    <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Capacidade (0=ilimitado)</label>
+                    <input type="number" id="ev-capacidade" class="input" placeholder="0" min="0" value="0">
+                </div>
+                <div>
+                    <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Tipo</label>
+                    <select id="ev-gratuito" class="input" onchange="toggleEventValueField()">
+                        <option value="true">Gratuito</option>
+                        <option value="false">Pago</option>
+                    </select>
+                </div>
+                <div id="ev-valor-wrap">
+                    <label style="color:var(--text-light); font-size:0.82em; font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Valor (R$)</label>
+                    <input type="text" id="ev-valor" class="input" placeholder="0,00" disabled>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <button onclick="saveEventFromModal()" class="btn btn-primary" style="padding:14px;">💾 Salvar Evento</button>
+                <button onclick="closeEventModal()" class="btn btn-secondary" style="padding:14px;">Cancelar</button>
             </div>
         </div>
     </div>

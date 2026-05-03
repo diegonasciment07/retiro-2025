@@ -1932,421 +1932,420 @@
         console.log('✅ Sistema carregado completamente!');
 
         // ═══════════════════════════════════════════════════════════
-        //  MÓDULO DE EVENTOS AVULSOS
+        //  MÓDULO DE EVENTOS AVULSOS  (v2 — múltiplos eventos + imagem)
         // ═══════════════════════════════════════════════════════════
 
-        let activeEvent = null;
+        let selectedEvent = null;
+        let allEvents     = [];
         let eventRegistrations = [];
-        let isAdm = false;
+        let editingEventId = null;
+
+        function isCurrentUserAdm() {
+            return !!(currentUser && currentUser.email.includes('adm'));
+        }
 
         // ── Troca de abas ─────────────────────────────────────────
         function switchTab(tab) {
-            const retiroSection = document.getElementById('section-retiro');
-            const eventosSection = document.getElementById('section-eventos');
-            const btnRetiro = document.getElementById('tab-retiro');
-            const btnEventos = document.getElementById('tab-eventos');
-
+            const sr = document.getElementById('section-retiro');
+            const se = document.getElementById('section-eventos');
+            const br = document.getElementById('tab-retiro');
+            const be = document.getElementById('tab-eventos');
             if (tab === 'retiro') {
-                retiroSection.style.display = 'block';
-                eventosSection.style.display = 'none';
-                btnRetiro.classList.add('active');
-                btnEventos.classList.remove('active');
+                sr.style.display = 'block'; se.style.display = 'none';
+                br.classList.add('active'); be.classList.remove('active');
             } else {
-                retiroSection.style.display = 'none';
-                eventosSection.style.display = 'block';
-                btnRetiro.classList.remove('active');
-                btnEventos.classList.add('active');
-                renderEventosSection(); // mostra imediatamente com estado atual
-                loadActiveEvent();      // atualiza quando Supabase responder
+                sr.style.display = 'none'; se.style.display = 'block';
+                br.classList.remove('active'); be.classList.add('active');
+                showEventsListView();
+                loadEvents();
             }
         }
 
-        // ── Carrega o evento ativo do Supabase ────────────────────
-        async function loadActiveEvent() {
+        function showEventsListView() {
+            document.getElementById('events-grid-container').style.display = 'block';
+            document.getElementById('event-registration-view').style.display = 'none';
+            document.getElementById('ev-adm-toolbar').style.display = isCurrentUserAdm() ? 'block' : 'none';
+            selectedEvent = null;
+            eventRegistrations = [];
+        }
+
+        function backToEventsList() {
+            showEventsListView();
+            renderEventsGrid();
+        }
+
+        // ── Carrega eventos ───────────────────────────────────────
+        async function loadEvents() {
             try {
-                const { data, error } = await supabase
+                let query = supabase
                     .from('eventos')
-                    .select('*')
-                    .eq('ativo', true)
-                    .maybeSingle();
-
-                if (error) {
-                    console.error('Supabase eventos error:', error);
-                    showNotification('Erro ao carregar evento: ' + error.message, 'error');
-                    return;
-                }
-                activeEvent = data || null;
-                renderEventosSection();
+                    .select('*, inscricoes_eventos!evento_id(count)')
+                    .order('criado_em', { ascending: false });
+                if (!isCurrentUserAdm()) query = query.eq('ativo', true);
+                const { data, error } = await query;
+                if (error) throw error;
+                allEvents = data || [];
+                renderEventsGrid();
             } catch (err) {
-                console.error('Erro ao carregar evento:', err);
-                showNotification('Erro ao carregar evento: ' + err.message, 'error');
+                console.error('Erro ao carregar eventos:', err);
+                showNotification('Erro ao carregar eventos: ' + err.message, 'error');
             }
         }
 
-        // ── Renderiza a seção de eventos conforme o estado ────────
-        function renderEventosSection() {
-            const configPanel = document.getElementById('event-config-panel');
-            const noEventBanner = document.getElementById('no-event-banner');
-            const eventDesk = document.getElementById('event-desk');
-            const toggleBtn = document.getElementById('event-toggle-btn');
-            const editBtn = document.getElementById('event-edit-btn');
-            const formArea = document.getElementById('event-form-area');
-            const activeSummary = document.getElementById('event-active-summary');
+        // ── Renderiza grid de cards ───────────────────────────────
+        function renderEventsGrid() {
+            const grid   = document.getElementById('events-grid');
+            const banner = document.getElementById('no-event-banner');
+            const adm    = isCurrentUserAdm();
+            const list   = adm ? allEvents : allEvents.filter(e => e.ativo);
 
-            // Mostra painel de config apenas para ADM
-            if (isAdm) {
-                configPanel.classList.add('visible');
-            } else {
-                configPanel.classList.remove('visible');
-            }
-
-            if (activeEvent) {
-                noEventBanner.style.display = 'none';
-                eventDesk.style.display = 'block';
-                updateEventStats();
-                loadEventRegistrationsList();
-
-                // ADM: mostra resumo e botão de desativar
-                if (isAdm) {
-                    formArea.style.display = 'none';
-                    activeSummary.style.display = 'block';
-                    document.getElementById('ev-active-nome').textContent = activeEvent.nome;
-                    document.getElementById('ev-active-data').textContent = activeEvent.data
-                        ? '📅 ' + new Date(activeEvent.data + 'T12:00:00').toLocaleDateString('pt-BR')
-                        : '';
-                    document.getElementById('ev-active-tipo').textContent = activeEvent.gratuito
-                        ? '🎟️ Gratuito'
-                        : `💰 R$ ${parseFloat(activeEvent.valor || 0).toFixed(2).replace('.', ',')}`;
-                    document.getElementById('ev-active-capacidade').textContent = activeEvent.capacidade > 0
-                        ? `👥 ${activeEvent.capacidade} vagas`
-                        : '👥 Ilimitado';
-                    document.getElementById('ev-active-descricao').textContent = activeEvent.descricao || '';
-                    toggleBtn.textContent = '⏹️ Desativar Evento';
-                    toggleBtn.className = 'btn btn-danger';
-                    editBtn.style.display = 'inline-block';
-                }
-            } else {
-                eventDesk.style.display = 'none';
-
-                if (isAdm) {
-                    formArea.style.display = 'block';
-                    activeSummary.style.display = 'none';
-                    toggleBtn.textContent = '▶️ Ativar Evento';
-                    toggleBtn.className = 'btn btn-warning';
-                    editBtn.style.display = 'none';
-                    noEventBanner.style.display = 'none';
-                } else {
-                    noEventBanner.style.display = 'block';
-                }
-            }
-        }
-
-        // ── Salva configuração do evento (ADM) ────────────────────
-        async function saveEventConfig() {
-            const nome = document.getElementById('ev-nome').value.trim();
-            const data = document.getElementById('ev-data').value;
-            const descricao = document.getElementById('ev-descricao').value.trim();
-            const capacidade = parseInt(document.getElementById('ev-capacidade').value) || 0;
-            const gratuito = document.getElementById('ev-gratuito').value === 'true';
-            const valorRaw = document.getElementById('ev-valor').value.trim().replace(',', '.');
-            const valor = gratuito ? 0 : (parseFloat(valorRaw) || 0);
-
-            if (!nome) {
-                showNotification('Informe o nome do evento', 'error');
+            if (list.length === 0) {
+                grid.innerHTML = '';
+                banner.style.display = 'block';
                 return;
             }
+            banner.style.display = 'none';
 
+            grid.innerHTML = list.map(ev => {
+                const count = ev.inscricoes_eventos && ev.inscricoes_eventos[0]
+                    ? ev.inscricoes_eventos[0].count : 0;
+
+                const imgHtml = ev.imagem_url
+                    ? '<div style="height:180px;overflow:hidden;"><img src="' + ev.imagem_url + '" alt="' + ev.nome + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.display=&quot;none&quot;"></div>'
+                    : '<div style="height:70px;background:linear-gradient(135deg,var(--primary-dark),var(--primary));display:flex;align-items:center;justify-content:center;font-size:2em;">📅</div>';
+
+                const badge = ev.ativo
+                    ? '<span style="background:var(--success);color:#fff;padding:2px 10px;border-radius:100px;font-size:0.7em;font-weight:700;white-space:nowrap;">● ATIVO</span>'
+                    : '<span style="background:var(--text-muted);color:#fff;padding:2px 10px;border-radius:100px;font-size:0.7em;font-weight:700;white-space:nowrap;">INATIVO</span>';
+
+                const dataStr = ev.data
+                    ? '📅 ' + new Date(ev.data + 'T12:00:00').toLocaleDateString('pt-BR', {weekday:'long',day:'2-digit',month:'long'})
+                    : '';
+
+                const valorStr = ev.gratuito
+                    ? '<span style="color:var(--success);font-weight:700;">Gratuito</span>'
+                    : '<span style="color:var(--warning);font-weight:700;">R$ ' + parseFloat(ev.valor||0).toFixed(2).replace('.',',') + '</span>';
+
+                const admBtns = adm
+                    ? '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);" onclick="event.stopPropagation()">'
+                    + '<button onclick="openEventModal(&apos;' + ev.id + '&apos;)" class="btn btn-info" style="padding:8px 4px;font-size:0.72em;">✏️ Editar</button>'
+                    + '<button onclick="toggleEventById(&apos;' + ev.id + '&apos;)" class="btn ' + (ev.ativo ? 'btn-warning' : 'btn-success') + '" style="padding:8px 4px;font-size:0.72em;">' + (ev.ativo ? '⏹️ Desativar' : '▶️ Ativar') + '</button>'
+                    + '<button onclick="deleteEventById(&apos;' + ev.id + '&apos;)" class="btn btn-danger" style="padding:8px 4px;font-size:0.72em;">🗑️ Excluir</button>'
+                    + '</div>'
+                    : '';
+
+                const clickHandler = ev.ativo
+                    ? 'onclick="selectEventForRegistration(&apos;' + ev.id + '&apos;)"'
+                    : '';
+                const hoverOn = ev.ativo
+                    ? "this.style.borderColor='var(--border-accent)';this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-primary)'"
+                    : '';
+                const hoverOff = ev.ativo
+                    ? "this.style.borderColor='var(--border)';this.style.transform='translateY(0)';this.style.boxShadow='none'"
+                    : '';
+
+                return '<div style="background:var(--bg-medium);border:1px solid var(--border);border-radius:var(--border-radius-lg);overflow:hidden;transition:all 0.2s ease;' + (ev.ativo ? 'cursor:pointer;' : '') + '"'
+                    + ' ' + clickHandler
+                    + ' onmouseenter="' + hoverOn + '"'
+                    + ' onmouseleave="' + hoverOff + '">'
+                    + imgHtml
+                    + '<div style="padding:18px;">'
+                    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;"><h3 style="color:var(--text-primary);font-size:1.05em;font-weight:700;line-height:1.2;">' + ev.nome + '</h3>' + badge + '</div>'
+                    + (dataStr ? '<div style="color:var(--text-muted);font-size:0.8em;margin-bottom:4px;">' + dataStr + '</div>' : '')
+                    + (ev.descricao ? '<div style="color:var(--text-light);font-size:0.85em;margin-bottom:8px;line-height:1.4;">' + ev.descricao + '</div>' : '')
+                    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">' + valorStr + '<span style="color:var(--text-muted);font-size:0.8em;">👥 ' + count + ' inscrito' + (count != 1 ? 's' : '') + '</span></div>'
+                    + admBtns
+                    + '</div></div>';
+            }).join('');
+        }
+
+        // ── Seleciona evento para inscrição ───────────────────────
+        async function selectEventForRegistration(eventId) {
+            selectedEvent = allEvents.find(e => e.id === eventId);
+            if (!selectedEvent) return;
+            document.getElementById('events-grid-container').style.display = 'none';
+            document.getElementById('event-registration-view').style.display = 'block';
+            document.getElementById('ev-desk-title').textContent = selectedEvent.nome;
+            const banner = document.getElementById('ev-desk-banner');
+            if (selectedEvent.imagem_url) {
+                document.getElementById('ev-desk-banner-img').src = selectedEvent.imagem_url;
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+            }
+            await loadEventRegistrationsList();
+        }
+
+        // ── Modal criar/editar evento ─────────────────────────────
+        function openEventModal(eventId) {
+            editingEventId = eventId || null;
+            document.getElementById('ev-modal-title').textContent = eventId ? '✏️ Editar Evento' : '➕ Novo Evento';
+            document.getElementById('ev-nome').value = '';
+            document.getElementById('ev-data').value = '';
+            document.getElementById('ev-descricao').value = '';
+            document.getElementById('ev-capacidade').value = '0';
+            document.getElementById('ev-gratuito').value = 'true';
+            document.getElementById('ev-valor').value = '';
+            document.getElementById('ev-imagem').value = '';
+            document.getElementById('ev-image-preview').style.display = 'none';
+            toggleEventValueField();
+            if (eventId) {
+                const ev = allEvents.find(e => e.id === eventId);
+                if (ev) {
+                    document.getElementById('ev-nome').value = ev.nome || '';
+                    document.getElementById('ev-data').value = ev.data || '';
+                    document.getElementById('ev-descricao').value = ev.descricao || '';
+                    document.getElementById('ev-capacidade').value = ev.capacidade || 0;
+                    document.getElementById('ev-gratuito').value = ev.gratuito ? 'true' : 'false';
+                    document.getElementById('ev-valor').value = ev.valor
+                        ? parseFloat(ev.valor).toFixed(2).replace('.', ',') : '';
+                    document.getElementById('ev-imagem').value = ev.imagem_url || '';
+                    toggleEventValueField();
+                    if (ev.imagem_url) {
+                        document.getElementById('ev-preview-img').src = ev.imagem_url;
+                        document.getElementById('ev-image-preview').style.display = 'block';
+                    }
+                }
+            }
+            document.getElementById('event-form-modal').style.display = 'flex';
+        }
+
+        function closeEventModal() {
+            document.getElementById('event-form-modal').style.display = 'none';
+            editingEventId = null;
+        }
+
+        function previewEventImage() {
+            const url = document.getElementById('ev-imagem').value.trim();
+            const preview = document.getElementById('ev-image-preview');
+            const img = document.getElementById('ev-preview-img');
+            if (url) {
+                img.src = url;
+                preview.style.display = 'block';
+                img.onerror = () => { preview.style.display = 'none'; };
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function toggleEventValueField() {
+            const g = document.getElementById('ev-gratuito').value === 'true';
+            const v = document.getElementById('ev-valor');
+            v.disabled = g;
+            if (g) v.value = '';
+        }
+
+        async function saveEventFromModal() {
+            const nome = document.getElementById('ev-nome').value.trim();
+            if (!nome) { showNotification('Informe o nome do evento', 'error'); return; }
+            const gratuito = document.getElementById('ev-gratuito').value === 'true';
+            const valorRaw = document.getElementById('ev-valor').value.trim().replace(',', '.');
+            const payload = {
+                nome,
+                data: document.getElementById('ev-data').value || null,
+                descricao: document.getElementById('ev-descricao').value.trim() || null,
+                capacidade: parseInt(document.getElementById('ev-capacidade').value) || 0,
+                gratuito,
+                valor: gratuito ? 0 : (parseFloat(valorRaw) || 0),
+                imagem_url: document.getElementById('ev-imagem').value.trim() || null,
+                criado_por: currentUser.email,
+                atualizado_em: new Date().toISOString()
+            };
             try {
                 showNotification('Salvando...', 'info');
-
-                const payload = {
-                    nome,
-                    data: data || null,
-                    descricao: descricao || null,
-                    capacidade,
-                    gratuito,
-                    valor,
-                    ativo: false,
-                    criado_por: currentUser.email,
-                    atualizado_em: new Date().toISOString()
-                };
-
                 let result;
-                if (activeEvent && activeEvent.id) {
-                    result = await supabase.from('eventos').update(payload).eq('id', activeEvent.id).select().single();
+                if (editingEventId) {
+                    result = await supabase.from('eventos').update(payload)
+                        .eq('id', editingEventId).select().single();
                 } else {
+                    payload.ativo = false;
                     result = await supabase.from('eventos').insert(payload).select().single();
                 }
-
                 if (result.error) throw result.error;
-                activeEvent = result.data;
-
-                showNotification('Evento salvo! Ative quando quiser.', 'success');
-                renderEventosSection();
+                if (editingEventId) {
+                    const idx = allEvents.findIndex(e => e.id === editingEventId);
+                    if (idx >= 0) allEvents[idx] = Object.assign({}, allEvents[idx], result.data);
+                } else {
+                    allEvents.unshift(result.data);
+                }
+                closeEventModal();
+                renderEventsGrid();
+                showNotification(editingEventId
+                    ? 'Evento atualizado!'
+                    : 'Evento criado! Ative-o para aparecer para os usuários.', 'success');
             } catch (err) {
-                console.error('Erro ao salvar evento:', err);
                 showNotification('Erro ao salvar: ' + err.message, 'error');
             }
         }
 
-        // ── Ativa ou desativa o evento (ADM) ─────────────────────
-        async function toggleEventActive() {
-            if (!activeEvent) {
-                showNotification('Salve a configuração do evento primeiro', 'error');
-                return;
-            }
-
-            const novoEstado = !activeEvent.ativo;
-
+        async function toggleEventById(eventId) {
+            const ev = allEvents.find(e => e.id === eventId);
+            if (!ev) return;
             try {
-                const { data, error } = await supabase
-                    .from('eventos')
-                    .update({ ativo: novoEstado, atualizado_em: new Date().toISOString() })
-                    .eq('id', activeEvent.id)
-                    .select()
-                    .single();
-
+                const { data, error } = await supabase.from('eventos')
+                    .update({ ativo: !ev.ativo, atualizado_em: new Date().toISOString() })
+                    .eq('id', eventId).select().single();
                 if (error) throw error;
-                activeEvent = novoEstado ? data : null;
-
-                showNotification(novoEstado ? '✅ Evento ativado!' : '⏹️ Evento desativado.', 'success');
-                renderEventosSection();
-            } catch (err) {
-                console.error('Erro ao alternar evento:', err);
-                showNotification('Erro: ' + err.message, 'error');
-            }
+                const idx = allEvents.findIndex(e => e.id === eventId);
+                if (idx >= 0) allEvents[idx] = Object.assign({}, allEvents[idx], data);
+                renderEventsGrid();
+                showNotification(data.ativo
+                    ? '"' + ev.nome + '" ativado! ✅'
+                    : '"' + ev.nome + '" desativado. ⏹️', 'success');
+            } catch (err) { showNotification('Erro: ' + err.message, 'error'); }
         }
 
-        // ── Abre formulário de edição (ADM) ───────────────────────
-        function openEventConfigEdit() {
-            if (!activeEvent) return;
-            const formArea = document.getElementById('event-form-area');
-            const activeSummary = document.getElementById('event-active-summary');
-
-            document.getElementById('ev-nome').value = activeEvent.nome || '';
-            document.getElementById('ev-data').value = activeEvent.data || '';
-            document.getElementById('ev-descricao').value = activeEvent.descricao || '';
-            document.getElementById('ev-capacidade').value = activeEvent.capacidade || 0;
-            document.getElementById('ev-gratuito').value = activeEvent.gratuito ? 'true' : 'false';
-            document.getElementById('ev-valor').value = activeEvent.valor
-                ? parseFloat(activeEvent.valor).toFixed(2).replace('.', ',')
-                : '';
-            toggleEventValueField();
-
-            formArea.style.display = 'block';
-            activeSummary.style.display = 'none';
+        async function deleteEventById(eventId) {
+            const ev = allEvents.find(e => e.id === eventId);
+            if (!ev) return;
+            if (!confirm('Excluir "' + ev.nome + '"? Todas as inscricoes tambem serao removidas.')) return;
+            try {
+                const { error } = await supabase.from('eventos').delete().eq('id', eventId);
+                if (error) throw error;
+                allEvents = allEvents.filter(e => e.id !== eventId);
+                renderEventsGrid();
+                showNotification('Evento excluído.', 'info');
+            } catch (err) { showNotification('Erro: ' + err.message, 'error'); }
         }
 
-        // ── Habilita/desabilita campo de valor conforme tipo ──────
-        function toggleEventValueField() {
-            const gratuito = document.getElementById('ev-gratuito').value === 'true';
-            const valorInput = document.getElementById('ev-valor');
-            valorInput.disabled = gratuito;
-            if (gratuito) valorInput.value = '';
-        }
-
-        // ── Registra inscrição no evento ──────────────────────────
+        // ── Balcão de inscrições ──────────────────────────────────
         async function registerForEvent() {
-            if (!activeEvent) {
-                showNotification('Nenhum evento ativo', 'error');
-                return;
-            }
-
+            if (!selectedEvent) { showNotification('Nenhum evento selecionado', 'error'); return; }
             const nome = document.getElementById('ev-reg-nome').value.trim();
-            const telefone = document.getElementById('ev-reg-telefone').value.trim();
-            const rede = document.getElementById('ev-reg-rede').value;
-            const obs = document.getElementById('ev-reg-obs').value.trim();
-
-            if (!nome) {
-                showNotification('Informe o nome do participante', 'error');
-                return;
+            if (!nome) { showNotification('Informe o nome do participante', 'error'); return; }
+            if (selectedEvent.capacidade > 0 && eventRegistrations.length >= selectedEvent.capacidade) {
+                showNotification('Evento com capacidade esgotada!', 'error'); return;
             }
-
-            // Verifica capacidade
-            if (activeEvent.capacidade > 0 && eventRegistrations.length >= activeEvent.capacidade) {
-                showNotification('Evento com capacidade esgotada!', 'error');
-                return;
-            }
-
-            // Verifica duplicata por nome
-            const duplicado = eventRegistrations.find(r =>
-                r.nome.toLowerCase().trim() === nome.toLowerCase()
-            );
-            if (duplicado) {
-                showNotification(`"${nome}" já está inscrito(a) neste evento.`, 'error');
-                return;
-            }
-
+            const dup = eventRegistrations.find(r => r.nome.toLowerCase().trim() === nome.toLowerCase());
+            if (dup) { showNotification('"' + nome + '" já está inscrito(a) neste evento.', 'error'); return; }
             try {
-                const { data, error } = await supabase
-                    .from('inscricoes_eventos')
-                    .insert({
-                        evento_id: activeEvent.id,
-                        nome,
-                        telefone: telefone || null,
-                        rede: rede || null,
-                        observacao: obs || null,
-                        atendente: currentUser.email.split('@')[0]
-                    })
-                    .select()
-                    .single();
-
+                const { data, error } = await supabase.from('inscricoes_eventos').insert({
+                    evento_id: selectedEvent.id,
+                    nome,
+                    telefone: document.getElementById('ev-reg-telefone').value.trim() || null,
+                    rede: document.getElementById('ev-reg-rede').value || null,
+                    observacao: document.getElementById('ev-reg-obs').value.trim() || null,
+                    atendente: currentUser.email.split('@')[0]
+                }).select().single();
                 if (error) throw error;
-
                 eventRegistrations.unshift(data);
                 updateEventStats();
                 renderEventList();
-
-                // Limpa campos
                 document.getElementById('ev-reg-nome').value = '';
                 document.getElementById('ev-reg-telefone').value = '';
                 document.getElementById('ev-reg-rede').value = '';
                 document.getElementById('ev-reg-obs').value = '';
                 document.getElementById('ev-reg-nome').focus();
-
-                showNotification(`✅ ${nome} inscrito(a) com sucesso!`, 'success');
-            } catch (err) {
-                console.error('Erro ao registrar:', err);
-                showNotification('Erro ao registrar: ' + err.message, 'error');
-            }
+                showNotification('✅ ' + nome + ' inscrito(a)!', 'success');
+            } catch (err) { showNotification('Erro: ' + err.message, 'error'); }
         }
 
-        // ── Carrega lista de inscrições do evento ativo ───────────
         async function loadEventRegistrationsList() {
-            if (!activeEvent) return;
-
+            if (!selectedEvent) return;
+            document.getElementById('event-list-container').innerHTML =
+                '<div style="text-align:center;padding:40px;"><div class="loading"></div></div>';
             try {
-                const { data, error } = await supabase
-                    .from('inscricoes_eventos')
-                    .select('*')
-                    .eq('evento_id', activeEvent.id)
+                const { data, error } = await supabase.from('inscricoes_eventos')
+                    .select('*').eq('evento_id', selectedEvent.id)
                     .order('criado_em', { ascending: false });
-
                 if (error) throw error;
                 eventRegistrations = data || [];
                 updateEventStats();
                 renderEventList();
             } catch (err) {
-                console.error('Erro ao carregar inscrições do evento:', err);
                 document.getElementById('event-list-container').innerHTML =
-                    '<div style="text-align:center;padding:20px;color:#ef4444;">Erro ao carregar inscrições</div>';
+                    '<div style="text-align:center;padding:20px;color:var(--danger);">Erro ao carregar</div>';
             }
         }
 
-        // ── Atualiza contadores do evento ─────────────────────────
         function updateEventStats() {
-            const total = eventRegistrations.length;
-            document.getElementById('ev-stat-inscritos').textContent = total;
-
-            if (activeEvent && activeEvent.capacidade > 0) {
-                const vagas = Math.max(0, activeEvent.capacidade - total);
-                document.getElementById('ev-stat-vagas').textContent = vagas;
-            } else {
-                document.getElementById('ev-stat-vagas').textContent = '∞';
-            }
-
+            const t = eventRegistrations.length;
+            document.getElementById('ev-stat-inscritos').textContent = t;
+            document.getElementById('ev-stat-vagas').textContent =
+                (selectedEvent && selectedEvent.capacidade > 0)
+                    ? Math.max(0, selectedEvent.capacidade - t) : '∞';
             const hoje = new Date().toDateString();
-            const hoje_count = eventRegistrations.filter(r =>
-                new Date(r.criado_em).toDateString() === hoje
-            ).length;
-            document.getElementById('ev-stat-hoje').textContent = hoje_count;
+            document.getElementById('ev-stat-hoje').textContent =
+                eventRegistrations.filter(r => new Date(r.criado_em).toDateString() === hoje).length;
         }
 
-        // ── Renderiza a lista de inscritos ────────────────────────
-        function renderEventList(filter = '') {
+        function renderEventList(filter) {
+            filter = filter || '';
             const container = document.getElementById('event-list-container');
             const lower = filter.toLowerCase();
             const list = filter
                 ? eventRegistrations.filter(r => r.nome.toLowerCase().includes(lower))
                 : eventRegistrations;
-
             if (list.length === 0) {
-                container.innerHTML = `<div style="text-align:center;padding:40px;color:#666;">
-                    ${filter ? 'Nenhum resultado encontrado' : 'Nenhuma inscrição ainda'}
-                </div>`;
+                container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">'
+                    + (filter ? 'Nenhum resultado' : 'Nenhuma inscrição ainda') + '</div>';
                 return;
             }
-
-            container.innerHTML = list.map((r, idx) => `
-                <div class="person-card" style="margin-bottom:8px;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
-                        <div style="flex:1;">
-                            <div style="font-weight:700; color:var(--text-primary); font-size:1em;">${r.nome}</div>
-                            <div style="color:var(--text-muted); font-size:0.8em; margin-top:3px; display:flex; gap:12px; flex-wrap:wrap;">
-                                ${r.telefone ? `<span>📱 ${r.telefone}</span>` : ''}
-                                ${r.rede ? `<span>🔵 ${r.rede}</span>` : ''}
-                                ${r.observacao ? `<span>📝 ${r.observacao}</span>` : ''}
-                            </div>
-                        </div>
-                        <div style="text-align:right; flex-shrink:0;">
-                            <div style="font-size:0.72em; color:var(--text-muted);">${formatDateTime(new Date(r.criado_em))}</div>
-                            <div style="font-size:0.72em; color:var(--primary); margin-top:2px;">por ${r.atendente || '—'}</div>
-                            ${isAdm ? `<button onclick="removeEventRegistration('${r.id}')" class="btn btn-danger" style="padding:3px 8px; font-size:0.7em; margin-top:4px;">🗑️</button>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            container.innerHTML = list.map(r =>
+                '<div class="person-card">'
+                + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
+                + '<div style="flex:1;">'
+                + '<div style="font-weight:700;color:var(--text-primary);">' + r.nome + '</div>'
+                + '<div style="color:var(--text-muted);font-size:0.78em;margin-top:3px;display:flex;gap:12px;flex-wrap:wrap;">'
+                + (r.telefone ? '<span>📱 ' + r.telefone + '</span>' : '')
+                + (r.rede ? '<span>🔵 ' + r.rede + '</span>' : '')
+                + (r.observacao ? '<span>📝 ' + r.observacao + '</span>' : '')
+                + '</div></div>'
+                + '<div style="text-align:right;flex-shrink:0;">'
+                + '<div style="font-size:0.72em;color:var(--text-muted);">' + formatDateTime(new Date(r.criado_em)) + '</div>'
+                + '<div style="font-size:0.72em;color:var(--primary);margin-top:2px;">por ' + (r.atendente || '—') + '</div>'
+                + (isCurrentUserAdm()
+                    ? '<button onclick="removeEventRegistration(&apos;' + r.id + '&apos;)" class="btn btn-danger" style="padding:3px 8px;font-size:0.7em;margin-top:4px;">🗑️</button>'
+                    : '')
+                + '</div></div></div>'
+            ).join('');
         }
 
-        // ── Filtra lista ao digitar no campo de busca ─────────────
         function filterEventList() {
-            const q = document.getElementById('ev-search').value;
-            renderEventList(q);
+            renderEventList(document.getElementById('ev-search').value);
         }
 
-        // ── Remove inscrição (ADM) ────────────────────────────────
         async function removeEventRegistration(id) {
             if (!confirm('Remover esta inscrição?')) return;
-
             try {
-                const { error } = await supabase
-                    .from('inscricoes_eventos')
-                    .delete()
-                    .eq('id', id);
-
+                const { error } = await supabase.from('inscricoes_eventos').delete().eq('id', id);
                 if (error) throw error;
                 eventRegistrations = eventRegistrations.filter(r => r.id !== id);
                 updateEventStats();
                 renderEventList(document.getElementById('ev-search').value);
-                showNotification('Inscrição removida', 'info');
-            } catch (err) {
-                showNotification('Erro ao remover: ' + err.message, 'error');
-            }
+                showNotification('Inscrição removida.', 'info');
+            } catch (err) { showNotification('Erro: ' + err.message, 'error'); }
         }
 
-        // ── Exporta lista do evento para Excel ────────────────────
         function exportEventRegistrations() {
-            if (!activeEvent || eventRegistrations.length === 0) {
-                showNotification('Nenhuma inscrição para exportar', 'error');
-                return;
+            if (!selectedEvent || eventRegistrations.length === 0) {
+                showNotification('Nenhuma inscrição para exportar', 'error'); return;
             }
-
             const rows = eventRegistrations.map((r, i) => ({
-                'Nº': i + 1,
-                'Nome': r.nome,
-                'Telefone': r.telefone || '',
-                'Rede': r.rede || '',
-                'Observação': r.observacao || '',
-                'Atendente': r.atendente || '',
+                'Nº': i + 1, 'Nome': r.nome,
+                'Telefone': r.telefone || '', 'Rede': r.rede || '',
+                'Observação': r.observacao || '', 'Atendente': r.atendente || '',
                 'Data/Hora': formatDateTime(new Date(r.criado_em))
             }));
-
             const ws = XLSX.utils.json_to_sheet(rows);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Inscrições');
-            XLSX.writeFile(wb, `inscricoes_${activeEvent.nome.replace(/\s+/g, '_')}.xlsx`);
+            XLSX.writeFile(wb, 'inscricoes_' + selectedEvent.nome.replace(/\s+/g, '_') + '.xlsx');
         }
 
-        // isAdm é definido no bloco de login acima (currentUser.email.includes('adm'))
-
-        // Expõe funções de eventos ao escopo global (necessário pois app.js é type="module")
-        window.switchTab               = switchTab;
-        window.saveEventConfig         = saveEventConfig;
-        window.toggleEventActive       = toggleEventActive;
-        window.openEventConfigEdit     = openEventConfigEdit;
-        window.toggleEventValueField   = toggleEventValueField;
-        window.registerForEvent        = registerForEvent;
-        window.filterEventList         = filterEventList;
-        window.removeEventRegistration = removeEventRegistration;
-        window.exportEventRegistrations = exportEventRegistrations;
+        // Expõe ao escopo global (necessário em type="module")
+        window.switchTab                  = switchTab;
+        window.backToEventsList           = backToEventsList;
+        window.openEventModal             = openEventModal;
+        window.closeEventModal            = closeEventModal;
+        window.previewEventImage          = previewEventImage;
+        window.toggleEventValueField      = toggleEventValueField;
+        window.saveEventFromModal         = saveEventFromModal;
+        window.toggleEventById            = toggleEventById;
+        window.deleteEventById            = deleteEventById;
+        window.selectEventForRegistration = selectEventForRegistration;
+        window.registerForEvent           = registerForEvent;
+        window.filterEventList            = filterEventList;
+        window.removeEventRegistration    = removeEventRegistration;
+        window.exportEventRegistrations   = exportEventRegistrations;
     
