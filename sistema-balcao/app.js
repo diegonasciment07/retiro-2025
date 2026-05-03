@@ -1994,9 +1994,7 @@
 
         // ── Renderiza grid de cards ───────────────────────────────
         function buildEventLandingPageUrl(eventId) {
-            const url = new URL('../sistema-inscricoes/evento.html', window.location.href);
-            url.searchParams.set('evento', eventId);
-            return url.toString();
+            return 'https://eventos.alvocuritiba.com.br?evento=' + eventId;
         }
 
         async function copyEventLandingPageLink(eventId) {
