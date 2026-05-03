@@ -2344,7 +2344,8 @@ function renderEventList(filter) {
                     ? '<span style="background:var(--success);color:#fff;padding:2px 10px;border-radius:100px;font-size:0.7em;font-weight:700;">✅ PAGO</span>'
                     : (isPaid ? '<span style="background:var(--warning);color:#000;padding:2px 10px;border-radius:100px;font-size:0.7em;font-weight:700;">⏳ PENDENTE</span>' : '');
                 const formaTag = r.pago && r.forma_pagamento
-                    ? '<span style="color:var(--text-muted);font-size:0.72em;"> · ' + r.forma_pagamento + '</span>' : '';
+                    ? '<span style="color:var(--text-muted);font-size:0.72em;"> · ' + r.forma_pagamento
+                      + (r.pago_por ? ' · por ' + r.pago_por : '') + '</span>' : '';
                 const pagarBtn = isCurrentUserAdm() && isPaid && !r.pago
                     ? '<button onclick="openEvPaymentModal(&apos;' + r.id + '&apos;)" class="btn btn-success" style="padding:4px 10px;font-size:0.72em;margin-top:4px;">💳 Pagar</button>'
                     : '';
@@ -2457,7 +2458,13 @@ function exportEventRegistrations() {
                 const valorPago = selectedEvent && !selectedEvent.gratuito
                     ? parseFloat(selectedEvent.valor || 0) : 0;
                 const { data, error } = await supabase.from('inscricoes_eventos')
-                    .update({ pago: true, valor_pago: valorPago, forma_pagamento: selectedFormaPagamento })
+                    .update({
+                        pago: true,
+                        valor_pago: valorPago,
+                        forma_pagamento: selectedFormaPagamento,
+                        pago_por: currentUser.email.split('@')[0],
+                        pago_em: new Date().toISOString()
+                    })
                     .eq('id', payingRegistrationId).select().single();
                 if (error) throw error;
                 const idx = eventRegistrations.findIndex(r => r.id === payingRegistrationId);
@@ -2496,11 +2503,33 @@ function exportEventRegistrations() {
                 + '<span style="font-weight:700;color:var(--success);">' + fmtR(v) + '</span></div>'
             ).join('') || '<div style="color:var(--text-muted);font-size:0.9em;">Nenhum pagamento ainda.</div>';
 
+            const pagoRows = pagos.length === 0
+                ? '<div style="color:var(--text-muted);font-size:0.9em;padding:8px;">Nenhum pagamento ainda.</div>'
+                : '<table style="width:100%;border-collapse:collapse;font-size:0.85em;">'
+                + '<thead><tr style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;font-size:0.72em;">'
+                + '<th style="text-align:left;padding:6px 8px;">Nome</th>'
+                + '<th style="text-align:left;padding:6px 8px;">Forma</th>'
+                + '<th style="text-align:left;padding:6px 8px;">Atendente</th>'
+                + '<th style="text-align:left;padding:6px 8px;">Data/Hora</th>'
+                + '<th style="text-align:right;padding:6px 8px;">Valor</th>'
+                + '</tr></thead><tbody>'
+                + pagos.map(r => '<tr style="border-top:1px solid var(--border);">'
+                    + '<td style="padding:7px 8px;color:var(--text-primary);">' + r.nome + '</td>'
+                    + '<td style="padding:7px 8px;color:var(--text-light);">' + (r.forma_pagamento || '—') + '</td>'
+                    + '<td style="padding:7px 8px;color:var(--primary);">' + (r.pago_por || r.atendente || '—') + '</td>'
+                    + '<td style="padding:7px 8px;color:var(--text-muted);font-size:0.85em;">' + (r.pago_em ? formatDateTime(new Date(r.pago_em)) : '—') + '</td>'
+                    + '<td style="padding:7px 8px;text-align:right;color:var(--success);font-weight:700;">' + fmtR(parseFloat(r.valor_pago || 0)) + '</td>'
+                    + '</tr>').join('')
+                + '</tbody></table>';
+
             const pendRow = pendentes.length === 0
                 ? '<div style="color:var(--success);font-size:0.9em;text-align:center;padding:12px;">🎉 Todos os inscritos pagaram!</div>'
-                : pendentes.map(r => '<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">'
+                : pendentes.map(r => '<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
                     + '<span style="color:var(--text-primary);font-size:0.9em;">' + r.nome + '</span>'
-                    + (r.telefone ? '<span style="color:var(--text-muted);font-size:0.8em;">📱 ' + r.telefone + '</span>' : '')
+                    + '<span style="color:var(--text-muted);font-size:0.8em;">'
+                    + (r.telefone ? '📱 ' + r.telefone + '  ' : '')
+                    + 'inscrito por ' + (r.atendente || '—')
+                    + '</span>'
                     + '</div>').join('');
 
             document.getElementById('ev-fechamento-content').innerHTML =
@@ -2536,6 +2565,10 @@ function exportEventRegistrations() {
                 + '<div style="font-weight:700;color:var(--text-primary);margin-bottom:12px;font-size:0.9em;text-transform:uppercase;letter-spacing:1px;">Por forma de pagamento</div>'
                 + formaRows + '</div>'
 
+                + '<div style="margin-bottom:20px;">'
+                + '<div style="font-weight:700;color:var(--success);margin-bottom:12px;font-size:0.9em;text-transform:uppercase;letter-spacing:1px;">Pagamentos Confirmados (' + pagos.length + ')</div>'
+                + pagoRows + '</div>'
+
                 + '<div>'
                 + '<div style="font-weight:700;color:var(--warning);margin-bottom:12px;font-size:0.9em;text-transform:uppercase;letter-spacing:1px;">Pendentes (' + pendentes.length + ')</div>'
                 + pendRow + '</div>';
@@ -2557,9 +2590,11 @@ function exportEventRegistrations() {
                 'Rede': r.rede || '',
                 'Pago': r.pago ? 'SIM' : 'NÃO',
                 'Valor Pago': r.pago ? parseFloat(r.valor_pago || 0).toFixed(2).replace('.', ',') : '0,00',
-                'Forma': r.forma_pagamento || '',
-                'Atendente': r.atendente || '',
-                'Data/Hora': formatDateTime(new Date(r.criado_em))
+                'Forma Pagamento': r.forma_pagamento || '',
+                'Confirmado por': r.pago_por || '',
+                'Data Pagamento': r.pago_em ? formatDateTime(new Date(r.pago_em)) : '',
+                'Inscrito por': r.atendente || '',
+                'Data Inscrição': formatDateTime(new Date(r.criado_em))
             }));
             const ws = XLSX.utils.json_to_sheet(rows);
             const wb = XLSX.utils.book_new();
