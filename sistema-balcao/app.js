@@ -2338,4 +2338,15 @@
         }
 
         // isAdm é definido no bloco de login acima (currentUser.email.includes('adm'))
+
+        // Expõe funções de eventos ao escopo global (necessário pois app.js é type="module")
+        window.switchTab               = switchTab;
+        window.saveEventConfig         = saveEventConfig;
+        window.toggleEventActive       = toggleEventActive;
+        window.openEventConfigEdit     = openEventConfigEdit;
+        window.toggleEventValueField   = toggleEventValueField;
+        window.registerForEvent        = registerForEvent;
+        window.filterEventList         = filterEventList;
+        window.removeEventRegistration = removeEventRegistration;
+        window.exportEventRegistrations = exportEventRegistrations;
     
