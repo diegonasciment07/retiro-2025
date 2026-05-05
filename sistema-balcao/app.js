@@ -2318,8 +2318,11 @@
             const hoje = new Date().toDateString();
             document.getElementById('ev-stat-hoje').textContent =
                 eventRegistrations.filter(r => new Date(r.criado_em).toDateString() === hoje).length;
+            const isAdm = isCurrentUserAdm();
             const ft = document.getElementById('ev-financial-toolbar');
-            if (ft) ft.style.display = isCurrentUserAdm() ? 'flex' : 'none';
+            if (ft) ft.style.display = isAdm ? 'flex' : 'none';
+            const aa = document.getElementById('ev-adm-actions');
+            if (aa) aa.style.display = isAdm ? 'flex' : 'none';
         }
 
 function renderEventList(filter) {
@@ -2412,6 +2415,7 @@ function exportEventRegistrations() {
         let selectedFormaPagamento = null;
 
         function openEvPaymentModal(id) {
+            if (!isCurrentUserAdm()) { showNotification('Acesso restrito ao ADM.', 'error'); return; }
             const r = eventRegistrations.find(x => x.id === id);
             if (!r) return;
             payingRegistrationId = id;
@@ -2483,6 +2487,7 @@ function exportEventRegistrations() {
         // ── Fechamento de caixa ───────────────────────────────────
         function showEventFechamento() {
             if (!selectedEvent) { showNotification('Nenhum evento selecionado', 'error'); return; }
+            if (!isCurrentUserAdm()) { showNotification('Acesso restrito ao ADM.', 'error'); return; }
 
             // Popula selects de atendente e rede com valores reais
             const atendentes = [...new Set(eventRegistrations
