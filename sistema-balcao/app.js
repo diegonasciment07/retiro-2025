@@ -2483,7 +2483,77 @@ function exportEventRegistrations() {
         // ── Fechamento de caixa ───────────────────────────────────
         function showEventFechamento() {
             if (!selectedEvent) { showNotification('Nenhum evento selecionado', 'error'); return; }
-            const regs = eventRegistrations;
+
+            // Popula selects de atendente e rede com valores reais
+            const atendentes = [...new Set(eventRegistrations
+                .map(r => r.pago_por || r.atendente).filter(Boolean))].sort();
+            const redes = [...new Set(eventRegistrations.map(r => r.rede).filter(Boolean))].sort();
+
+            const selAt = document.getElementById('ef-atendente');
+            const selRe = document.getElementById('ef-rede');
+            const curAt = selAt.value;
+            const curRe = selRe.value;
+            selAt.innerHTML = '<option value="">Todos</option>'
+                + atendentes.map(a => '<option value="' + a + '"' + (a === curAt ? ' selected' : '') + '>' + a + '</option>').join('');
+            selRe.innerHTML = '<option value="">Todas</option>'
+                + redes.map(r => '<option value="' + r + '"' + (r === curRe ? ' selected' : '') + '>' + r + '</option>').join('');
+
+            // Limpa filtros ao abrir
+            document.getElementById('ef-data-ini').value = '';
+            document.getElementById('ef-data-fim').value = '';
+            document.getElementById('ef-atendente').value = '';
+            document.getElementById('ef-forma').value = '';
+            document.getElementById('ef-rede').value = '';
+            document.getElementById('ef-status').value = '';
+
+            document.getElementById('ev-fechamento-modal').style.display = 'flex';
+            renderEventFechamentoContent(eventRegistrations);
+        }
+
+        function applyEventFechamentoFilters() {
+            const dataIni = document.getElementById('ef-data-ini').value;
+            const dataFim = document.getElementById('ef-data-fim').value;
+            const atendente = document.getElementById('ef-atendente').value;
+            const forma = document.getElementById('ef-forma').value;
+            const rede = document.getElementById('ef-rede').value;
+            const status = document.getElementById('ef-status').value;
+
+            let filtered = eventRegistrations;
+
+            if (dataIni) {
+                const ini = new Date(dataIni + 'T00:00:00');
+                filtered = filtered.filter(r => {
+                    const d = r.pago_em ? new Date(r.pago_em) : new Date(r.criado_em);
+                    return d >= ini;
+                });
+            }
+            if (dataFim) {
+                const fim = new Date(dataFim + 'T23:59:59');
+                filtered = filtered.filter(r => {
+                    const d = r.pago_em ? new Date(r.pago_em) : new Date(r.criado_em);
+                    return d <= fim;
+                });
+            }
+            if (atendente) filtered = filtered.filter(r => (r.pago_por || r.atendente) === atendente);
+            if (forma) filtered = filtered.filter(r => r.forma_pagamento === forma);
+            if (rede) filtered = filtered.filter(r => r.rede === rede);
+            if (status === 'pago') filtered = filtered.filter(r => r.pago);
+            if (status === 'pendente') filtered = filtered.filter(r => !r.pago);
+
+            renderEventFechamentoContent(filtered);
+        }
+
+        function clearEventFechamentoFilters() {
+            document.getElementById('ef-data-ini').value = '';
+            document.getElementById('ef-data-fim').value = '';
+            document.getElementById('ef-atendente').value = '';
+            document.getElementById('ef-forma').value = '';
+            document.getElementById('ef-rede').value = '';
+            document.getElementById('ef-status').value = '';
+            renderEventFechamentoContent(eventRegistrations);
+        }
+
+        function renderEventFechamentoContent(regs) {
             const isPaid = !selectedEvent.gratuito;
             const total = regs.length;
             const pagos = regs.filter(r => r.pago);
@@ -2603,8 +2673,6 @@ function exportEventRegistrations() {
                 + '<div>'
                 + '<div style="font-weight:700;color:var(--warning);margin-bottom:12px;font-size:0.9em;text-transform:uppercase;letter-spacing:1px;">Pendentes (' + pendentes.length + ')</div>'
                 + pendRow + '</div>';
-
-            document.getElementById('ev-fechamento-modal').style.display = 'flex';
         }
 
         function closeEventFechamento() {
@@ -2613,7 +2681,22 @@ function exportEventRegistrations() {
 
         function exportEventFechamento() {
             if (!selectedEvent) return;
-            const rows = eventRegistrations.map((r, i) => ({
+            // re-aplica filtros para exportar exatamente o que está visível
+            const dataIni = document.getElementById('ef-data-ini').value;
+            const dataFim = document.getElementById('ef-data-fim').value;
+            const atendente = document.getElementById('ef-atendente').value;
+            const forma = document.getElementById('ef-forma').value;
+            const rede = document.getElementById('ef-rede').value;
+            const status = document.getElementById('ef-status').value;
+            let source = eventRegistrations;
+            if (dataIni) { const ini = new Date(dataIni+'T00:00:00'); source = source.filter(r => { const d = r.pago_em ? new Date(r.pago_em) : new Date(r.criado_em); return d >= ini; }); }
+            if (dataFim) { const fim = new Date(dataFim+'T23:59:59'); source = source.filter(r => { const d = r.pago_em ? new Date(r.pago_em) : new Date(r.criado_em); return d <= fim; }); }
+            if (atendente) source = source.filter(r => (r.pago_por || r.atendente) === atendente);
+            if (forma) source = source.filter(r => r.forma_pagamento === forma);
+            if (rede) source = source.filter(r => r.rede === rede);
+            if (status === 'pago') source = source.filter(r => r.pago);
+            if (status === 'pendente') source = source.filter(r => !r.pago);
+            const rows = source.map((r, i) => ({
                 'Nº': i + 1,
                 'Nome': r.nome,
                 'Telefone': r.telefone || '',
@@ -2654,9 +2737,11 @@ function exportEventRegistrations() {
         window.closeEvPaymentModal        = closeEvPaymentModal;
         window.selectFormaPagamento       = selectFormaPagamento;
         window.confirmEventPayment        = confirmEventPayment;
-        window.showEventFechamento        = showEventFechamento;
-        window.closeEventFechamento       = closeEventFechamento;
-        window.exportEventFechamento      = exportEventFechamento;
+        window.showEventFechamento         = showEventFechamento;
+        window.closeEventFechamento        = closeEventFechamento;
+        window.exportEventFechamento       = exportEventFechamento;
+        window.applyEventFechamentoFilters = applyEventFechamentoFilters;
+        window.clearEventFechamentoFilters = clearEventFechamentoFilters;
         // ── Upload de imagem para Supabase Storage ────────────────
         async function uploadEventImageFile(file) {
             if (!file) return null;

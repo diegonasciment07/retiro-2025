@@ -1043,11 +1043,59 @@
 
     <!-- Modal Fechamento de Caixa Evento -->
     <div id="ev-fechamento-modal" class="modal">
-        <div class="card" style="max-width:680px; width:92%; max-height:92vh; overflow-y:auto; border-color:var(--border-accent);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <div class="card" style="max-width:820px; width:96%; max-height:95vh; overflow-y:auto; border-color:var(--border-accent);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h3 style="color:var(--warning); font-size:1.3em; font-weight:800;">💰 Fechamento de Caixa</h3>
                 <button onclick="closeEventFechamento()" class="btn btn-secondary" style="padding:8px 14px;">✕ Fechar</button>
             </div>
+
+            <!-- Filtros -->
+            <div style="background:var(--bg-light); border:1px solid var(--border); border-radius:var(--border-radius); padding:16px; margin-bottom:20px;">
+                <div style="color:var(--primary); font-size:0.8em; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">🔍 Filtros</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
+                    <div>
+                        <label style="color:var(--text-muted); font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Data início</label>
+                        <input type="date" id="ef-data-ini" class="input" style="font-size:0.85em; padding:8px 10px;" oninput="applyEventFechamentoFilters()">
+                    </div>
+                    <div>
+                        <label style="color:var(--text-muted); font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Data fim</label>
+                        <input type="date" id="ef-data-fim" class="input" style="font-size:0.85em; padding:8px 10px;" oninput="applyEventFechamentoFilters()">
+                    </div>
+                    <div>
+                        <label style="color:var(--text-muted); font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Atendente</label>
+                        <select id="ef-atendente" class="input" style="font-size:0.85em; padding:8px 10px;" onchange="applyEventFechamentoFilters()">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color:var(--text-muted); font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Forma de Pagamento</label>
+                        <select id="ef-forma" class="input" style="font-size:0.85em; padding:8px 10px;" onchange="applyEventFechamentoFilters()">
+                            <option value="">Todas</option>
+                            <option value="PIX">PIX</option>
+                            <option value="DINHEIRO">Dinheiro</option>
+                            <option value="CARTAO">Cartão</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color:var(--text-muted); font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Rede</label>
+                        <select id="ef-rede" class="input" style="font-size:0.85em; padding:8px 10px;" onchange="applyEventFechamentoFilters()">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color:var(--text-muted); font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">Status</label>
+                        <select id="ef-status" class="input" style="font-size:0.85em; padding:8px 10px;" onchange="applyEventFechamentoFilters()">
+                            <option value="">Todos</option>
+                            <option value="pago">Pagos</option>
+                            <option value="pendente">Pendentes</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top:10px; text-align:right;">
+                    <button onclick="clearEventFechamentoFilters()" class="btn btn-secondary" style="padding:6px 14px; font-size:0.8em;">✕ Limpar filtros</button>
+                </div>
+            </div>
+
             <div id="ev-fechamento-content"></div>
             <div style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border); display:flex; gap:10px;">
                 <button onclick="exportEventFechamento()" class="btn btn-success" style="flex:1; padding:12px;">📊 Exportar Excel</button>
