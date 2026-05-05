@@ -2318,11 +2318,10 @@
             const hoje = new Date().toDateString();
             document.getElementById('ev-stat-hoje').textContent =
                 eventRegistrations.filter(r => new Date(r.criado_em).toDateString() === hoje).length;
-            const isAdm = isCurrentUserAdm();
             const ft = document.getElementById('ev-financial-toolbar');
-            if (ft) ft.style.display = isAdm ? 'flex' : 'none';
+            if (ft) ft.style.display = 'flex';
             const aa = document.getElementById('ev-adm-actions');
-            if (aa) aa.style.display = isAdm ? 'flex' : 'none';
+            if (aa) aa.style.display = 'flex';
         }
 
 function renderEventList(filter) {
@@ -2349,7 +2348,7 @@ function renderEventList(filter) {
                 const formaTag = r.pago && r.forma_pagamento
                     ? '<span style="color:var(--text-muted);font-size:0.72em;"> · ' + r.forma_pagamento
                       + (r.pago_por ? ' · por ' + r.pago_por : '') + '</span>' : '';
-                const pagarBtn = isCurrentUserAdm() && isPaid && !r.pago
+                const pagarBtn = isPaid && !r.pago
                     ? '<button onclick="openEvPaymentModal(&apos;' + r.id + '&apos;)" class="btn btn-success" style="padding:4px 10px;font-size:0.72em;margin-top:4px;">💳 Pagar</button>'
                     : '';
                 const delBtn = isCurrentUserAdm()
@@ -2415,7 +2414,6 @@ function exportEventRegistrations() {
         let selectedFormaPagamento = null;
 
         function openEvPaymentModal(id) {
-            if (!isCurrentUserAdm()) { showNotification('Acesso restrito ao ADM.', 'error'); return; }
             const r = eventRegistrations.find(x => x.id === id);
             if (!r) return;
             payingRegistrationId = id;
@@ -2487,7 +2485,6 @@ function exportEventRegistrations() {
         // ── Fechamento de caixa ───────────────────────────────────
         function showEventFechamento() {
             if (!selectedEvent) { showNotification('Nenhum evento selecionado', 'error'); return; }
-            if (!isCurrentUserAdm()) { showNotification('Acesso restrito ao ADM.', 'error'); return; }
 
             // Popula selects de atendente e rede com valores reais
             const atendentes = [...new Set(eventRegistrations
