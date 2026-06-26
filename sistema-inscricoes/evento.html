@@ -136,7 +136,7 @@
         /* ── Hero ───────────────────────────── */
         .hero {
             position: relative;
-            min-height: 420px;
+            min-height: 560px;
             display: flex;
             align-items: flex-end;
             overflow: hidden;
@@ -146,6 +146,7 @@
             position: absolute;
             inset: 0;
             object-fit: cover;
+            object-position: center 20%;
             width: 100%;
             height: 100%;
             display: block;
@@ -155,8 +156,8 @@
             position: absolute;
             inset: 0;
             background:
-                linear-gradient(to top, rgba(12,12,14,1) 0%, rgba(12,12,14,0.92) 35%, rgba(12,12,14,0.6) 65%, rgba(12,12,14,0.35) 100%),
-                linear-gradient(to right, rgba(12,12,14,0.85) 0%, rgba(12,12,14,0.2) 60%, transparent 100%);
+                linear-gradient(to top, rgba(12,12,14,1) 0%, rgba(12,12,14,0.85) 30%, rgba(12,12,14,0.4) 60%, rgba(12,12,14,0.15) 100%),
+                linear-gradient(to right, rgba(12,12,14,0.6) 0%, rgba(12,12,14,0.1) 50%, transparent 100%);
         }
 
         .hero-no-img {
@@ -509,11 +510,12 @@
         /* ── Responsive ─────────────────────── */
         @media (max-width: 860px) {
             .page-body { grid-template-columns: 1fr; }
-            .hero { min-height: 340px; }
+            .hero { min-height: 420px; }
         }
 
         @media (max-width: 560px) {
             .topbar { padding: 12px 16px; }
+            .hero { min-height: 360px; }
             .hero-content { padding: 32px 16px 32px; }
             .event-title { font-size: 2rem; }
             .page-body { padding: 24px 16px 60px; gap: 20px; }
