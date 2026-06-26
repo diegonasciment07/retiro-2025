@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirecionando...</title>
+  <script>
+    (function () {
+      var match = window.location.pathname.match(/^\/e\/([0-9a-f-]{36})$/i);
+      if (match) {
+        window.location.replace('/sistema-inscricoes/evento.html?evento=' + match[1]);
+      }
+    })();
+  </script>
+</head>
+<body></body>
+</html>
