@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/e/:id",
+      "destination": "/sistema-inscricoes/evento.html?evento=:id"
+    }
+  ]
+}
