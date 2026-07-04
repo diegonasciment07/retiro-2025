@@ -516,6 +516,37 @@
 
         .price-info strong { color: var(--text-primary); }
 
+        /* ── Closed notice ──────────────────── */
+        .closed-notice {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            padding: 20px;
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: var(--radius-lg);
+        }
+
+        .closed-notice-icon {
+            font-size: 1.6rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .closed-notice strong {
+            display: block;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fca5a5;
+            margin-bottom: 6px;
+        }
+
+        .closed-notice p {
+            font-size: 0.9rem;
+            color: rgba(240,240,240,0.75);
+            line-height: 1.65;
+        }
+
         /* ── Responsive ─────────────────────── */
         @media (max-width: 860px) {
             .page-body { grid-template-columns: 1fr; }
@@ -570,7 +601,7 @@
             <img id="hero-img" class="hero-img hidden" alt="Imagem do evento">
             <div class="hero-gradient"></div>
             <div class="hero-content">
-                <div class="event-tag">Inscrições Abertas</div>
+                <div id="event-tag" class="event-tag">Inscrições Abertas</div>
                 <h1 id="event-title" class="event-title">Carregando...</h1>
                 <p id="event-desc" class="event-desc hidden"></p>
                 <div class="hero-meta" id="hero-meta"></div>
@@ -638,6 +669,14 @@
 
                     <div id="success-box" class="msg-box"></div>
                     <div id="error-box" class="msg-box"></div>
+
+                    <div id="closed-notice" class="closed-notice hidden">
+                        <span class="closed-notice-icon">🔒</span>
+                        <div>
+                            <strong>Inscrições encerradas</strong>
+                            <p>As inscrições para este evento não estão mais disponíveis. Fale com a equipe da ALVO Curitiba para mais informações.</p>
+                        </div>
+                    </div>
 
                     <form id="event-form" class="form-grid">
                         <div class="field-group">
@@ -791,6 +830,28 @@
             priceInfo.innerHTML = isPaid
                 ? "Valor a pagar no balcão: <strong>" + priceStr + "</strong>"
                 : "Este evento é <strong>gratuito</strong> — confirme sua presença no balcão.";
+
+            // Closed registration
+            const tag = document.getElementById("event-tag");
+            const form = document.getElementById("event-form");
+            const closedNotice = document.getElementById("closed-notice");
+            if (!ev.ativo) {
+                tag.textContent = "Inscrições Encerradas";
+                tag.style.color = "var(--danger)";
+                tag.style.background = "rgba(239,68,68,0.12)";
+                tag.style.borderColor = "rgba(239,68,68,0.28)";
+                form.classList.add("hidden");
+                priceInfo.classList.add("hidden");
+                closedNotice.classList.remove("hidden");
+            } else {
+                tag.textContent = "Inscrições Abertas";
+                tag.style.color = "";
+                tag.style.background = "";
+                tag.style.borderColor = "";
+                form.classList.remove("hidden");
+                priceInfo.classList.remove("hidden");
+                closedNotice.classList.add("hidden");
+            }
         }
 
         async function loadEvent() {
@@ -844,7 +905,7 @@
 
         document.getElementById("event-form").addEventListener("submit", async function (e) {
             e.preventDefault();
-            if (!currentEvent || isSubmitting) return;
+            if (!currentEvent || isSubmitting || !currentEvent.ativo) return;
 
             const fd = new FormData(this);
             const phone = fd.get("telefone").replace(/\D/g, "");
