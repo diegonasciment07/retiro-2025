@@ -1101,7 +1101,9 @@
                                     <option value="ALVO MONTE MOR" ${participant.cor_rede === 'ALVO MONTE MOR' ? 'selected' : ''}>📍 Alvo Monte Mor</option>
                                     <option value="ALVO CAMPINAS" ${participant.cor_rede === 'ALVO CAMPINAS' ? 'selected' : ''}>📍 Alvo Campinas</option>
                                     <option value="ALVO LITORAL PR" ${participant.cor_rede === 'ALVO LITORAL PR' ? 'selected' : ''}>📍 Alvo Litoral PR</option>
-                                    
+                                    <option value="ALVO LONDRINA" ${participant.cor_rede === 'ALVO LONDRINA' ? 'selected' : ''}>📍 Alvo Londrina</option>
+                                    <option value="ALVO ARAUCÁRIA" ${participant.cor_rede === 'ALVO ARAUCÁRIA' ? 'selected' : ''}>📍 Alvo Araucária</option>
+
                                     <option value="NÃO-POSSUO" ${participant.cor_rede === 'NÃO-POSSUO' ? 'selected' : ''}>🆕 Não possuo rede ainda</option>
                                 </select>
                             </div>
