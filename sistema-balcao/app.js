@@ -434,6 +434,7 @@
             container.innerHTML = participants.map(participant => {
                 const statusClass = getStatusClass(participant.status_pagamento);
                 const statusText = getStatusText(participant.status_pagamento);
+                const wristband = getWristbandButtonState(participant);
 
                 return `
                     <div class="person-card" onclick="showParticipantDetails('${participant.id}')">
@@ -441,7 +442,7 @@
                             <h3 style="color: var(--primary); margin: 0;">${participant.nome_completo || 'Nome não informado'}</h3>
                             <span class="btn btn-${statusClass}" style="padding: 5px 10px; font-size: 0.8em;">${statusText}</span>
                         </div>
-                        
+
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: var(--text-light);">
                             <div><strong>📱 WhatsApp:</strong> ${participant.whatsapp || 'Não informado'}</div>
                             <div><strong>👥 Sexo:</strong> ${participant.sexo || 'Não informado'}</div>
@@ -450,8 +451,17 @@
                             <div><strong>🎯 Função:</strong> ${participant.vai_servir_receber || 'Não informado'}</div>
                             <div><strong>👤 Atendente:</strong> ${participant.atendente || 'Não informado'}</div>
                         </div>
-                        
-                        <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+
+                        <button id="wristband-btn-${participant.id}"
+                            onclick="event.stopPropagation(); toggleWristband('${participant.id}')"
+                            class="btn ${wristband.btnClass}"
+                            title="${wristband.title}"
+                            ${wristband.disabled ? 'disabled' : ''}
+                            style="margin-top: 10px; width: 100%; padding: 8px; font-size: 0.8em; ${wristband.disabled ? 'opacity: 0.45; cursor: not-allowed;' : ''}">
+                            ${wristband.label}
+                        </button>
+
+                        <div style="margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                             <button onclick="event.stopPropagation(); openPaymentsModal('${participant.id}')" class="btn btn-success" style="padding: 8px; font-size: 0.8em;">
                                 💰 Pagamentos
                             </button>
@@ -465,6 +475,129 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // ===== CONTROLE DE ENTREGA DE PULSEIRA =====
+        const WRISTBAND_MARKER = 'PULSEIRA ENTREGUE';
+
+        function isWristbandDelivered(participant) {
+            return !!(participant.observacoes && participant.observacoes.includes(WRISTBAND_MARKER));
+        }
+
+        function getWristbandButtonState(participant) {
+            const fullyPaid = participant.status_pagamento === 'PAGO';
+            const delivered = isWristbandDelivered(participant);
+
+            if (!fullyPaid) {
+                return {
+                    disabled: true,
+                    btnClass: 'btn-secondary',
+                    label: '🎗️ Pulseira (pagamento incompleto)',
+                    title: 'Só é possível marcar a pulseira com pagamento 100% (R$ 550,00)'
+                };
+            }
+
+            if (delivered) {
+                return {
+                    disabled: false,
+                    btnClass: 'btn-success',
+                    label: '✅ Pulseira Entregue',
+                    title: 'Clique para desmarcar'
+                };
+            }
+
+            return {
+                disabled: false,
+                btnClass: 'btn-warning',
+                label: '🎗️ Marcar Pulseira Entregue',
+                title: 'Clique para marcar a entrega da pulseira'
+            };
+        }
+
+        async function toggleWristband(participantId) {
+            const participant = allParticipants.find(p => p.id == participantId);
+            if (!participant) {
+                showNotification('Participante não encontrado', 'error');
+                return;
+            }
+
+            if (participant.status_pagamento !== 'PAGO') {
+                showNotification('Só é possível marcar a pulseira com pagamento 100% (R$ 550,00)', 'error');
+                return;
+            }
+
+            const jaEntregue = isWristbandDelivered(participant);
+            if (jaEntregue && !confirm('Desmarcar a entrega da pulseira desse participante?')) {
+                return;
+            }
+
+            const btn = document.getElementById(`wristband-btn-${participantId}`);
+            if (btn) btn.disabled = true;
+
+            try {
+                const { data: currentData, error: fetchError } = await supabase
+                    .from('inscricoes')
+                    .select('observacoes, status_pagamento')
+                    .eq('id', participantId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                if (currentData.status_pagamento !== 'PAGO') {
+                    showNotification('Só é possível marcar a pulseira com pagamento 100% (R$ 550,00)', 'error');
+                    if (btn) btn.disabled = false;
+                    return;
+                }
+
+                let updatedObservations;
+
+                if (jaEntregue) {
+                    updatedObservations = (currentData.observacoes || '')
+                        .split(' | ')
+                        .filter(linha => !linha.includes(WRISTBAND_MARKER))
+                        .join(' | ') || null;
+                } else {
+                    const timestamp = new Date().toLocaleString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const atendente = currentUser ? currentUser.email.split('@')[0] : 'Sistema';
+                    const novaNota = `[${timestamp}] 🎗️ ${WRISTBAND_MARKER} (${atendente})`;
+                    updatedObservations = currentData.observacoes ?
+                        `${currentData.observacoes} | ${novaNota}` :
+                        novaNota;
+                }
+
+                const { error: updateError } = await supabase
+                    .from('inscricoes')
+                    .update({
+                        observacoes: updatedObservations,
+                        data_ultima_atualizacao: new Date().toISOString()
+                    })
+                    .eq('id', participantId);
+
+                if (updateError) throw updateError;
+
+                participant.observacoes = updatedObservations;
+
+                const novoEstado = getWristbandButtonState(participant);
+                if (btn) {
+                    btn.className = `btn ${novoEstado.btnClass}`;
+                    btn.title = novoEstado.title;
+                    btn.textContent = novoEstado.label;
+                    btn.disabled = novoEstado.disabled;
+                }
+
+                showNotification(jaEntregue ? 'Pulseira desmarcada.' : '🎗️ Pulseira marcada como entregue!', 'success');
+
+            } catch (error) {
+                console.error('❌ Erro ao atualizar pulseira:', error);
+                showNotification('Erro ao atualizar pulseira: ' + error.message, 'error');
+                if (btn) btn.disabled = false;
+            }
         }
 
         // ===== SISTEMA DE PAGAMENTOS MÚLTIPLOS =====
