@@ -434,13 +434,22 @@
             container.innerHTML = participants.map(participant => {
                 const statusClass = getStatusClass(participant.status_pagamento);
                 const statusText = getStatusText(participant.status_pagamento);
-                const wristband = getWristbandButtonState(participant);
+                const wb = getWristbandChipState(participant);
 
                 return `
                     <div class="person-card" onclick="showParticipantDetails('${participant.id}')">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
                             <h3 style="color: var(--primary); margin: 0;">${participant.nome_completo || 'Nome não informado'}</h3>
-                            <span class="btn btn-${statusClass}" style="padding: 5px 10px; font-size: 0.8em;">${statusText}</span>
+                            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                <button id="wristband-btn-${participant.id}"
+                                    onclick="event.stopPropagation(); toggleWristband('${participant.id}')"
+                                    title="${wb.title}"
+                                    ${wb.disabled ? 'disabled' : ''}
+                                    style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-size: 0.72em; font-weight: 700; font-family: 'Inter', sans-serif; white-space: nowrap; border: 1.5px solid ${wb.border}; background: ${wb.bg}; color: ${wb.color}; opacity: ${wb.opacity}; cursor: ${wb.disabled ? 'not-allowed' : 'pointer'};">
+                                    ${wb.icon} ${wb.label}
+                                </button>
+                                <span class="btn btn-${statusClass}" style="padding: 5px 10px; font-size: 0.8em;">${statusText}</span>
+                            </div>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: var(--text-light);">
@@ -452,16 +461,7 @@
                             <div><strong>👤 Atendente:</strong> ${participant.atendente || 'Não informado'}</div>
                         </div>
 
-                        <button id="wristband-btn-${participant.id}"
-                            onclick="event.stopPropagation(); toggleWristband('${participant.id}')"
-                            class="btn ${wristband.btnClass}"
-                            title="${wristband.title}"
-                            ${wristband.disabled ? 'disabled' : ''}
-                            style="margin-top: 10px; width: 100%; padding: 8px; font-size: 0.8em; ${wristband.disabled ? 'opacity: 0.45; cursor: not-allowed;' : ''}">
-                            ${wristband.label}
-                        </button>
-
-                        <div style="margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                        <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                             <button onclick="event.stopPropagation(); openPaymentsModal('${participant.id}')" class="btn btn-success" style="padding: 8px; font-size: 0.8em;">
                                 💰 Pagamentos
                             </button>
@@ -484,55 +484,61 @@
             return !!(participant.observacoes && participant.observacoes.includes(WRISTBAND_MARKER));
         }
 
-        function getWristbandButtonState(participant) {
+        function getWristbandChipState(participant) {
             const fullyPaid = participant.status_pagamento === 'PAGO';
             const delivered = isWristbandDelivered(participant);
 
             if (!fullyPaid) {
                 return {
                     disabled: true,
-                    btnClass: 'btn-secondary',
-                    label: '🎗️ Pulseira (pagamento incompleto)',
-                    title: 'Só é possível marcar a pulseira com pagamento 100% (R$ 550,00)'
+                    icon: '🎗️',
+                    label: 'Pulseira',
+                    title: 'Só é possível marcar a pulseira com pagamento 100% (R$ 550,00)',
+                    border: 'rgba(255,255,255,0.2)',
+                    bg: 'rgba(255,255,255,0.05)',
+                    color: '#888',
+                    opacity: 0.6
                 };
             }
 
             if (delivered) {
                 return {
                     disabled: false,
-                    btnClass: 'btn-success',
-                    label: '✅ Pulseira Entregue',
-                    title: 'Clique para desmarcar'
+                    icon: '✅',
+                    label: 'Pulseira OK',
+                    title: 'Clique para desmarcar a entrega da pulseira',
+                    border: '#22c55e',
+                    bg: 'rgba(34,197,94,0.15)',
+                    color: '#4ade80',
+                    opacity: 1
                 };
             }
 
             return {
                 disabled: false,
-                btnClass: 'btn-warning',
-                label: '🎗️ Marcar Pulseira Entregue',
-                title: 'Clique para marcar a entrega da pulseira'
+                icon: '🎗️',
+                label: 'Marcar Pulseira',
+                title: 'Clique para marcar a entrega da pulseira',
+                border: '#8b5cf6',
+                bg: 'rgba(139,92,246,0.18)',
+                color: '#c4b5fd',
+                opacity: 1
             };
         }
 
+        function applyWristbandChip(btn, state) {
+            btn.title = state.title;
+            btn.disabled = state.disabled;
+            btn.style.border = `1.5px solid ${state.border}`;
+            btn.style.background = state.bg;
+            btn.style.color = state.color;
+            btn.style.opacity = state.opacity;
+            btn.style.cursor = state.disabled ? 'not-allowed' : 'pointer';
+            btn.innerHTML = `${state.icon} ${state.label}`;
+        }
+
         async function toggleWristband(participantId) {
-            const participant = allParticipants.find(p => p.id == participantId);
-            if (!participant) {
-                showNotification('Participante não encontrado', 'error');
-                return;
-            }
-
-            if (participant.status_pagamento !== 'PAGO') {
-                showNotification('Só é possível marcar a pulseira com pagamento 100% (R$ 550,00)', 'error');
-                return;
-            }
-
-            const jaEntregue = isWristbandDelivered(participant);
-            if (jaEntregue && !confirm('Desmarcar a entrega da pulseira desse participante?')) {
-                return;
-            }
-
             const btn = document.getElementById(`wristband-btn-${participantId}`);
-            if (btn) btn.disabled = true;
 
             try {
                 const { data: currentData, error: fetchError } = await supabase
@@ -545,9 +551,16 @@
 
                 if (currentData.status_pagamento !== 'PAGO') {
                     showNotification('Só é possível marcar a pulseira com pagamento 100% (R$ 550,00)', 'error');
-                    if (btn) btn.disabled = false;
                     return;
                 }
+
+                const jaEntregue = !!(currentData.observacoes && currentData.observacoes.includes(WRISTBAND_MARKER));
+
+                if (jaEntregue && !confirm('Desmarcar a entrega da pulseira desse participante?')) {
+                    return;
+                }
+
+                if (btn) btn.disabled = true;
 
                 let updatedObservations;
 
@@ -581,14 +594,11 @@
 
                 if (updateError) throw updateError;
 
-                participant.observacoes = updatedObservations;
+                const participantLocal = allParticipants.find(p => p.id == participantId);
+                if (participantLocal) participantLocal.observacoes = updatedObservations;
 
-                const novoEstado = getWristbandButtonState(participant);
                 if (btn) {
-                    btn.className = `btn ${novoEstado.btnClass}`;
-                    btn.title = novoEstado.title;
-                    btn.textContent = novoEstado.label;
-                    btn.disabled = novoEstado.disabled;
+                    applyWristbandChip(btn, getWristbandChipState({ status_pagamento: 'PAGO', observacoes: updatedObservations }));
                 }
 
                 showNotification(jaEntregue ? 'Pulseira desmarcada.' : '🎗️ Pulseira marcada como entregue!', 'success');
