@@ -504,11 +504,11 @@
             if (delivered) {
                 return {
                     disabled: false,
-                    icon: '✅',
-                    label: 'Pulseira OK',
-                    title: 'Clique para desmarcar a entrega da pulseira',
+                    icon: '🚩',
+                    label: 'Pulseira Entregue',
+                    title: 'Entregue — clique para desmarcar (uso em caso de engano)',
                     border: '#22c55e',
-                    bg: 'rgba(34,197,94,0.15)',
+                    bg: 'rgba(34,197,94,0.18)',
                     color: '#4ade80',
                     opacity: 1
                 };
@@ -516,7 +516,7 @@
 
             return {
                 disabled: false,
-                icon: '🎗️',
+                icon: '👉',
                 label: 'Marcar Pulseira',
                 title: 'Clique para marcar a entrega da pulseira',
                 border: '#8b5cf6',
@@ -2060,6 +2060,7 @@
         window.addNewPayment = addNewPayment;
         window.deletePayment = deletePayment;
         window.forceSyncInscricaoWithHistory = forceSyncInscricaoWithHistory;
+        window.toggleWristband = toggleWristband;
 
         // ===== EVENT LISTENERS PARA FILTROS =====
         document.getElementById('filter-data').addEventListener('change', updateDashboard);
