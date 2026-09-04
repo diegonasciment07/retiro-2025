@@ -577,6 +577,11 @@
                         🏆 LISTA DE GANHADORES
                     </button>
                 </div>
+                <div style="margin-top: 15px;">
+                    <button onclick="generateSummaryReport()" class="btn btn-primary" style="width: 100%; padding: 15px;">
+                        🚌 RESUMO PARA CONFIRMAÇÃO DE ÔNIBUS
+                    </button>
+                </div>
                 <div id="adm-report-btn" style="display: none; margin-top: 15px;">
                     <button onclick="openAdmReport()" class="btn btn-danger" style="width: 100%; padding: 15px;">
                         📋 RELATÓRIO ADM — FECHAMENTO POR ATENDENTE
@@ -912,6 +917,22 @@
             <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <button onclick="exportWinners()" class="btn btn-success">📊 Exportar Lista</button>
                 <button onclick="printWinners()" class="btn btn-info">🖨️ Imprimir Lista</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="summary-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px; width: 95%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--primary); font-size: 1.8em;">🚌 Resumo de Inscrições</h3>
+                <button onclick="closeSummaryModal()" class="btn btn-secondary">❌ Fechar</button>
+            </div>
+
+            <div id="summary-content" style="max-height: 70vh; overflow-y: auto;">
+                </div>
+
+            <div style="margin-top: 20px;">
+                <button onclick="printSummaryReport()" class="btn btn-info" style="width: 100%;">🖨️ Imprimir Resumo</button>
             </div>
         </div>
     </div>

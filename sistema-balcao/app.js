@@ -1907,6 +1907,143 @@
             printWindow.print();
         }
 
+        // ===== RESUMO PARA CONFIRMAÇÃO DE ÔNIBUS =====
+        const RESUMO_FUNCOES = ['ENCONTRISTA', 'TRABALHO'];
+        const RESUMO_STATUS = ['PAGO', 'PAGO PARCIALMENTE', 'PENDENTE'];
+
+        function contarInscricoes({ sexo, funcao, status } = {}) {
+            return allParticipants.filter(p =>
+                (!sexo || p.sexo === sexo) &&
+                (!funcao || p.vai_servir_receber === funcao) &&
+                (!status || p.status_pagamento === status)
+            ).length;
+        }
+
+        function montarLinhasResumo(sexo) {
+            const linhaTotal = `
+                <tr style="background: rgba(255,255,255,0.08); font-weight: 900;">
+                    <td style="padding: 10px;">${sexo}</td>
+                    <td style="text-align: center;">${contarInscricoes({ sexo, funcao: 'ENCONTRISTA' })}</td>
+                    <td style="text-align: center;">${contarInscricoes({ sexo, funcao: 'TRABALHO' })}</td>
+                    <td style="text-align: center;">${contarInscricoes({ sexo })}</td>
+                </tr>
+            `;
+            const linhasStatus = RESUMO_STATUS.map(status => `
+                <tr>
+                    <td style="padding: 8px 8px 8px 24px; color: var(--text-light);">${getStatusText(status)}</td>
+                    <td style="text-align: center;">${contarInscricoes({ sexo, funcao: 'ENCONTRISTA', status })}</td>
+                    <td style="text-align: center;">${contarInscricoes({ sexo, funcao: 'TRABALHO', status })}</td>
+                    <td style="text-align: center;">${contarInscricoes({ sexo, status })}</td>
+                </tr>
+            `).join('');
+            return linhaTotal + linhasStatus;
+        }
+
+        function montarTabelaResumo() {
+            const linhaTotalGeral = `
+                <tr style="background: rgba(255,255,255,0.08); font-weight: 900; border-top: 2px solid var(--border-strong);">
+                    <td style="padding: 10px;">Total Geral</td>
+                    <td style="text-align: center;">${contarInscricoes({ funcao: 'ENCONTRISTA' })}</td>
+                    <td style="text-align: center;">${contarInscricoes({ funcao: 'TRABALHO' })}</td>
+                    <td style="text-align: center;">${allParticipants.length}</td>
+                </tr>
+            `;
+
+            return `
+                <table class="table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>RETIRO SETEMBRO 26</th>
+                            <th style="text-align: center;">ENCONTRISTA</th>
+                            <th style="text-align: center;">TRABALHO</th>
+                            <th style="text-align: center;">Total Geral</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${montarLinhasResumo('FEMININO')}
+                        ${montarLinhasResumo('MASCULINO')}
+                        ${linhaTotalGeral}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function generateSummaryReport() {
+            try {
+                const dataAtualizacao = formatDateTime(new Date());
+
+                const content = `
+                    <div style="margin-bottom: 15px; color: var(--text-light); text-align: center;">
+                        Inscrições atualizadas até ${dataAtualizacao}
+                    </div>
+                    ${montarTabelaResumo()}
+                `;
+
+                document.getElementById('summary-content').innerHTML = content;
+                document.getElementById('summary-modal').style.display = 'flex';
+            } catch (error) {
+                console.error('Erro ao gerar resumo de inscrições:', error);
+                showNotification('Erro ao gerar resumo de inscrições', 'error');
+            }
+        }
+
+        function closeSummaryModal() {
+            document.getElementById('summary-modal').style.display = 'none';
+        }
+
+        function printSummaryReport() {
+            const printContent = `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h1 style="color: #ff6b35;">🏕️ O RETIRO 2026</h1>
+                        <h2>Inscrições atualizadas até ${formatDateTime(new Date())}</h2>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="background: #ff6b35; color: white;">
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">RETIRO SETEMBRO 26</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">ENCONTRISTA</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">TRABALHO</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">Total Geral</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${['FEMININO', 'MASCULINO'].map(sexo => `
+                                <tr style="background: #eee; font-weight: bold;">
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${sexo}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoes({ sexo, funcao: 'ENCONTRISTA' })}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoes({ sexo, funcao: 'TRABALHO' })}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoes({ sexo })}</td>
+                                </tr>
+                                ${RESUMO_STATUS.map(status => `
+                                    <tr>
+                                        <td style="border: 1px solid #ddd; padding: 8px 8px 8px 24px;">${getStatusText(status)}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoes({ sexo, funcao: 'ENCONTRISTA', status })}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoes({ sexo, funcao: 'TRABALHO', status })}</td>
+                                        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoes({ sexo, status })}</td>
+                                    </tr>
+                                `).join('')}
+                            `).join('')}
+                            <tr style="background: #eee; font-weight: bold;">
+                                <td style="border: 1px solid #ddd; padding: 8px;">Total Geral</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoes({ funcao: 'ENCONTRISTA' })}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoes({ funcao: 'TRABALHO' })}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${allParticipants.length}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">
+                        Gerado em ${formatDateTime(new Date())} - Sistema de Balcão O Retiro 2026
+                    </div>
+                </div>
+            `;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
         // ===== EXPORTAÇÃO EXCEL =====
         // Botão Verde - Exporta a base completa de participantes
         function exportDashboard() {
@@ -2061,6 +2198,9 @@
         window.deletePayment = deletePayment;
         window.forceSyncInscricaoWithHistory = forceSyncInscricaoWithHistory;
         window.toggleWristband = toggleWristband;
+        window.generateSummaryReport = generateSummaryReport;
+        window.closeSummaryModal = closeSummaryModal;
+        window.printSummaryReport = printSummaryReport;
 
         // ===== EVENT LISTENERS PARA FILTROS =====
         document.getElementById('filter-data').addEventListener('change', updateDashboard);
