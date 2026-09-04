@@ -9,6 +9,13 @@
         let currentParticipant = null;
         let currentReceipt = null;
 
+        // ===== CONTROLE DE ACESSO ADMIN =====
+        const ADMIN_EMAILS = ['adm@alvo.com', 'karina@alvocuritiba.com.br', 'jayne@alvocuritiba.com.br'];
+
+        function isCurrentUserAdm() {
+            return !!(currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
+        }
+
         // ===== FUNÇÕES AUXILIARES =====
         async function getParticipantById(participantId) {
             console.log('🔍 Buscando participante:', participantId);
@@ -217,7 +224,7 @@
                 document.getElementById('main-system').style.display = 'block';
                 document.getElementById('main-system-footer').style.display = 'block';
 
-                if (currentUser.email.includes('adm')) {
+                if (isCurrentUserAdm()) {
                     document.getElementById('adm-report-btn').style.display = 'block';
                     isAdm = true;
                 }
@@ -1178,7 +1185,7 @@
             
             try {
                 const participant = await getParticipantById(participantId);
-                const showDeleteButton = currentUser && currentUser.email.includes('adm');
+                const showDeleteButton = isCurrentUserAdm();
 
                 const content = `
                     <div style="margin-bottom: 20px;">
@@ -2149,7 +2156,7 @@
                     document.getElementById('login-container').style.display = 'none';
                     document.getElementById('main-system').style.display = 'block';
                     document.getElementById('main-system-footer').style.display = 'block';
-                    if (currentUser.email.includes('adm')) {
+                    if (isCurrentUserAdm()) {
                         document.getElementById('adm-report-btn').style.display = 'block';
                     }
                     loadInitialData();
@@ -2225,10 +2232,6 @@
         let allEvents     = [];
         let eventRegistrations = [];
         let editingEventId = null;
-
-        function isCurrentUserAdm() {
-            return !!(currentUser && currentUser.email.includes('adm'));
-        }
 
         // ── Troca de abas ─────────────────────────────────────────
         function switchTab(tab) {
