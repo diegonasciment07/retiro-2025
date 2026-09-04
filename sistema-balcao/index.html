@@ -577,15 +577,15 @@
                         🏆 LISTA DE GANHADORES
                     </button>
                 </div>
-                <div style="margin-top: 15px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
                     <button onclick="generateSummaryReport()" class="btn btn-primary" style="width: 100%; padding: 15px;">
-                        🚌 RESUMO PARA CONFIRMAÇÃO DE ÔNIBUS
+                        🚌 RESUMO INSCRIÇÕES
                     </button>
-                </div>
-                <div id="adm-report-btn" style="display: none; margin-top: 15px;">
-                    <button onclick="openAdmReport()" class="btn btn-danger" style="width: 100%; padding: 15px;">
-                        📋 RELATÓRIO ADM — FECHAMENTO POR ATENDENTE
-                    </button>
+                    <div id="adm-report-btn" style="display: none;">
+                        <button onclick="openAdmReport()" class="btn btn-danger" style="width: 100%; padding: 15px;">
+                            📋 RELATÓRIO ADM
+                        </button>
+                    </div>
                 </div>
             </div>
 
