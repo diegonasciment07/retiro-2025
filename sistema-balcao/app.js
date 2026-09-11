@@ -760,12 +760,16 @@
                             ${formatDateTime(convertToLocalTime(payment.data_pagamento))}
                         </div>
                         <div id="payment-actions-${payment.id}" style="text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
-                            <button onclick="startEditPayment(${payment.id}, '${payment.valor_pago}')" class="btn btn-info" style="padding: 4px 8px; font-size: 0.7em;" title="Editar valor (mantém a data original)">
-                                ✏️
-                            </button>
-                            <button onclick="deletePayment(${payment.id})" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.7em;">
-                                🗑️
-                            </button>
+                            ${isCurrentUserAdm() ? `
+                                <button onclick="startEditPayment(${payment.id}, '${payment.valor_pago}')" class="btn btn-info" style="padding: 4px 8px; font-size: 0.7em;" title="Editar valor (mantém a data original)">
+                                    ✏️
+                                </button>
+                                <button onclick="deletePayment(${payment.id})" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.7em;">
+                                    🗑️
+                                </button>
+                            ` : `
+                                <span style="font-size: 0.7em; color: #666;" title="Editar/excluir pagamento é restrito ao ADM">🔒 Somente ADM</span>
+                            `}
                         </div>
                     </div>
                     ${payment.observacoes ? `<div style="margin-top: 8px; font-size: 0.8em; color: #999;">📝 ${payment.observacoes}</div>` : ''}
@@ -778,6 +782,11 @@
         // Feito pra não "furar" o fechamento de caixa do dia: excluir e relançar joga o
         // pagamento pra data de hoje, saindo do dia em que o dinheiro realmente entrou.
         function startEditPayment(paymentId, valorAtual) {
+            if (!isCurrentUserAdm()) {
+                showNotification('Apenas administradores podem editar o valor de um pagamento.', 'error');
+                return;
+            }
+
             const valorCell = document.getElementById(`payment-valor-${paymentId}`);
             const actionsCell = document.getElementById(`payment-actions-${paymentId}`);
             if (!valorCell || !actionsCell) return;
@@ -798,6 +807,11 @@
         }
 
         async function saveEditPayment(paymentId) {
+            if (!isCurrentUserAdm()) {
+                showNotification('Apenas administradores podem editar o valor de um pagamento.', 'error');
+                return;
+            }
+
             const input = document.getElementById(`edit-payment-input-${paymentId}`);
             if (!input) return;
 
@@ -1064,6 +1078,11 @@
         }
 
         async function deletePayment(paymentId) {
+            if (!isCurrentUserAdm()) {
+                showNotification('Apenas administradores podem excluir um pagamento.', 'error');
+                return;
+            }
+
             if (!confirm('Tem certeza que deseja excluir este pagamento?')) return;
 
             try {
