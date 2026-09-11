@@ -2052,8 +2052,12 @@
         }
 
         // ===== CHECK-IN DE ENCONTRISTAS (dia do retiro) =====
-        // "Chegou" é inferido pela pulseira entregue (WRISTBAND_MARKER), já que ela só
-        // pode ser marcada com pagamento 100% e é entregue fisicamente no check-in.
+        // Regra de negócio definida pelo Diego: "chegou/check-in realizado" = quitou 100%
+        // (R$ 550,00, status_pagamento === 'PAGO'). A "lista de atenção" (esperados) é
+        // todo mundo que já tem algum valor pago no sistema (inscrição normalmente é de
+        // R$ 150,00 — PAGO PARCIALMENTE — e vai completando até os R$ 550,00 = PAGO).
+        // Conforme a pessoa quita o valor integral, ela sai da lista de faltantes e entra
+        // como check-in realizado.
         const DESISTENTE_MARKER = 'MARCADO COMO DESISTENTE';
 
         function isDesistente(participant) {
@@ -2065,11 +2069,14 @@
             return el ? el.value : 'FEMININO';
         }
 
-        function getEncontristasPagos(sexo) {
+        // "Esperados" = encontristas do sexo escolhido que já têm algum valor pago
+        // no sistema (PAGO PARCIALMENTE ou PAGO). Quem está PENDENTE (nada pago) não
+        // entra na lista de acompanhamento.
+        function getEncontristasEmAcompanhamento(sexo) {
             return allParticipants.filter(p =>
                 p.sexo === sexo &&
                 p.vai_servir_receber === 'ENCONTRISTA' &&
-                p.status_pagamento === 'PAGO'
+                (p.status_pagamento === 'PAGO' || p.status_pagamento === 'PAGO PARCIALMENTE')
             );
         }
 
@@ -2084,10 +2091,10 @@
 
         function renderCheckinModal() {
             const sexo = getCheckinSexoSelecionado();
-            const esperados = getEncontristasPagos(sexo);
-            const chegaram = esperados.filter(p => isWristbandDelivered(p));
-            const desistentes = esperados.filter(p => !isWristbandDelivered(p) && isDesistente(p));
-            const faltam = esperados.filter(p => !isWristbandDelivered(p) && !isDesistente(p));
+            const esperados = getEncontristasEmAcompanhamento(sexo);
+            const desistentes = esperados.filter(p => isDesistente(p));
+            const chegaram = esperados.filter(p => !isDesistente(p) && p.status_pagamento === 'PAGO');
+            const faltam = esperados.filter(p => !isDesistente(p) && p.status_pagamento !== 'PAGO');
 
             document.getElementById('checkin-esperados').textContent = esperados.length;
             document.getElementById('checkin-chegaram').textContent = chegaram.length;
@@ -2098,6 +2105,7 @@
                 <tr style="${marcado ? 'opacity: 0.55;' : ''}">
                     <td style="padding: 8px; ${marcado ? 'text-decoration: line-through;' : ''}">${p.nome_completo}</td>
                     <td style="padding: 8px; text-align: center;">${p.cor_rede || 'N/A'}</td>
+                    <td style="padding: 8px; text-align: center;">${formatCurrency(p.valor_pago)}</td>
                     <td style="padding: 8px; text-align: center;">${p.whatsapp || 'N/A'}</td>
                     <td style="padding: 8px; text-align: center;">
                         <button onclick="toggleDesistenteCheckin('${p.id}')" class="btn ${marcado ? 'btn-secondary' : 'btn-danger'}" style="padding: 4px 10px; font-size: 0.75em;">
@@ -2109,7 +2117,7 @@
 
             const lista = document.getElementById('checkin-lista');
             if (faltam.length === 0 && desistentes.length === 0) {
-                lista.innerHTML = '<div style="text-align: center; color: #4ade80; font-weight: bold; padding: 20px;">🎉 Todos os encontristas esperados já chegaram!</div>';
+                lista.innerHTML = '<div style="text-align: center; color: #4ade80; font-weight: bold; padding: 20px;">🎉 Todo mundo da lista já quitou 100%!</div>';
                 return;
             }
 
@@ -2119,6 +2127,7 @@
                         <tr>
                             <th>Nome</th>
                             <th style="text-align: center;">Rede</th>
+                            <th style="text-align: center;">Valor Pago</th>
                             <th style="text-align: center;">WhatsApp</th>
                             <th style="text-align: center;">Ação</th>
                         </tr>
@@ -2197,8 +2206,8 @@
         function exportCheckinFaltantes() {
             try {
                 const sexo = getCheckinSexoSelecionado();
-                const esperados = getEncontristasPagos(sexo);
-                const faltam = esperados.filter(p => !isWristbandDelivered(p) && !isDesistente(p));
+                const esperados = getEncontristasEmAcompanhamento(sexo);
+                const faltam = esperados.filter(p => !isDesistente(p) && p.status_pagamento !== 'PAGO');
 
                 if (faltam.length === 0) {
                     showNotification('Não há ninguém faltando para exportar', 'warning');
@@ -2208,6 +2217,8 @@
                 const data = faltam.map(p => ({
                     'Nome': p.nome_completo,
                     'Rede': p.cor_rede || 'N/A',
+                    'Valor Pago': formatCurrency(p.valor_pago),
+                    'Status': getStatusText(p.status_pagamento),
                     'WhatsApp': p.whatsapp || 'N/A',
                     'Sexo': p.sexo
                 }));
