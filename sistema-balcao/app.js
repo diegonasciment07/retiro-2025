@@ -10,7 +10,7 @@
         let currentReceipt = null;
 
         // ===== CONTROLE DE ACESSO ADMIN =====
-        const ADMIN_EMAILS = ['adm@alvo.com', 'karina@alvocuritiba.com.br', 'jayne@alvocuritiba.com.br'];
+        const ADMIN_EMAILS = ['adm@alvo.com', 'karina@alvocuritiba.com.br', 'jayne@alvocuritiba.com.br', 'julia@alvocuritiba.com.br'];
 
         function isCurrentUserAdm() {
             return !!(currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
