@@ -750,7 +750,7 @@
             container.innerHTML = payments.map(payment => `
                 <div style="border: 1px solid #333; border-radius: 8px; padding: 15px; margin-bottom: 10px; background: #222;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; align-items: center;">
-                        <div>
+                        <div id="payment-valor-${payment.id}">
                             <strong style="color: var(--primary);">${formatCurrency(payment.valor_pago)}</strong>
                         </div>
                         <div>
@@ -759,7 +759,10 @@
                         <div style="font-size: 0.8em; color: #ccc;">
                             ${formatDateTime(convertToLocalTime(payment.data_pagamento))}
                         </div>
-                        <div style="text-align: right;">
+                        <div id="payment-actions-${payment.id}" style="text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
+                            <button onclick="startEditPayment(${payment.id}, '${payment.valor_pago}')" class="btn btn-info" style="padding: 4px 8px; font-size: 0.7em;" title="Editar valor (mantém a data original)">
+                                ✏️
+                            </button>
                             <button onclick="deletePayment(${payment.id})" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.7em;">
                                 🗑️
                             </button>
@@ -769,6 +772,83 @@
                     <div style="margin-top: 5px; font-size: 0.7em; color: #666;">Atendente: ${payment.atendente || 'N/A'}</div>
                 </div>
             `).join('');
+        }
+
+        // Edita o VALOR de um pagamento já lançado, mantendo a data_pagamento original.
+        // Feito pra não "furar" o fechamento de caixa do dia: excluir e relançar joga o
+        // pagamento pra data de hoje, saindo do dia em que o dinheiro realmente entrou.
+        function startEditPayment(paymentId, valorAtual) {
+            const valorCell = document.getElementById(`payment-valor-${paymentId}`);
+            const actionsCell = document.getElementById(`payment-actions-${paymentId}`);
+            if (!valorCell || !actionsCell) return;
+
+            const valorFormatadoParaInput = parseFloat(String(valorAtual).replace(',', '.')).toFixed(2).replace('.', ',');
+
+            valorCell.innerHTML = `
+                <input type="text" id="edit-payment-input-${paymentId}" class="input" style="width: 100px; padding: 5px 8px; font-size: 0.9em;" value="${valorFormatadoParaInput}">
+            `;
+            actionsCell.innerHTML = `
+                <button onclick="saveEditPayment(${paymentId})" class="btn btn-success" style="padding: 4px 8px; font-size: 0.7em;">✅ Salvar</button>
+                <button onclick="loadPaymentHistory(currentParticipant.id)" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.7em;">❌</button>
+            `;
+
+            const input = document.getElementById(`edit-payment-input-${paymentId}`);
+            input.focus();
+            input.select();
+        }
+
+        async function saveEditPayment(paymentId) {
+            const input = document.getElementById(`edit-payment-input-${paymentId}`);
+            if (!input) return;
+
+            const novoValor = parseFloat(input.value.trim().replace(',', '.'));
+
+            if (isNaN(novoValor) || novoValor <= 0) {
+                showNotification('Valor inválido', 'error');
+                return;
+            }
+
+            try {
+                const { data: outrosPagamentos, error: fetchError } = await supabase
+                    .from('pagamentos_históricos')
+                    .select('id, valor_pago')
+                    .eq('inscricao_id', currentParticipant.id);
+
+                if (fetchError) throw fetchError;
+
+                const totalOutros = outrosPagamentos
+                    .filter(p => p.id !== paymentId)
+                    .reduce((sum, p) => sum + parseFloat(p.valor_pago), 0);
+
+                if (totalOutros + novoValor > 550) {
+                    const maxPermitido = Math.max(0, 550 - totalOutros);
+                    alert(`❌ ATENÇÃO!\n\nEsse valor excederia o limite de R$ 550,00\n\nTotal dos outros pagamentos: R$ ${totalOutros.toFixed(2).replace('.', ',')}\nMáximo permitido para este pagamento: R$ ${maxPermitido.toFixed(2).replace('.', ',')}`);
+                    return;
+                }
+
+                // Atualiza só o valor — data_pagamento e demais campos não são tocados.
+                const { error: updateError } = await supabase
+                    .from('pagamentos_históricos')
+                    .update({ valor_pago: novoValor })
+                    .eq('id', paymentId);
+
+                if (updateError) throw updateError;
+
+                await forceSyncInscricaoWithHistory(currentParticipant.id);
+                await loadPaymentHistory(currentParticipant.id);
+                await updateStats();
+                searchParticipants();
+
+                if (document.getElementById('dashboard-container').style.display !== 'none') {
+                    updateDashboard();
+                }
+
+                showNotification('Valor do pagamento atualizado com sucesso!', 'success');
+
+            } catch (error) {
+                console.error('❌ Erro ao editar pagamento:', error);
+                showNotification('Erro ao editar pagamento: ' + error.message, 'error');
+            }
         }
 
         function updatePaymentSummary(payments) {
@@ -2470,6 +2550,8 @@
         window.closePaymentsModal = closePaymentsModal;
         window.addNewPayment = addNewPayment;
         window.deletePayment = deletePayment;
+        window.startEditPayment = startEditPayment;
+        window.saveEditPayment = saveEditPayment;
         window.forceSyncInscricaoWithHistory = forceSyncInscricaoWithHistory;
         window.toggleWristband = toggleWristband;
         window.toggleWristbandFromDetails = toggleWristbandFromDetails;
