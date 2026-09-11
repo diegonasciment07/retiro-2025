@@ -617,6 +617,15 @@
             }
         }
 
+        // Wrapper usado pelo botão de pulseira dentro do modal "Detalhes Completos":
+        // reaproveita toggleWristband() e depois recarrega o modal para refletir o novo estado.
+        async function toggleWristbandFromDetails(participantId) {
+            await toggleWristband(participantId);
+            if (document.getElementById('details-modal').style.display !== 'none') {
+                showParticipantDetails(participantId);
+            }
+        }
+
         // ===== SISTEMA DE PAGAMENTOS MÚLTIPLOS =====
         async function openPaymentsModal(participantId) {
             console.log('💰 Abrindo modal de pagamentos para:', participantId);
@@ -1186,6 +1195,7 @@
             try {
                 const participant = await getParticipantById(participantId);
                 const showDeleteButton = isCurrentUserAdm();
+                const wbDetails = getWristbandChipState(participant);
 
                 const content = `
                     <div style="margin-bottom: 20px;">
@@ -1286,6 +1296,18 @@
                             <div>
                                 <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Atendente:</label>
                                 <div style="color: white; background: #222; padding: 12px; border-radius: 5px; font-size: 16px;">${participant.atendente || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Pulseira:</label>
+                                <div style="background: #222; padding: 8px; border-radius: 5px;">
+                                    <button id="wristband-btn-details-${participantId}"
+                                        onclick="toggleWristbandFromDetails('${participantId}')"
+                                        title="${wbDetails.title}"
+                                        ${wbDetails.disabled ? 'disabled' : ''}
+                                        style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; font-size: 0.85em; font-weight: 700; font-family: 'Inter', sans-serif; white-space: nowrap; border: 1.5px solid ${wbDetails.border}; background: ${wbDetails.bg}; color: ${wbDetails.color}; opacity: ${wbDetails.opacity}; cursor: ${wbDetails.disabled ? 'not-allowed' : 'pointer'};">
+                                        ${wbDetails.icon} ${wbDetails.label}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2399,6 +2421,7 @@
         window.deletePayment = deletePayment;
         window.forceSyncInscricaoWithHistory = forceSyncInscricaoWithHistory;
         window.toggleWristband = toggleWristband;
+        window.toggleWristbandFromDetails = toggleWristbandFromDetails;
         window.generateSummaryReport = generateSummaryReport;
         window.closeSummaryModal = closeSummaryModal;
         window.printSummaryReport = printSummaryReport;
