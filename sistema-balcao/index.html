@@ -946,15 +946,19 @@
         <div class="modal-content" style="max-width: 900px; width: 95%;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="color: var(--primary); font-size: 1.8em;">✅ Check-in de Encontristas</h3>
-                <button onclick="closeCheckinModal()" class="btn btn-secondary">❌ Fechar</button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="checkin-refresh-btn" onclick="refreshCheckinModal()" class="btn btn-info">🔄 Atualizar</button>
+                    <button onclick="closeCheckinModal()" class="btn btn-secondary">❌ Fechar</button>
+                </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
                 <label style="color: var(--text-light);">Retiro de:</label>
                 <select id="checkin-sexo" class="input" style="max-width: 220px;" onchange="renderCheckinModal()">
                     <option value="FEMININO">👩 Mulheres</option>
                     <option value="MASCULINO">👨 Homens</option>
                 </select>
+                <span id="checkin-last-update" style="color: var(--text-light); font-size: 0.8em; margin-left: auto;"></span>
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;">

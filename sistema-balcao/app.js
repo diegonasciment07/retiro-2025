@@ -2107,13 +2107,39 @@
             );
         }
 
-        function openCheckinModal() {
+        async function openCheckinModal() {
             document.getElementById('checkin-modal').style.display = 'flex';
-            renderCheckinModal();
+            await refreshCheckinModal();
         }
 
         function closeCheckinModal() {
             document.getElementById('checkin-modal').style.display = 'none';
+        }
+
+        // Recarrega os participantes direto do banco (útil quando outro atendente lançou
+        // pagamentos em outra tela/aba enquanto este modal está aberto) e re-renderiza.
+        async function refreshCheckinModal() {
+            const btn = document.getElementById('checkin-refresh-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '⏳ Atualizando...';
+            }
+
+            try {
+                await loadParticipants();
+                renderCheckinModal();
+
+                const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const lastUpdateEl = document.getElementById('checkin-last-update');
+                if (lastUpdateEl) lastUpdateEl.textContent = `Atualizado às ${agora}`;
+            } catch (error) {
+                console.error('❌ Erro ao atualizar check-in:', error);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '🔄 Atualizar';
+                }
+            }
         }
 
         function renderCheckinModal() {
@@ -2427,6 +2453,7 @@
         window.printSummaryReport = printSummaryReport;
         window.openCheckinModal = openCheckinModal;
         window.closeCheckinModal = closeCheckinModal;
+        window.refreshCheckinModal = refreshCheckinModal;
         window.renderCheckinModal = renderCheckinModal;
         window.toggleDesistenteCheckin = toggleDesistenteCheckin;
         window.exportCheckinFaltantes = exportCheckinFaltantes;
