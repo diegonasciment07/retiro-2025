@@ -587,6 +587,11 @@
                         </button>
                     </div>
                 </div>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px;">
+                    <button onclick="openCheckinModal()" class="btn btn-success" style="width: 100%; padding: 15px;">
+                        ✅ CHECK-IN ENCONTRISTAS (QUEM JÁ CHEGOU)
+                    </button>
+                </div>
             </div>
 
             <div id="main-content">
@@ -933,6 +938,48 @@
 
             <div style="margin-top: 20px;">
                 <button onclick="printSummaryReport()" class="btn btn-info" style="width: 100%;">🖨️ Imprimir Resumo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="checkin-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px; width: 95%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="color: var(--primary); font-size: 1.8em;">✅ Check-in de Encontristas</h3>
+                <button onclick="closeCheckinModal()" class="btn btn-secondary">❌ Fechar</button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                <label style="color: var(--text-light);">Retiro de:</label>
+                <select id="checkin-sexo" class="input" style="max-width: 220px;" onchange="renderCheckinModal()">
+                    <option value="FEMININO">👩 Mulheres</option>
+                    <option value="MASCULINO">👨 Homens</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: 900;" id="checkin-esperados">0</div>
+                    <div style="color: var(--text-light); font-size: 0.85em;">Esperados (pagos 100%)</div>
+                </div>
+                <div style="background: rgba(34,197,94,0.12); border-radius: 10px; padding: 15px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: 900; color: #4ade80;" id="checkin-chegaram">0</div>
+                    <div style="color: var(--text-light); font-size: 0.85em;">Já chegaram</div>
+                </div>
+                <div style="background: rgba(239,68,68,0.12); border-radius: 10px; padding: 15px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: 900; color: #f87171;" id="checkin-faltam">0</div>
+                    <div style="color: var(--text-light); font-size: 0.85em;">Ainda faltam</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: 900; color: #888;" id="checkin-desistentes">0</div>
+                    <div style="color: var(--text-light); font-size: 0.85em;">Desistentes</div>
+                </div>
+            </div>
+
+            <div id="checkin-lista" style="max-height: 50vh; overflow-y: auto;"></div>
+
+            <div style="margin-top: 20px;">
+                <button onclick="exportCheckinFaltantes()" class="btn btn-success" style="width: 100%;">📊 Exportar Lista de Quem Falta</button>
             </div>
         </div>
     </div>

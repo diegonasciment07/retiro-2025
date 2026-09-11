@@ -2051,6 +2051,178 @@
             printWindow.print();
         }
 
+        // ===== CHECK-IN DE ENCONTRISTAS (dia do retiro) =====
+        // "Chegou" é inferido pela pulseira entregue (WRISTBAND_MARKER), já que ela só
+        // pode ser marcada com pagamento 100% e é entregue fisicamente no check-in.
+        const DESISTENTE_MARKER = 'MARCADO COMO DESISTENTE';
+
+        function isDesistente(participant) {
+            return !!(participant.observacoes && participant.observacoes.includes(DESISTENTE_MARKER));
+        }
+
+        function getCheckinSexoSelecionado() {
+            const el = document.getElementById('checkin-sexo');
+            return el ? el.value : 'FEMININO';
+        }
+
+        function getEncontristasPagos(sexo) {
+            return allParticipants.filter(p =>
+                p.sexo === sexo &&
+                p.vai_servir_receber === 'ENCONTRISTA' &&
+                p.status_pagamento === 'PAGO'
+            );
+        }
+
+        function openCheckinModal() {
+            document.getElementById('checkin-modal').style.display = 'flex';
+            renderCheckinModal();
+        }
+
+        function closeCheckinModal() {
+            document.getElementById('checkin-modal').style.display = 'none';
+        }
+
+        function renderCheckinModal() {
+            const sexo = getCheckinSexoSelecionado();
+            const esperados = getEncontristasPagos(sexo);
+            const chegaram = esperados.filter(p => isWristbandDelivered(p));
+            const desistentes = esperados.filter(p => !isWristbandDelivered(p) && isDesistente(p));
+            const faltam = esperados.filter(p => !isWristbandDelivered(p) && !isDesistente(p));
+
+            document.getElementById('checkin-esperados').textContent = esperados.length;
+            document.getElementById('checkin-chegaram').textContent = chegaram.length;
+            document.getElementById('checkin-faltam').textContent = faltam.length;
+            document.getElementById('checkin-desistentes').textContent = desistentes.length;
+
+            const linha = (p, marcado) => `
+                <tr style="${marcado ? 'opacity: 0.55;' : ''}">
+                    <td style="padding: 8px; ${marcado ? 'text-decoration: line-through;' : ''}">${p.nome_completo}</td>
+                    <td style="padding: 8px; text-align: center;">${p.cor_rede || 'N/A'}</td>
+                    <td style="padding: 8px; text-align: center;">${p.whatsapp || 'N/A'}</td>
+                    <td style="padding: 8px; text-align: center;">
+                        <button onclick="toggleDesistenteCheckin('${p.id}')" class="btn ${marcado ? 'btn-secondary' : 'btn-danger'}" style="padding: 4px 10px; font-size: 0.75em;">
+                            ${marcado ? '↩️ Desmarcar' : '🚫 Desistente'}
+                        </button>
+                    </td>
+                </tr>
+            `;
+
+            const lista = document.getElementById('checkin-lista');
+            if (faltam.length === 0 && desistentes.length === 0) {
+                lista.innerHTML = '<div style="text-align: center; color: #4ade80; font-weight: bold; padding: 20px;">🎉 Todos os encontristas esperados já chegaram!</div>';
+                return;
+            }
+
+            lista.innerHTML = `
+                <table class="table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th style="text-align: center;">Rede</th>
+                            <th style="text-align: center;">WhatsApp</th>
+                            <th style="text-align: center;">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${faltam.map(p => linha(p, false)).join('')}
+                        ${desistentes.map(p => linha(p, true)).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function toggleDesistenteCheckin(participantId) {
+            try {
+                const { data: currentData, error: fetchError } = await supabase
+                    .from('inscricoes')
+                    .select('observacoes')
+                    .eq('id', participantId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                const jaMarcado = !!(currentData.observacoes && currentData.observacoes.includes(DESISTENTE_MARKER));
+
+                if (!jaMarcado) {
+                    const participant = allParticipants.find(p => p.id == participantId);
+                    if (!confirm(`Confirma marcar "${participant ? participant.nome_completo : 'este participante'}" como DESISTENTE?`)) {
+                        return;
+                    }
+                }
+
+                let updatedObservations;
+
+                if (jaMarcado) {
+                    updatedObservations = (currentData.observacoes || '')
+                        .split(' | ')
+                        .filter(linha => !linha.includes(DESISTENTE_MARKER))
+                        .join(' | ') || null;
+                } else {
+                    const timestamp = new Date().toLocaleString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const atendente = currentUser ? currentUser.email.split('@')[0] : 'Sistema';
+                    const novaNota = `[${timestamp}] 🚫 ${DESISTENTE_MARKER} (${atendente})`;
+                    updatedObservations = currentData.observacoes ?
+                        `${currentData.observacoes} | ${novaNota}` :
+                        novaNota;
+                }
+
+                const { error: updateError } = await supabase
+                    .from('inscricoes')
+                    .update({
+                        observacoes: updatedObservations,
+                        data_ultima_atualizacao: new Date().toISOString()
+                    })
+                    .eq('id', participantId);
+
+                if (updateError) throw updateError;
+
+                const participantLocal = allParticipants.find(p => p.id == participantId);
+                if (participantLocal) participantLocal.observacoes = updatedObservations;
+
+                renderCheckinModal();
+                showNotification(jaMarcado ? 'Desistência desmarcada.' : 'Participante marcado como desistente.', 'success');
+
+            } catch (error) {
+                console.error('❌ Erro ao marcar desistente:', error);
+                showNotification('Erro ao marcar desistente: ' + error.message, 'error');
+            }
+        }
+
+        function exportCheckinFaltantes() {
+            try {
+                const sexo = getCheckinSexoSelecionado();
+                const esperados = getEncontristasPagos(sexo);
+                const faltam = esperados.filter(p => !isWristbandDelivered(p) && !isDesistente(p));
+
+                if (faltam.length === 0) {
+                    showNotification('Não há ninguém faltando para exportar', 'warning');
+                    return;
+                }
+
+                const data = faltam.map(p => ({
+                    'Nome': p.nome_completo,
+                    'Rede': p.cor_rede || 'N/A',
+                    'WhatsApp': p.whatsapp || 'N/A',
+                    'Sexo': p.sexo
+                }));
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, ws, 'Faltam Chegar');
+                XLSX.writeFile(wb, `faltam_chegar_${sexo.toLowerCase()}_${new Date().toISOString().split('T')[0]}.xlsx`);
+                showNotification('Lista exportada com sucesso!', 'success');
+            } catch (error) {
+                console.error('Erro ao exportar lista de faltantes:', error);
+                showNotification('Erro ao exportar lista de faltantes', 'error');
+            }
+        }
+
         // ===== EXPORTAÇÃO EXCEL =====
         // Botão Verde - Exporta a base completa de participantes
         function exportDashboard() {
@@ -2105,7 +2277,7 @@
                 const filterData = document.getElementById('filter-data').value;
                 const filterAtendente = document.getElementById('filter-atendente').value;
                 const filterForma = document.getElementById('filter-forma').value;
-                
+
                 let payQuery = supabase.from('pagamentos_históricos').select('*').in('inscricao_id', participantIds);
                 const dateRange = getUTCDateRangeForLocalDate(filterData);
                 if (dateRange) {
@@ -2113,7 +2285,10 @@
                         .gte('data_pagamento', dateRange.start)
                         .lte('data_pagamento', dateRange.end);
                 }
-                if (filterAtendente) payQuery = payQuery.eq('atendente', filterAtendente);
+                // Usa a mesma normalização (trim + case-insensitive) do painel (updateDashboard),
+                // para não perder pagamentos com grafia de atendente diferente (ex: "jessica" vs "Jessica ")
+                const normalizedAtendenteExport = filterAtendente ? filterAtendente.trim() : '';
+                if (normalizedAtendenteExport) payQuery = payQuery.ilike('atendente', normalizedAtendenteExport);
                 if (filterForma) payQuery = payQuery.eq('forma_pagamento', filterForma);
                 
                 const { data: pagamentos, error: payError } = await payQuery;
@@ -2208,6 +2383,11 @@
         window.generateSummaryReport = generateSummaryReport;
         window.closeSummaryModal = closeSummaryModal;
         window.printSummaryReport = printSummaryReport;
+        window.openCheckinModal = openCheckinModal;
+        window.closeCheckinModal = closeCheckinModal;
+        window.renderCheckinModal = renderCheckinModal;
+        window.toggleDesistenteCheckin = toggleDesistenteCheckin;
+        window.exportCheckinFaltantes = exportCheckinFaltantes;
 
         // ===== EVENT LISTENERS PARA FILTROS =====
         document.getElementById('filter-data').addEventListener('change', updateDashboard);
