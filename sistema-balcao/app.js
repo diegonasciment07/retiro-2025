@@ -2064,6 +2064,11 @@
             return !!(participant.observacoes && participant.observacoes.includes(DESISTENTE_MARKER));
         }
 
+        function getValorRestante(participant) {
+            const pago = participant.valor_pago ? parseFloat(String(participant.valor_pago).replace(',', '.')) : 0;
+            return Math.max(0, 550 - (isNaN(pago) ? 0 : pago));
+        }
+
         function getCheckinSexoSelecionado() {
             const el = document.getElementById('checkin-sexo');
             return el ? el.value : 'FEMININO';
@@ -2106,6 +2111,7 @@
                     <td style="padding: 8px; ${marcado ? 'text-decoration: line-through;' : ''}">${p.nome_completo}</td>
                     <td style="padding: 8px; text-align: center;">${p.cor_rede || 'N/A'}</td>
                     <td style="padding: 8px; text-align: center;">${formatCurrency(p.valor_pago)}</td>
+                    <td style="padding: 8px; text-align: center; color: #f87171; font-weight: bold;">${marcado ? '—' : formatCurrency(getValorRestante(p))}</td>
                     <td style="padding: 8px; text-align: center;">${p.whatsapp || 'N/A'}</td>
                     <td style="padding: 8px; text-align: center;">
                         <button onclick="toggleDesistenteCheckin('${p.id}')" class="btn ${marcado ? 'btn-secondary' : 'btn-danger'}" style="padding: 4px 10px; font-size: 0.75em;">
@@ -2128,6 +2134,7 @@
                             <th>Nome</th>
                             <th style="text-align: center;">Rede</th>
                             <th style="text-align: center;">Valor Pago</th>
+                            <th style="text-align: center;">Falta Pagar</th>
                             <th style="text-align: center;">WhatsApp</th>
                             <th style="text-align: center;">Ação</th>
                         </tr>
@@ -2218,6 +2225,7 @@
                     'Nome': p.nome_completo,
                     'Rede': p.cor_rede || 'N/A',
                     'Valor Pago': formatCurrency(p.valor_pago),
+                    'Falta Pagar': formatCurrency(getValorRestante(p)),
                     'Status': getStatusText(p.status_pagamento),
                     'WhatsApp': p.whatsapp || 'N/A',
                     'Sexo': p.sexo
