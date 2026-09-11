@@ -106,6 +106,57 @@
 
         const PARTICIPANT_CHUNK_SIZE = 1000;
 
+        // Busca TODAS as linhas de uma query do Supabase, paginando em blocos de
+        // PARTICIPANT_CHUNK_SIZE. O PostgREST limita a quantidade de linhas retornadas
+        // por padrão (normalmente 1000) mesmo sem pedir isso explicitamente — sem essa
+        // paginação, uma tabela com mais linhas que o limite trunca silenciosamente
+        // (sem erro), o que pode fazer o painel/exportação "perderem" registros conforme
+        // o volume de pagamentos cresce ao longo do evento.
+        // `buildQuery` deve ser uma função que retorna uma NOVA query builder a cada
+        // chamada, já que uma query do Supabase não pode ser reexecutada com .range()
+        // diferente na mesma instância.
+        async function fetchAllRows(buildQuery) {
+            let rows = [];
+            let page = 0;
+            let keepFetching = true;
+
+            while (keepFetching) {
+                const from = page * PARTICIPANT_CHUNK_SIZE;
+                const to = from + PARTICIPANT_CHUNK_SIZE - 1;
+                const { data, error } = await buildQuery().range(from, to);
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    keepFetching = false;
+                } else {
+                    rows = rows.concat(data);
+                    page += 1;
+                    if (data.length < PARTICIPANT_CHUNK_SIZE) keepFetching = false;
+                }
+            }
+
+            return rows;
+        }
+
+        // Monta a query de pagamentos (data/atendente/forma) do jeito único e oficial —
+        // usada tanto pelo painel (updateDashboard) quanto pela exportação (exportInscricoes)
+        // pra garantir que os dois nunca divirjam. Retorna uma FUNÇÃO (factory) porque
+        // fetchAllRows precisa criar uma query nova a cada página.
+        function buildFilteredPaymentsQueryFactory({ filterData, filterAtendente, filterForma }) {
+            const dateRange = getUTCDateRangeForLocalDate(filterData);
+            const normalizedAtendente = filterAtendente ? filterAtendente.trim() : '';
+
+            return () => {
+                let q = supabase.from('pagamentos_históricos').select('*');
+                if (dateRange) {
+                    q = q.gte('data_pagamento', dateRange.start).lte('data_pagamento', dateRange.end);
+                }
+                if (normalizedAtendente) q = q.ilike('atendente', normalizedAtendente);
+                if (filterForma) q = q.eq('forma_pagamento', filterForma);
+                return q;
+            };
+        }
+
         async function fetchParticipantsStatus(ids = []) {
             const uniqueIds = [...new Set(ids.filter(Boolean))];
             if (uniqueIds.length === 0) return [];
@@ -1004,25 +1055,9 @@
                 const filterForma = document.getElementById('filter-forma').value;
                 const filterStatus = document.getElementById('filter-status').value;
 
-                // 1. Carrega pagamentos aplicando filtros diretos
-                let payQuery = supabase.from('pagamentos_históricos').select('*');
-
-                const dateRange = getUTCDateRangeForLocalDate(filterData);
-                if (dateRange) {
-                    payQuery = payQuery
-                        .gte('data_pagamento', dateRange.start)
-                        .lte('data_pagamento', dateRange.end);
-                }
-
-                const normalizedAtendente = filterAtendente ? filterAtendente.trim() : '';
-                if (normalizedAtendente) {
-                    payQuery = payQuery.ilike('atendente', normalizedAtendente);
-                }
-
-                if (filterForma) payQuery = payQuery.eq('forma_pagamento', filterForma);
-
-                const { data: pagamentos, error: payError } = await payQuery;
-                if (payError) throw payError;
+                // 1. Carrega pagamentos aplicando filtros diretos (paginado, sem limite de linhas)
+                const buildPayQuery = buildFilteredPaymentsQueryFactory({ filterData, filterAtendente, filterForma });
+                const pagamentos = await fetchAllRows(buildPayQuery);
 
                 if (!pagamentos || pagamentos.length === 0) {
                     resetDashboardMetrics();
@@ -2321,46 +2356,34 @@
         }
         
         // Botão Azul - Exporta os pagamentos filtrados do dashboard
+        //
+        // IMPORTANTE: esta função reaproveita EXATAMENTE as mesmas buscas/filtros do painel
+        // (updateDashboard: mesmo payQuery com ilike+trim no atendente, e as mesmas funções
+        // fetchParticipantsStatus/applyStatusFilter para o filtro de status). Antes, a
+        // exportação tinha sua própria reimplementação da lógica de filtro (buscando IDs de
+        // inscricoes primeiro e usando .in() com quase mil ids), que divergiu do painel e
+        // fez a planilha sair com menos pagamentos do que a tela mostrava. Reaproveitar as
+        // mesmas funções garante que a planilha sempre bate 100% com o que está na tela.
         async function exportInscricoes() {
             try {
                 showNotification('Gerando relatório filtrado...', 'info');
-                
-                // Re-run the filter logic
-                const filterStatus = document.getElementById('filter-status').value;
-                let pQuery = supabase
-                    .from('inscricoes')
-                    .select('id')
-                    .range(0, 9999);
-                if (filterStatus) pQuery = pQuery.eq('status_pagamento', filterStatus);
-                const { data: participants, error: pError } = await pQuery;
-                if (pError) throw pError;
-                const participantIds = participants.map(p => p.id);
-                
-                if (participantIds.length === 0) {
-                    showNotification('Nenhum dado para exportar', 'warning');
-                    return;
-                }
-                
+
                 const filterData = document.getElementById('filter-data').value;
                 const filterAtendente = document.getElementById('filter-atendente').value;
                 const filterForma = document.getElementById('filter-forma').value;
+                const filterStatus = document.getElementById('filter-status').value;
 
-                let payQuery = supabase.from('pagamentos_históricos').select('*').in('inscricao_id', participantIds);
-                const dateRange = getUTCDateRangeForLocalDate(filterData);
-                if (dateRange) {
-                    payQuery = payQuery
-                        .gte('data_pagamento', dateRange.start)
-                        .lte('data_pagamento', dateRange.end);
+                const buildPayQuery = buildFilteredPaymentsQueryFactory({ filterData, filterAtendente, filterForma });
+                const pagamentosBrutos = await fetchAllRows(buildPayQuery);
+
+                if (!pagamentosBrutos || pagamentosBrutos.length === 0) {
+                    showNotification('Nenhum dado para exportar', 'warning');
+                    return;
                 }
-                // Usa a mesma normalização (trim + case-insensitive) do painel (updateDashboard),
-                // para não perder pagamentos com grafia de atendente diferente (ex: "jessica" vs "Jessica ")
-                const normalizedAtendenteExport = filterAtendente ? filterAtendente.trim() : '';
-                if (normalizedAtendenteExport) payQuery = payQuery.ilike('atendente', normalizedAtendenteExport);
-                if (filterForma) payQuery = payQuery.eq('forma_pagamento', filterForma);
-                
-                const { data: pagamentos, error: payError } = await payQuery;
-                if (payError) throw payError;
-                
+
+                const participantsInfo = await fetchParticipantsStatus(pagamentosBrutos.map(p => p.inscricao_id));
+                const { pagamentos } = applyStatusFilter(pagamentosBrutos, participantsInfo, filterStatus);
+
                 if (pagamentos.length === 0) {
                     showNotification('Nenhum dado para exportar', 'warning');
                     return;
@@ -2379,6 +2402,8 @@
                 const ws = XLSX.utils.json_to_sheet(data);
                 XLSX.utils.book_append_sheet(wb, ws, 'Pagamentos Filtrados');
                 XLSX.writeFile(wb, `pagamentos_filtrados_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+                showNotification(`Relatório exportado: ${pagamentos.length} pagamento(s)!`, 'success');
 
             } catch (error) {
                 console.error('Erro ao exportar inscrições:', error);
