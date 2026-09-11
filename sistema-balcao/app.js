@@ -2283,9 +2283,17 @@
             const chegaram = esperados.filter(p => !isDesistente(p) && p.status_pagamento === 'PAGO');
             const faltam = esperados.filter(p => !isDesistente(p) && p.status_pagamento !== 'PAGO');
 
+            // Entre quem já quitou 100%, quem já recebeu a pulseira é quem de fato já
+            // chegou/fez check-in presencial. É essa contagem (não a de quitação) que
+            // deve ser usada pra acompanhar quem está presente no retiro.
+            const checkinFeito = chegaram.filter(p => isWristbandDelivered(p));
+            const checkinPendente = chegaram.filter(p => !isWristbandDelivered(p));
+
             document.getElementById('checkin-esperados').textContent = esperados.length;
             document.getElementById('checkin-chegaram').textContent = chegaram.length;
             document.getElementById('checkin-faltam').textContent = faltam.length;
+            document.getElementById('checkin-pulseira-entregue').textContent = checkinFeito.length;
+            document.getElementById('checkin-pulseira-pendente').textContent = checkinPendente.length;
             document.getElementById('checkin-desistentes').textContent = desistentes.length;
 
             const linha = (p, marcado) => `
