@@ -90,6 +90,137 @@
     }
 
     // ==========================================================
+    // CONTROLE DE ENTREGA DE PULSEIRA — mesma lógica/visual do retiro
+    // principal (app.js): marcador de texto em "observacoes", só libera
+    // marcar com pagamento 100%, chip com 3 estados.
+    // ==========================================================
+    const WRISTBAND_MARKER = 'PULSEIRA ENTREGUE';
+
+    function isWristbandDelivered(kid) {
+        return !!(kid.observacoes && kid.observacoes.includes(WRISTBAND_MARKER));
+    }
+
+    function getWristbandChipState(kid) {
+        const fullyPaid = kid.status_pagamento === 'PAGO';
+        const delivered = isWristbandDelivered(kid);
+
+        if (!fullyPaid) {
+            return {
+                disabled: true,
+                icon: '🎗️',
+                label: 'Pulseira',
+                title: 'Só é possível marcar a pulseira com pagamento 100%',
+                border: 'rgba(255,255,255,0.2)',
+                bg: 'rgba(255,255,255,0.05)',
+                color: '#888',
+                opacity: 0.6
+            };
+        }
+
+        if (delivered) {
+            return {
+                disabled: false,
+                icon: '🚩',
+                label: 'Pulseira Entregue',
+                title: 'Entregue — clique para desmarcar (uso em caso de engano)',
+                border: '#22c55e',
+                bg: 'rgba(34,197,94,0.18)',
+                color: '#4ade80',
+                opacity: 1
+            };
+        }
+
+        return {
+            disabled: false,
+            icon: '👉',
+            label: 'Marcar Pulseira',
+            title: 'Clique para marcar a entrega da pulseira',
+            border: '#8b5cf6',
+            bg: 'rgba(139,92,246,0.18)',
+            color: '#c4b5fd',
+            opacity: 1
+        };
+    }
+
+    function applyWristbandChip(btn, state) {
+        btn.title = state.title;
+        btn.disabled = state.disabled;
+        btn.style.border = `1.5px solid ${state.border}`;
+        btn.style.background = state.bg;
+        btn.style.color = state.color;
+        btn.style.opacity = state.opacity;
+        btn.style.cursor = state.disabled ? 'not-allowed' : 'pointer';
+        btn.innerHTML = `${state.icon} ${state.label}`;
+    }
+
+    async function toggleWristband(kidId) {
+        const btn = document.getElementById(`kids-wristband-btn-${kidId}`);
+
+        try {
+            const { data: currentData, error: fetchError } = await sb()
+                .from('inscricoes_kids')
+                .select('observacoes, status_pagamento')
+                .eq('id', kidId)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            if (currentData.status_pagamento !== 'PAGO') {
+                notify('Só é possível marcar a pulseira com pagamento 100%', 'error');
+                return;
+            }
+
+            const jaEntregue = !!(currentData.observacoes && currentData.observacoes.includes(WRISTBAND_MARKER));
+
+            if (jaEntregue && !confirm('Desmarcar a entrega da pulseira desse participante?')) return;
+
+            if (btn) btn.disabled = true;
+
+            let updatedObservations;
+            if (jaEntregue) {
+                updatedObservations = (currentData.observacoes || '')
+                    .split(' | ')
+                    .filter(linha => !linha.includes(WRISTBAND_MARKER))
+                    .join(' | ') || null;
+            } else {
+                const timestamp = new Date().toLocaleString('pt-BR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+                const novaNota = `[${timestamp}] 🎗️ ${WRISTBAND_MARKER} (${atendenteAtual()})`;
+                updatedObservations = currentData.observacoes ? `${currentData.observacoes} | ${novaNota}` : novaNota;
+            }
+
+            const { error: updateError } = await sb()
+                .from('inscricoes_kids')
+                .update({ observacoes: updatedObservations, data_ultima_atualizacao: new Date().toISOString() })
+                .eq('id', kidId);
+
+            if (updateError) throw updateError;
+
+            const kidLocal = allKids.find(k => k.id === kidId);
+            if (kidLocal) kidLocal.observacoes = updatedObservations;
+
+            if (btn) applyWristbandChip(btn, getWristbandChipState({ status_pagamento: 'PAGO', observacoes: updatedObservations }));
+
+            notify(jaEntregue ? 'Pulseira desmarcada.' : '🎗️ Pulseira marcada como entregue!', 'success');
+
+        } catch (error) {
+            console.error('❌ Erro ao atualizar pulseira (kids):', error);
+            notify('Erro ao atualizar pulseira: ' + error.message, 'error');
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    // Wrapper usado pelo botão de pulseira dentro do modal de Detalhes:
+    // reaproveita toggleWristband() e recarrega o modal com o novo estado.
+    async function toggleWristbandFromDetails(kidId) {
+        await toggleWristband(kidId);
+        if (document.getElementById('kids-details-modal').style.display !== 'none') {
+            showDetails(kidId);
+        }
+    }
+
+    // ==========================================================
     // CARREGAMENTO DE DADOS
     // ==========================================================
     async function loadKids() {
@@ -181,12 +312,20 @@
         const statusClass = getStatusClass(kid.status_pagamento);
         const statusText = getStatusText(kid.status_pagamento);
         const equipeInfo = equipeInfoParaExibicao(kid);
+        const wb = getWristbandChipState(kid);
 
         return `
             <div class="person-card" onclick="KidsModule.showDetails('${kid.id}')">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
                     <h3 style="color: var(--primary); margin: 0;">${kid.nome_crianca || 'Nome não informado'}</h3>
-                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
+                        <button id="kids-wristband-btn-${kid.id}"
+                            onclick="event.stopPropagation(); KidsModule.toggleWristband('${kid.id}')"
+                            title="${wb.title}"
+                            ${wb.disabled ? 'disabled' : ''}
+                            style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-size: 0.72em; font-weight: 700; font-family: 'Inter', sans-serif; white-space: nowrap; border: 1.5px solid ${wb.border}; background: ${wb.bg}; color: ${wb.color}; opacity: ${wb.opacity}; cursor: ${wb.disabled ? 'not-allowed' : 'pointer'};">
+                            ${wb.icon} ${wb.label}
+                        </button>
                         <span class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.72em;">${tipoEventoLabel(kid.tipo_evento)}</span>
                         <span class="btn btn-${statusClass}" style="padding: 5px 10px; font-size: 0.8em;">${statusText}</span>
                     </div>
@@ -540,6 +679,7 @@
         const teamsDoEvento = allTeams.filter(t => t.tipo_evento === kid.tipo_evento);
         const showDelete = isAdm();
         const podeVerEquipe = isAdm();
+        const wbDetails = getWristbandChipState(kid);
 
         const campoTexto = (label, field, value) => `
             <div>
@@ -623,6 +763,18 @@
                     <div>
                         <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Valor Pago / Total:</label>
                         <div style="color: white; background: #222; padding: 12px; border-radius: 5px; font-size: 16px;">${fmtMoeda(kid.valor_pago)} / ${fmtMoeda(getValorEsperado(kid))}</div>
+                    </div>
+                    <div>
+                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Pulseira:</label>
+                        <div style="background: #222; padding: 8px; border-radius: 5px;">
+                            <button id="kids-wristband-btn-details-${kid.id}"
+                                onclick="KidsModule.toggleWristbandFromDetails('${kid.id}')"
+                                title="${wbDetails.title}"
+                                ${wbDetails.disabled ? 'disabled' : ''}
+                                style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; font-size: 0.85em; font-weight: 700; font-family: 'Inter', sans-serif; white-space: nowrap; border: 1.5px solid ${wbDetails.border}; background: ${wbDetails.bg}; color: ${wbDetails.color}; opacity: ${wbDetails.opacity}; cursor: ${wbDetails.disabled ? 'not-allowed' : 'pointer'};">
+                                ${wbDetails.icon} ${wbDetails.label}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1537,6 +1689,214 @@
     }
 
     // ==========================================================
+    // CHECK-IN DE CRIANÇAS (dia do evento) — mesma lógica/regra de negócio
+    // do check-in de encontristas do retiro principal: "chegou/check-in
+    // realizado" = quitou 100%; "check-in físico de fato" = pulseira
+    // entregue entre quem já quitou. Só PARTICIPANTE entra aqui — equipe
+    // de trabalho não é tracked (mesma exclusão do sorteio de equipes).
+    // ==========================================================
+    const DESISTENTE_MARKER = 'MARCADO COMO DESISTENTE';
+
+    function isDesistente(kid) {
+        return !!(kid.observacoes && kid.observacoes.includes(DESISTENTE_MARKER));
+    }
+
+    function getValorRestanteCheckin(kid) {
+        const esperado = getValorEsperado(kid);
+        const pago = kid.valor_pago ? parseFloat(String(kid.valor_pago).replace(',', '.')) : 0;
+        return Math.max(0, esperado - (isNaN(pago) ? 0 : pago));
+    }
+
+    function getCheckinTipoEventoSelecionado() {
+        const el = document.getElementById('kids-checkin-tipo');
+        return el ? el.value : 'ACAMPA_KIDS';
+    }
+
+    // "Esperados" = crianças do evento escolhido que já têm algum valor
+    // pago (PAGO PARCIALMENTE ou PAGO). Quem está PENDENTE não entra na
+    // lista de acompanhamento.
+    function getCriancasEmAcompanhamento(tipoEvento) {
+        return allKids.filter(k =>
+            k.tipo_evento === tipoEvento &&
+            k.funcao === 'PARTICIPANTE' &&
+            (k.status_pagamento === 'PAGO' || k.status_pagamento === 'PAGO PARCIALMENTE')
+        );
+    }
+
+    async function openCheckinModal() {
+        document.getElementById('kids-checkin-modal').style.display = 'flex';
+        await refreshCheckinModal();
+    }
+
+    function closeCheckinModal() {
+        document.getElementById('kids-checkin-modal').style.display = 'none';
+    }
+
+    // Recarrega direto do banco (útil se outro atendente lançou pagamento
+    // em outra tela enquanto este modal está aberto) e re-renderiza.
+    async function refreshCheckinModal() {
+        const btn = document.getElementById('kids-checkin-refresh-btn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Atualizando...'; }
+
+        try {
+            await loadKids();
+            renderCheckinModal();
+
+            const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const lastUpdateEl = document.getElementById('kids-checkin-last-update');
+            if (lastUpdateEl) lastUpdateEl.textContent = `Atualizado às ${agora}`;
+        } catch (error) {
+            console.error('❌ Erro ao atualizar check-in (kids):', error);
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '🔄 Atualizar'; }
+        }
+    }
+
+    function renderCheckinModal() {
+        const tipoEvento = getCheckinTipoEventoSelecionado();
+        const esperados = getCriancasEmAcompanhamento(tipoEvento);
+        const desistentes = esperados.filter(k => isDesistente(k));
+        const chegaram = esperados.filter(k => !isDesistente(k) && k.status_pagamento === 'PAGO');
+        const faltam = esperados.filter(k => !isDesistente(k) && k.status_pagamento !== 'PAGO');
+
+        // Entre quem já quitou 100%, quem já recebeu a pulseira é quem de fato
+        // já chegou/fez check-in presencial.
+        const checkinFeito = chegaram.filter(k => isWristbandDelivered(k));
+        const checkinPendente = chegaram.filter(k => !isWristbandDelivered(k));
+
+        document.getElementById('kids-checkin-esperados').textContent = esperados.length;
+        document.getElementById('kids-checkin-chegaram').textContent = chegaram.length;
+        document.getElementById('kids-checkin-faltam').textContent = faltam.length;
+        document.getElementById('kids-checkin-pulseira-entregue').textContent = checkinFeito.length;
+        document.getElementById('kids-checkin-pulseira-pendente').textContent = checkinPendente.length;
+        document.getElementById('kids-checkin-desistentes').textContent = desistentes.length;
+
+        const linha = (k, marcado) => `
+            <tr style="${marcado ? 'opacity: 0.55;' : ''}">
+                <td style="padding: 8px; ${marcado ? 'text-decoration: line-through;' : ''}">${k.nome_crianca}</td>
+                <td style="padding: 8px; text-align: center;">${k.rede || 'N/A'}</td>
+                <td style="padding: 8px; text-align: center;">${fmtMoeda(k.valor_pago)}</td>
+                <td style="padding: 8px; text-align: center; color: #f87171; font-weight: bold;">${marcado ? '—' : fmtMoeda(getValorRestanteCheckin(k))}</td>
+                <td style="padding: 8px; text-align: center;">${k.responsavel_whatsapp || 'N/A'}</td>
+                <td style="padding: 8px; text-align: center;">
+                    <button onclick="KidsModule.toggleDesistenteCheckin('${k.id}')" class="btn ${marcado ? 'btn-secondary' : 'btn-danger'}" style="padding: 4px 10px; font-size: 0.75em;">
+                        ${marcado ? '↩️ Desmarcar' : '🚫 Desistente'}
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        const lista = document.getElementById('kids-checkin-lista');
+        if (faltam.length === 0 && desistentes.length === 0) {
+            lista.innerHTML = '<div style="text-align: center; color: #4ade80; font-weight: bold; padding: 20px;">🎉 Todo mundo da lista já quitou 100%!</div>';
+            return;
+        }
+
+        lista.innerHTML = `
+            <table class="table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th style="text-align: center;">Rede</th>
+                        <th style="text-align: center;">Valor Pago</th>
+                        <th style="text-align: center;">Falta Pagar</th>
+                        <th style="text-align: center;">WhatsApp</th>
+                        <th style="text-align: center;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${faltam.map(k => linha(k, false)).join('')}
+                    ${desistentes.map(k => linha(k, true)).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    async function toggleDesistenteCheckin(kidId) {
+        try {
+            const { data: currentData, error: fetchError } = await sb()
+                .from('inscricoes_kids')
+                .select('observacoes')
+                .eq('id', kidId)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            const jaMarcado = !!(currentData.observacoes && currentData.observacoes.includes(DESISTENTE_MARKER));
+
+            if (!jaMarcado) {
+                const kid = allKids.find(k => k.id === kidId);
+                if (!confirm(`Confirma marcar "${kid ? kid.nome_crianca : 'este participante'}" como DESISTENTE?`)) {
+                    return;
+                }
+            }
+
+            let updatedObservations;
+            if (jaMarcado) {
+                updatedObservations = (currentData.observacoes || '')
+                    .split(' | ')
+                    .filter(linha => !linha.includes(DESISTENTE_MARKER))
+                    .join(' | ') || null;
+            } else {
+                const timestamp = new Date().toLocaleString('pt-BR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+                const novaNota = `[${timestamp}] 🚫 ${DESISTENTE_MARKER} (${atendenteAtual()})`;
+                updatedObservations = currentData.observacoes ? `${currentData.observacoes} | ${novaNota}` : novaNota;
+            }
+
+            const { error: updateError } = await sb()
+                .from('inscricoes_kids')
+                .update({ observacoes: updatedObservations, data_ultima_atualizacao: new Date().toISOString() })
+                .eq('id', kidId);
+
+            if (updateError) throw updateError;
+
+            const kidLocal = allKids.find(k => k.id === kidId);
+            if (kidLocal) kidLocal.observacoes = updatedObservations;
+
+            renderCheckinModal();
+            notify(jaMarcado ? 'Desistência desmarcada.' : 'Participante marcado como desistente.', 'success');
+
+        } catch (error) {
+            console.error('❌ Erro ao marcar desistente (kids):', error);
+            notify('Erro ao marcar desistente: ' + error.message, 'error');
+        }
+    }
+
+    function exportCheckinFaltantes() {
+        try {
+            const tipoEvento = getCheckinTipoEventoSelecionado();
+            const esperados = getCriancasEmAcompanhamento(tipoEvento);
+            const faltam = esperados.filter(k => !isDesistente(k) && k.status_pagamento !== 'PAGO');
+
+            if (faltam.length === 0) {
+                notify('Não há ninguém faltando para exportar', 'warning');
+                return;
+            }
+
+            const data = faltam.map(k => ({
+                'Nome': k.nome_crianca,
+                'Rede': k.rede || 'N/A',
+                'Valor Pago': fmtMoeda(k.valor_pago),
+                'Falta Pagar': fmtMoeda(getValorRestanteCheckin(k)),
+                'Status': getStatusText(k.status_pagamento),
+                'WhatsApp': k.responsavel_whatsapp || 'N/A',
+                'Evento': tipoEventoLabel(k.tipo_evento)
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Faltam Chegar');
+            XLSX.writeFile(wb, `faltam_chegar_kids_${tipoEvento.toLowerCase()}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            notify('Lista exportada com sucesso!', 'success');
+        } catch (error) {
+            console.error('Erro ao exportar lista de faltantes (kids):', error);
+            notify('Erro ao exportar lista de faltantes', 'error');
+        }
+    }
+
+    // ==========================================================
     // API PÚBLICA DO MÓDULO
     // ==========================================================
     window.KidsModule = {
@@ -1573,6 +1933,14 @@
         openAdmReport,
         closeAdmReportModal,
         generateAttendantReport,
-        exportAdmReport
+        exportAdmReport,
+        toggleWristband,
+        toggleWristbandFromDetails,
+        openCheckinModal,
+        closeCheckinModal,
+        refreshCheckinModal,
+        renderCheckinModal,
+        toggleDesistenteCheckin,
+        exportCheckinFaltantes
     };
 })();
