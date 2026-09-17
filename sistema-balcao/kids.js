@@ -23,6 +23,12 @@
         TRABALHO: 100
     };
 
+    // Entrada mínima pra virar PAGO PARCIALMENTE e — no caso de participante —
+    // entrar no sorteio de equipe. Mesma ideia do retiro principal (lá é
+    // R$150 dos R$550): aqui é R$100 pros dois eventos (Acampa Kids e
+    // Brothers Camp).
+    const VALOR_MINIMO_ENTRADA = 100;
+
     let allKids = [];
     let allTeams = [];
     let currentKid = null;
@@ -58,6 +64,11 @@
     function getValorEsperado(kid) {
         if (kid.funcao === 'TRABALHO') return VALORES.TRABALHO;
         return VALORES[kid.tipo_evento] || 0;
+    }
+
+    function valorPagoNumerico(kid) {
+        const v = kid.valor_pago ? parseFloat(String(kid.valor_pago).replace(',', '.')) : 0;
+        return isNaN(v) ? 0 : v;
     }
 
     function getStatusClass(status) {
@@ -519,16 +530,27 @@
 
         let novoStatus;
         if (totalPago >= esperado && esperado > 0) novoStatus = 'PAGO';
-        else if (totalPago > 0) novoStatus = 'PAGO PARCIALMENTE';
+        else if (totalPago >= VALOR_MINIMO_ENTRADA) novoStatus = 'PAGO PARCIALMENTE';
         else novoStatus = 'PENDENTE';
 
         const formas = [...new Set((payments || []).map(p => p.forma_pagamento))];
         const novaForma = formas.length > 1 ? 'MÚLTIPLAS FORMAS' : (formas[0] || null);
 
+        // Igual ao retiro principal: a data de confirmação é a do pagamento
+        // que fez o total acumulado cruzar o valor mínimo de entrada, não a
+        // do primeiro pagamento (podem ser diferentes se ninguém atingiu o
+        // mínimo no primeiro repasse).
         let dataConfirmacao = null;
-        if (totalPago > 0) {
+        if (totalPago >= VALOR_MINIMO_ENTRADA) {
             const ordenados = (payments || []).slice().sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
-            dataConfirmacao = ordenados.length ? (ordenados[0].criado_em || new Date().toISOString()) : new Date().toISOString();
+            let acumulado = 0;
+            for (const pagamento of ordenados) {
+                acumulado += parseFloat(pagamento.valor_pago) || 0;
+                if (acumulado >= VALOR_MINIMO_ENTRADA) {
+                    dataConfirmacao = pagamento.criado_em || new Date().toISOString();
+                    break;
+                }
+            }
         }
 
         const { error: updateError } = await sb()
@@ -544,6 +566,15 @@
             .eq('id', kidId);
 
         if (updateError) throw updateError;
+
+        // Só a partir daqui a criança entra no sorteio de equipe — igual ao
+        // retiro, que também exige o valor mínimo de entrada antes de contar
+        // como "confirmado". Equipe de trabalho nunca é sorteada (mesma
+        // exclusão de sempre, já aplicada dentro de kids_atribuir_uma).
+        if (kid.funcao === 'PARTICIPANTE' && !kid.equipe_id && totalPago >= VALOR_MINIMO_ENTRADA) {
+            const { error: atribuirError } = await sb().rpc('kids_atribuir_uma', { p_inscricao_id: kidId });
+            if (atribuirError) console.error('Erro ao atribuir equipe automaticamente:', atribuirError);
+        }
     }
 
     async function addNewPayment() {
@@ -1079,7 +1110,7 @@
         if (!isTeamsAdmin()) { notify('Você não tem permissão pra atribuir equipes.', 'error'); return; }
 
         const pendentes = allKids
-            .filter(k => k.tipo_evento === currentTeamsTipoEvento && k.funcao === 'PARTICIPANTE' && !k.equipe_id)
+            .filter(k => k.tipo_evento === currentTeamsTipoEvento && k.funcao === 'PARTICIPANTE' && !k.equipe_id && valorPagoNumerico(k) >= VALOR_MINIMO_ENTRADA)
             .sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
 
         if (pendentes.length === 0) { notify('Não há pendentes para atribuir.', 'warning'); return; }
@@ -1770,9 +1801,7 @@
     }
 
     function getValorRestanteCheckin(kid) {
-        const esperado = getValorEsperado(kid);
-        const pago = kid.valor_pago ? parseFloat(String(kid.valor_pago).replace(',', '.')) : 0;
-        return Math.max(0, esperado - (isNaN(pago) ? 0 : pago));
+        return Math.max(0, getValorEsperado(kid) - valorPagoNumerico(kid));
     }
 
     function getCheckinTipoEventoSelecionado() {
