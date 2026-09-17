@@ -373,23 +373,8 @@
                 <div class="section-title">🏥 Saúde e Contexto</div>
 
                 <div class="form-group">
-                    <label for="restricao-alimentar">Restrição Alimentar <span class="required">*</span></label>
-                    <input type="text" id="restricao-alimentar" name="restricao-alimentar" required placeholder="Ex: NÃO / Intolerância a lactose...">
-                </div>
-
-                <div class="form-group">
-                    <label for="alergias">Alergias <span class="required">*</span></label>
-                    <input type="text" id="alergias" name="alergias" required placeholder="Ex: NÃO / Alergia a picada de inseto...">
-                </div>
-
-                <div class="form-group">
-                    <label for="uso-medicamentos">Uso de Medicamentos <span class="required">*</span></label>
-                    <input type="text" id="uso-medicamentos" name="uso-medicamentos" required placeholder="Ex: NÃO / Nome do medicamento e horário...">
-                </div>
-
-                <div class="form-group">
-                    <label for="necessidade-especial">Necessidade Especial <span class="required">*</span></label>
-                    <input type="text" id="necessidade-especial" name="necessidade-especial" required placeholder="Ex: NÃO / Descreva a necessidade...">
+                    <label for="observacoes-saude">Restrição Alimentar, Alergias, Medicamentos ou Necessidade Especial <span class="required">*</span></label>
+                    <textarea id="observacoes-saude" name="observacoes-saude" required placeholder="Ex: NÃO / Descreva restrição alimentar, alergias, medicamentos em uso e/ou necessidade especial"></textarea>
                 </div>
 
                 <div class="form-row">
@@ -553,10 +538,7 @@
                     p_responsavel_parentesco: dados.parentesco,
                     p_autorizacao_dados: dados.autorizacaoDados,
                     p_autorizacao_imagem: dados.autorizacaoImagem,
-                    p_restricao_alimentar: dados.restricaoAlimentar,
-                    p_alergias: dados.alergias,
-                    p_uso_medicamentos: dados.usoMedicamentos,
-                    p_necessidade_especial: dados.necessidadeEspecial,
+                    p_observacoes_saude: dados.observacoesSaude,
                     p_contato_emergencia_nome: dados.emergenciaNome,
                     p_contato_emergencia_telefone: dados.emergenciaTelefone,
                     p_observacoes_responsavel: dados.observacoesResponsavel || null
@@ -613,10 +595,7 @@
                 whatsapp: formData.get('whatsapp'),
                 autorizacaoDados: formData.get('autorizacao-dados') ? true : false,
                 autorizacaoImagem: formData.get('autorizacao-imagem') ? true : false,
-                restricaoAlimentar: formData.get('restricao-alimentar'),
-                alergias: formData.get('alergias'),
-                usoMedicamentos: formData.get('uso-medicamentos'),
-                necessidadeEspecial: formData.get('necessidade-especial'),
+                observacoesSaude: formData.get('observacoes-saude'),
                 emergenciaNome: formData.get('emergencia-nome'),
                 emergenciaTelefone: formData.get('emergencia-telefone'),
                 observacoesResponsavel: formData.get('observacoes-responsavel')

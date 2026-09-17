@@ -559,12 +559,12 @@
             <div style="margin-bottom: 20px;">
                 <h4 style="color: var(--primary); margin-bottom: 15px;">🏥 Saúde e Contexto</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    ${campoTexto('Restrição Alimentar', 'restricao_alimentar', kid.restricao_alimentar)}
-                    ${campoTexto('Alergias', 'alergias', kid.alergias)}
-                    ${campoTexto('Uso de Medicamentos', 'uso_medicamentos', kid.uso_medicamentos)}
-                    ${campoTexto('Necessidade Especial', 'necessidade_especial', kid.necessidade_especial)}
                     ${campoTexto('Contato de Emergência (Nome)', 'contato_emergencia_nome', kid.contato_emergencia_nome)}
                     ${campoTexto('Contato de Emergência (Telefone)', 'contato_emergencia_telefone', kid.contato_emergencia_telefone)}
+                </div>
+                <div style="margin-top: 15px;">
+                    <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Restrição Alimentar / Alergias / Medicamentos / Necessidade Especial:</label>
+                    <textarea class="input" style="min-height: 60px;" onblur="KidsModule.updateField('${kid.id}', 'observacoes_saude', this.value)">${kid.observacoes_saude || ''}</textarea>
                 </div>
                 <div style="margin-top: 15px;">
                     <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Observações do Responsável:</label>
