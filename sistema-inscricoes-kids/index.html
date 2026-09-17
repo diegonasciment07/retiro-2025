@@ -34,7 +34,6 @@
 
             --cor-kids: #22c55e;
             --cor-brothers: #3b82f6;
-            --cor-trabalho: #eab308;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -97,6 +96,7 @@
         }
 
         .form-group { margin-bottom: 25px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
         label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--texto-branco); font-size: 1em; }
         .required { color: var(--cor-primaria); font-weight: bold; }
@@ -108,7 +108,7 @@
             text-transform: uppercase; font-family: inherit;
         }
 
-        input[type="number"], input[type="tel"], input[type="email"] { text-transform: none; }
+        input[type="number"], input[type="tel"], input[type="email"], input[type="date"] { text-transform: none; }
 
         input:focus, select:focus, textarea:focus {
             outline: none; border-color: var(--cor-primaria); background: var(--fundo-principal);
@@ -116,7 +116,7 @@
         }
 
         input::placeholder { color: var(--texto-cinza); }
-        textarea { resize: vertical; min-height: 80px; text-transform: none; }
+        textarea { resize: vertical; min-height: 70px; text-transform: none; }
 
         .cards-evento {
             display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
@@ -202,7 +202,7 @@
             .titulo-retiro { font-size: 1.7em; }
             .form-container { padding: 20px; }
             .section-title { font-size: 1.1em; }
-            .radio-group, .cards-evento { grid-template-columns: 1fr; }
+            .radio-group, .cards-evento, .form-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -230,10 +230,6 @@
                 <strong>👧🏻 ACAMPA KIDS:</strong> de 05 a 09 anos — R$ 250,00<br>
                 <strong>👦🏻 BROTHERS CAMP:</strong> de 10 a 14 anos — R$ 300,00<br>
                 <strong>🤝 TRABALHO</strong> (equipe de apoio, qualquer um dos dois): R$ 100,00
-            </div>
-
-            <div class="info-box">
-                <strong>🏆 Equipes da Gincana:</strong> cada participante é distribuído automaticamente em uma equipe, buscando equilibrar meninos/meninas e idades entre os times.
             </div>
 
             <div class="success-message" id="success-message">
@@ -284,28 +280,60 @@
                     <div class="valor-legenda">Valor total da inscrição — pode ser parcelado no balcão</div>
                 </div>
 
-                <!-- IDENTIFICAÇÃO DA CRIANÇA -->
-                <div class="section-title">✅ Dados da Criança/Adolescente</div>
+                <!-- CADASTRO -->
+                <div class="section-title">✅ Cadastro</div>
 
                 <div class="form-group">
-                    <label for="nome">Nome Completo <span class="required">*</span></label>
-                    <input type="text" id="nome" name="nome" required placeholder="Nome completo da criança/adolescente">
+                    <label for="nome">Nome Completo da Criança/Adolescente <span class="required">*</span></label>
+                    <input type="text" id="nome" name="nome" required placeholder="Nome completo">
                 </div>
 
-                <div class="form-group">
-                    <label for="sexo">Sexo <span class="required">*</span></label>
-                    <select id="sexo" name="sexo" required>
-                        <option value="">Selecione</option>
-                        <option value="MASCULINO">👦 Masculino</option>
-                        <option value="FEMININO">👧 Feminino</option>
-                    </select>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data-nascimento">Data de Nascimento <span class="required">*</span></label>
+                        <input type="date" id="data-nascimento" name="data-nascimento" required>
+                        <div style="font-size: 0.9em; color: #ccc; margin-top: 5px;" id="idade-hint">
+                            Selecione o evento e a data de nascimento.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="sexo">Sexo <span class="required">*</span></label>
+                        <select id="sexo" name="sexo" required>
+                            <option value="">Selecione</option>
+                            <option value="MASCULINO">👦 Masculino</option>
+                            <option value="FEMININO">👧 Feminino</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="idade">Idade <span class="required">*</span></label>
-                    <input type="number" id="idade" name="idade" required placeholder="Idade" min="1" max="17">
-                    <div style="font-size: 0.9em; color: #ccc; margin-top: 5px;" id="idade-hint">
-                        Selecione o evento acima para ver a faixa etária.
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="rede">Rede <span class="required">*</span></label>
+                        <select id="rede" name="rede" required>
+                            <option value="">Selecione a rede</option>
+                            <option value="BRANCA">🤍 Rede Branca</option>
+                            <option value="AZUL">💙 Rede Azul</option>
+                            <option value="AMARELA">💛 Rede Amarela</option>
+                            <option value="VERMELHA">❤️ Rede Vermelha</option>
+                            <option value="VERDE">💚 Rede Verde</option>
+                            <option value="MARROM">🤎 Rede Marrom</option>
+                            <option value="ROXA">💜 Rede Roxa</option>
+                            <option value="NÃO-POSSUO">🆕 Não possuo rede ainda</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="igreja">Igreja <span class="required">*</span></label>
+                        <select id="igreja" name="igreja" required>
+                            <option value="">Selecione a igreja</option>
+                            <option value="ALVO CURITIBA">📍 Alvo Curitiba</option>
+                            <option value="ALVO SJP">📍 Alvo SJP</option>
+                            <option value="ALVO ITAPECERICA">📍 Alvo Itapecerica</option>
+                            <option value="ALVO MONTE MOR">📍 Alvo Monte Mor</option>
+                            <option value="ALVO CAMPINAS">📍 Alvo Campinas</option>
+                            <option value="ALVO LITORAL PR">📍 Alvo Litoral PR</option>
+                            <option value="ALVO LONDRINA">📍 Alvo Londrina</option>
+                            <option value="ALVO ARAUCÁRIA">📍 Alvo Araucária</option>
+                        </select>
                     </div>
                 </div>
 
@@ -313,39 +341,71 @@
                 <div class="section-title">👪 Dados do Responsável</div>
 
                 <div class="form-group">
-                    <label for="responsavel-nome">Nome do Responsável <span class="required">*</span></label>
+                    <label for="responsavel-nome">Nome Completo do Responsável <span class="required">*</span></label>
                     <input type="text" id="responsavel-nome" name="responsavel-nome" required placeholder="Nome completo do responsável">
                 </div>
 
-                <div class="form-group">
-                    <label for="parentesco">Parentesco <span class="required">*</span></label>
-                    <input type="text" id="parentesco" name="parentesco" required placeholder="Mãe, pai, avó, tio...">
-                </div>
-
-                <div class="form-group">
-                    <label for="whatsapp">WhatsApp do Responsável <span class="required">*</span></label>
-                    <input type="tel" id="whatsapp" name="whatsapp" placeholder="(11) 99999-9999" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" placeholder="seu@email.com" style="text-transform: lowercase;">
-                </div>
-
-                <div class="form-group">
-                    <label for="cidade">Cidade <span class="required">*</span></label>
-                    <input type="text" id="cidade" name="cidade" placeholder="Nome da cidade" required>
-                </div>
-
-                <!-- SAÚDE -->
-                <div class="section-title">🏥 Saúde e Acessibilidade</div>
-
-                <div class="form-group">
-                    <label for="observacoes-saude">Observações</label>
-                    <textarea id="observacoes-saude" name="observacoes-saude" placeholder="Alergias, medicamentos, restrições alimentares, necessidades especiais, etc."></textarea>
-                    <div style="font-size: 0.9em; color: #ccc; margin-top: 5px;">
-                        ⚠️ Muito importante preencher se houver qualquer cuidado especial com a criança.
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="whatsapp">Telefone do Responsável <span class="required">*</span></label>
+                        <input type="tel" id="whatsapp" name="whatsapp" placeholder="(11) 99999-9999" required>
                     </div>
+                    <div class="form-group">
+                        <label for="parentesco">Grau de Parentesco <span class="required">*</span></label>
+                        <input type="text" id="parentesco" name="parentesco" required placeholder="Mãe, pai, avó, tio...">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div style="background: #1a1a2e; border: 2px solid #ff6b35; padding: 18px; border-radius: 8px;">
+                        <p style="color: #fff; font-size: 0.95em; line-height: 1.6; margin-bottom: 12px;">
+                            <strong>🔒 AUTORIZAÇÃO PARA USO DOS DADOS:</strong><br>
+                            Autorizo o uso dos dados informados nesta ficha exclusivamente para fins de organização, segurança e comunicação sobre o evento.
+                        </p>
+                        <label for="autorizacao-dados" style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="autorizacao-dados" name="autorizacao-dados" required style="width: auto; margin-right: 10px; transform: scale(1.5); cursor: pointer;">
+                            <span><span class="required">*</span> Autorizo o uso dos dados conforme descrito acima</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- SAÚDE E CONTEXTO -->
+                <div class="section-title">🏥 Saúde e Contexto</div>
+
+                <div class="form-group">
+                    <label for="restricao-alimentar">Restrição Alimentar <span class="required">*</span></label>
+                    <input type="text" id="restricao-alimentar" name="restricao-alimentar" required placeholder="Ex: NÃO / Intolerância a lactose...">
+                </div>
+
+                <div class="form-group">
+                    <label for="alergias">Alergias <span class="required">*</span></label>
+                    <input type="text" id="alergias" name="alergias" required placeholder="Ex: NÃO / Alergia a picada de inseto...">
+                </div>
+
+                <div class="form-group">
+                    <label for="uso-medicamentos">Uso de Medicamentos <span class="required">*</span></label>
+                    <input type="text" id="uso-medicamentos" name="uso-medicamentos" required placeholder="Ex: NÃO / Nome do medicamento e horário...">
+                </div>
+
+                <div class="form-group">
+                    <label for="necessidade-especial">Necessidade Especial <span class="required">*</span></label>
+                    <input type="text" id="necessidade-especial" name="necessidade-especial" required placeholder="Ex: NÃO / Descreva a necessidade...">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="emergencia-nome">Contato Alternativo de Emergência (Nome) <span class="required">*</span></label>
+                        <input type="text" id="emergencia-nome" name="emergencia-nome" required placeholder="Nome de um segundo contato">
+                    </div>
+                    <div class="form-group">
+                        <label for="emergencia-telefone">Telefone deste Contato <span class="required">*</span></label>
+                        <input type="tel" id="emergencia-telefone" name="emergencia-telefone" required placeholder="(11) 99999-9999">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="observacoes-responsavel">Observações do Responsável</label>
+                    <textarea id="observacoes-responsavel" name="observacoes-responsavel" placeholder="Qualquer outra informação importante (opcional)"></textarea>
                 </div>
 
                 <!-- AUTORIZAÇÃO DE IMAGEM -->
@@ -397,7 +457,7 @@
             }
         }
 
-        function formatarWhatsApp(input) {
+        function formatarTelefone(input) {
             let value = input.value.replace(/\D/g, '');
             if (value.length >= 11) {
                 value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
@@ -426,32 +486,54 @@
             return 0;
         }
 
+        function calcularIdade(dataNascimentoStr) {
+            if (!dataNascimentoStr) return null;
+            const hoje = new Date();
+            const nascimento = new Date(dataNascimentoStr + 'T00:00:00');
+            if (isNaN(nascimento.getTime())) return null;
+            let idade = hoje.getFullYear() - nascimento.getFullYear();
+            const diffMes = hoje.getMonth() - nascimento.getMonth();
+            if (diffMes < 0 || (diffMes === 0 && hoje.getDate() < nascimento.getDate())) idade--;
+            return idade;
+        }
+
         function atualizarValorEIdade() {
             const tipoEvento = getTipoEventoSelecionado();
             const funcao = getFuncaoSelecionada();
             const valor = getValorEsperado(tipoEvento, funcao);
             const display = document.getElementById('valor-total-display');
             const idadeHint = document.getElementById('idade-hint');
-            const idadeInput = document.getElementById('idade');
+            const dataNascimento = document.getElementById('data-nascimento').value;
+            const idade = calcularIdade(dataNascimento);
 
             display.textContent = tipoEvento ? `R$ ${valor.toFixed(2).replace('.', ',')}` : 'Selecione o evento';
 
             if (!tipoEvento) {
                 idadeHint.textContent = 'Selecione o evento acima para ver a faixa etária.';
-                idadeInput.removeAttribute('min');
-                idadeInput.removeAttribute('max');
+                idadeHint.style.color = '#ccc';
                 return;
             }
 
             const faixa = FAIXAS_IDADE[tipoEvento];
+
             if (funcao === 'TRABALHO') {
-                idadeHint.textContent = `Equipe de trabalho — sem restrição de idade específica do evento (${faixa.label}).`;
-                idadeInput.removeAttribute('min');
-                idadeInput.removeAttribute('max');
-            } else {
+                idadeHint.textContent = `Equipe de trabalho — sem restrição de idade específica do evento (${faixa.label}).${idade !== null ? ' Idade calculada: ' + idade + ' anos.' : ''}`;
+                idadeHint.style.color = '#ccc';
+                return;
+            }
+
+            if (idade === null) {
                 idadeHint.textContent = `Faixa etária do ${tipoEvento === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp'}: ${faixa.label}.`;
-                idadeInput.setAttribute('min', faixa.min);
-                idadeInput.setAttribute('max', faixa.max);
+                idadeHint.style.color = '#ccc';
+                return;
+            }
+
+            if (idade < faixa.min || idade > faixa.max) {
+                idadeHint.textContent = `⚠️ Idade calculada: ${idade} anos — fora da faixa do ${tipoEvento === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp'} (${faixa.label}). Verifique a data de nascimento ou o evento selecionado.`;
+                idadeHint.style.color = '#ff6b6b';
+            } else {
+                idadeHint.textContent = `✅ Idade calculada: ${idade} anos — dentro da faixa do ${tipoEvento === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp'} (${faixa.label}).`;
+                idadeHint.style.color = '#4ade80';
             }
         }
 
@@ -459,17 +541,25 @@
             try {
                 const { data, error } = await supabaseClient.rpc('kids_registrar_e_atribuir', {
                     p_nome_crianca: dados.nome,
+                    p_data_nascimento: dados.dataNascimento,
+                    p_idade: dados.idade,
                     p_sexo: dados.sexo,
-                    p_idade: parseInt(dados.idade),
+                    p_rede: dados.rede,
+                    p_igreja: dados.igreja,
                     p_tipo_evento: dados.tipoEvento,
                     p_funcao: dados.funcao,
                     p_responsavel_nome: dados.responsavelNome,
                     p_responsavel_whatsapp: dados.whatsapp,
                     p_responsavel_parentesco: dados.parentesco,
-                    p_email: dados.email ? dados.email.toLowerCase() : null,
-                    p_cidade: dados.cidade,
-                    p_observacoes_saude: dados.observacoesSaude || null,
-                    p_autorizacao_imagem: dados.autorizacaoImagem
+                    p_autorizacao_dados: dados.autorizacaoDados,
+                    p_autorizacao_imagem: dados.autorizacaoImagem,
+                    p_restricao_alimentar: dados.restricaoAlimentar,
+                    p_alergias: dados.alergias,
+                    p_uso_medicamentos: dados.usoMedicamentos,
+                    p_necessidade_especial: dados.necessidadeEspecial,
+                    p_contato_emergencia_nome: dados.emergenciaNome,
+                    p_contato_emergencia_telefone: dados.emergenciaTelefone,
+                    p_observacoes_responsavel: dados.observacoesResponsavel || null
                 });
 
                 if (error) {
@@ -485,22 +575,6 @@
             }
         }
 
-        async function buscarNomeEquipe(equipeId) {
-            if (!equipeId) return null;
-            try {
-                const { data, error } = await supabaseClient
-                    .from('equipes_kids')
-                    .select('nome_time')
-                    .eq('id', equipeId)
-                    .single();
-                if (error) throw error;
-                return data ? data.nome_time : null;
-            } catch (error) {
-                console.error('Erro ao buscar equipe:', error);
-                return null;
-            }
-        }
-
         document.getElementById('inscricao-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -508,14 +582,15 @@
 
             const tipoEvento = getTipoEventoSelecionado();
             const funcao = getFuncaoSelecionada();
-            const idade = parseInt(document.getElementById('idade').value);
+            const dataNascimento = document.getElementById('data-nascimento').value;
+            const idade = calcularIdade(dataNascimento);
 
-            if (funcao === 'PARTICIPANTE' && tipoEvento) {
+            if (funcao === 'PARTICIPANTE' && tipoEvento && idade !== null) {
                 const faixa = FAIXAS_IDADE[tipoEvento];
                 if (idade < faixa.min || idade > faixa.max) {
                     document.getElementById('error-message').style.display = 'block';
                     document.getElementById('error-details').textContent =
-                        `Para ${tipoEvento === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp'} a idade precisa estar entre ${faixa.min} e ${faixa.max} anos. Se for da equipe de trabalho, selecione a opção "Trabalho" acima.`;
+                        `Para ${tipoEvento === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp'} a idade precisa estar entre ${faixa.min} e ${faixa.max} anos (calculamos ${idade} anos pela data de nascimento). Se for da equipe de trabalho, selecione a opção "Trabalho" acima.`;
                     document.getElementById('error-message').scrollIntoView({ block: 'start' });
                     return;
                 }
@@ -526,17 +601,25 @@
             const formData = new FormData(this);
             const dados = {
                 nome: formData.get('nome'),
+                dataNascimento: formData.get('data-nascimento'),
+                idade: idade,
                 sexo: formData.get('sexo'),
-                idade: formData.get('idade'),
+                rede: formData.get('rede'),
+                igreja: formData.get('igreja'),
                 tipoEvento: formData.get('tipo-evento'),
                 funcao: formData.get('funcao'),
                 responsavelNome: formData.get('responsavel-nome'),
                 parentesco: formData.get('parentesco'),
                 whatsapp: formData.get('whatsapp'),
-                email: formData.get('email'),
-                cidade: formData.get('cidade'),
-                observacoesSaude: formData.get('observacoes-saude'),
-                autorizacaoImagem: formData.get('autorizacao-imagem') ? true : false
+                autorizacaoDados: formData.get('autorizacao-dados') ? true : false,
+                autorizacaoImagem: formData.get('autorizacao-imagem') ? true : false,
+                restricaoAlimentar: formData.get('restricao-alimentar'),
+                alergias: formData.get('alergias'),
+                usoMedicamentos: formData.get('uso-medicamentos'),
+                necessidadeEspecial: formData.get('necessidade-especial'),
+                emergenciaNome: formData.get('emergencia-nome'),
+                emergenciaTelefone: formData.get('emergencia-telefone'),
+                observacoesResponsavel: formData.get('observacoes-responsavel')
             };
 
             const submitBtn = document.getElementById('submit-btn');
@@ -550,16 +633,15 @@
                 const resultado = await enviarParaSupabase(dados);
 
                 if (resultado.success) {
-                    const registro = Array.isArray(resultado.data) ? resultado.data[0] : resultado.data;
                     const valor = getValorEsperado(dados.tipoEvento, dados.funcao);
-                    const nomeEquipe = registro && registro.equipe_id ? await buscarNomeEquipe(registro.equipe_id) : null;
 
+                    // Não mostramos qual equipe a criança caiu — isso é informação
+                    // exclusiva do ADM, revelada no dia do evento.
                     document.getElementById('success-message').style.display = 'block';
                     document.getElementById('next-steps').innerHTML = `
                         ✅ Inscrição de <strong>${dados.nome}</strong> realizada com sucesso!<br><br>
-                        💰 <strong>Valor da inscrição:</strong> R$ ${valor.toFixed(2).replace('.', ',')} (pode ser parcelado no balcão)<br>
-                        ${nomeEquipe ? `🏆 <strong>Equipe:</strong> ${nomeEquipe}<br>` : ''}
-                        <br>📍 <strong>Próximo passo:</strong> Compareça ao balcão da igreja para efetuar o pagamento.<br><br>
+                        💰 <strong>Valor da inscrição:</strong> R$ ${valor.toFixed(2).replace('.', ',')} (pode ser parcelado no balcão)<br><br>
+                        📍 <strong>Próximo passo:</strong> Compareça ao balcão da igreja para efetuar o pagamento.<br><br>
                         📱 <strong>Dúvidas?</strong> Procure a equipe de inscrição.
                     `;
 
@@ -591,19 +673,15 @@
             document.querySelectorAll('input[name="tipo-evento"], input[name="funcao"]').forEach(el => {
                 el.addEventListener('change', atualizarValorEIdade);
             });
+            document.getElementById('data-nascimento').addEventListener('change', atualizarValorEIdade);
 
-            document.getElementById('whatsapp').addEventListener('input', function() {
-                formatarWhatsApp(this);
-            });
+            document.getElementById('whatsapp').addEventListener('input', function() { formatarTelefone(this); });
+            document.getElementById('emergencia-telefone').addEventListener('input', function() { formatarTelefone(this); });
 
             document.querySelectorAll('input[type="text"], textarea').forEach(input => {
                 input.addEventListener('input', function() {
                     this.value = this.value.toUpperCase();
                 });
-            });
-
-            document.getElementById('email').addEventListener('input', function() {
-                this.value = this.value.toLowerCase();
             });
 
             atualizarValorEIdade();

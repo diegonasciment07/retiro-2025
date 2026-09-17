@@ -79,6 +79,16 @@
         return equipe ? equipe.nome_time : null;
     }
 
+    // Qual time a criança caiu é informação exclusiva do ADM (pra não vazar
+    // pro atendente comum, que pode estar no balcão junto com o responsável).
+    // Atendente comum só vê "🔒 Somente ADM"; quem não é participante (equipe
+    // de trabalho) nunca tem equipe mesmo.
+    function equipeInfoParaExibicao(kid) {
+        if (kid.funcao !== 'PARTICIPANTE') return '—';
+        if (!isAdm()) return '🔒 Somente ADM';
+        return nomeEquipe(kid.equipe_id) || 'Sem equipe';
+    }
+
     // ==========================================================
     // CARREGAMENTO DE DADOS
     // ==========================================================
@@ -105,6 +115,9 @@
     }
 
     async function onTabShown() {
+        const btnEquipes = document.getElementById('kids-gerenciar-equipes-btn');
+        if (btnEquipes) btnEquipes.style.display = isAdm() ? 'block' : 'none';
+
         await Promise.all([loadKids(), loadTeams()]);
         renderStats();
         searchKids();
@@ -170,7 +183,7 @@
         container.innerHTML = kids.map(kid => {
             const statusClass = getStatusClass(kid.status_pagamento);
             const statusText = getStatusText(kid.status_pagamento);
-            const equipe = nomeEquipe(kid.equipe_id);
+            const equipeInfo = equipeInfoParaExibicao(kid);
 
             return `
                 <div class="person-card" onclick="KidsModule.showDetails('${kid.id}')">
@@ -186,7 +199,7 @@
                         <div><strong>🎂 Idade:</strong> ${kid.idade ?? 'N/A'} anos</div>
                         <div><strong>${kid.sexo === 'FEMININO' ? '👧' : '👦'} Sexo:</strong> ${kid.sexo || 'N/A'}</div>
                         <div><strong>${funcaoLabel(kid.funcao)}</strong></div>
-                        <div><strong>🏆 Equipe:</strong> ${equipe || (kid.funcao === 'PARTICIPANTE' ? 'Sem equipe' : '—')}</div>
+                        <div><strong>🏆 Equipe:</strong> ${equipeInfo}</div>
                         <div><strong>👪 Responsável:</strong> ${kid.responsavel_nome || 'N/A'}</div>
                         <div><strong>📱 WhatsApp:</strong> ${kid.responsavel_whatsapp || 'N/A'}</div>
                         <div><strong>💰 Valor Pago:</strong> ${fmtMoeda(kid.valor_pago)}</div>
@@ -496,15 +509,20 @@
 
         const teamsDoEvento = allTeams.filter(t => t.tipo_evento === kid.tipo_evento);
         const showDelete = isAdm();
+        const podeVerEquipe = isAdm();
+
+        const campoTexto = (label, field, value) => `
+            <div>
+                <label style="color: var(--text-light); margin-bottom: 5px; display: block;">${label}:</label>
+                <input type="text" class="input" value="${(value || '').replace(/"/g, '&quot;')}" onblur="KidsModule.updateField('${kid.id}', '${field}', this.value)">
+            </div>
+        `;
 
         const content = `
             <div style="margin-bottom: 20px;">
                 <h4 style="color: var(--primary); margin-bottom: 15px;">👶 Dados da Criança/Adolescente</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div>
-                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Nome:</label>
-                        <input type="text" class="input" value="${kid.nome_crianca || ''}" onblur="KidsModule.updateField('${kid.id}', 'nome_crianca', this.value)">
-                    </div>
+                    ${campoTexto('Nome', 'nome_crianca', kid.nome_crianca)}
                     <div>
                         <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Evento / Função:</label>
                         <div style="color: white; background: #222; padding: 12px; border-radius: 5px; font-size: 16px;">${tipoEventoLabel(kid.tipo_evento)} — ${funcaoLabel(kid.funcao)}</div>
@@ -514,9 +532,11 @@
                         <div style="color: white; background: #222; padding: 12px; border-radius: 5px; font-size: 16px;">${kid.sexo || 'N/A'}</div>
                     </div>
                     <div>
-                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Idade:</label>
-                        <div style="color: white; background: #222; padding: 12px; border-radius: 5px; font-size: 16px;">${kid.idade ?? 'N/A'} anos</div>
+                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Idade / Nascimento:</label>
+                        <div style="color: white; background: #222; padding: 12px; border-radius: 5px; font-size: 16px;">${kid.idade ?? 'N/A'} anos ${kid.data_nascimento ? '(' + kid.data_nascimento.split('-').reverse().join('/') + ')' : ''}</div>
                     </div>
+                    ${campoTexto('Rede', 'rede', kid.rede)}
+                    ${campoTexto('Igreja', 'igreja', kid.igreja)}
                 </div>
                 <div style="font-size: 0.8em; color: #666; margin-top: 8px;">Sexo, idade e tipo de evento não são editáveis aqui (afetam o balanceamento das equipes). Para corrigir, cancele e refaça a inscrição.</div>
             </div>
@@ -524,33 +544,38 @@
             <div style="margin-bottom: 20px;">
                 <h4 style="color: var(--primary); margin-bottom: 15px;">👪 Responsável</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    ${campoTexto('Nome do Responsável', 'responsavel_nome', kid.responsavel_nome)}
+                    ${campoTexto('Parentesco', 'responsavel_parentesco', kid.responsavel_parentesco)}
+                    ${campoTexto('Telefone', 'responsavel_whatsapp', kid.responsavel_whatsapp)}
                     <div>
-                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Nome do Responsável:</label>
-                        <input type="text" class="input" value="${kid.responsavel_nome || ''}" onblur="KidsModule.updateField('${kid.id}', 'responsavel_nome', this.value)">
-                    </div>
-                    <div>
-                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Parentesco:</label>
-                        <input type="text" class="input" value="${kid.responsavel_parentesco || ''}" onblur="KidsModule.updateField('${kid.id}', 'responsavel_parentesco', this.value)">
-                    </div>
-                    <div>
-                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">WhatsApp:</label>
-                        <input type="text" class="input" value="${kid.responsavel_whatsapp || ''}" onblur="KidsModule.updateField('${kid.id}', 'responsavel_whatsapp', this.value)">
-                    </div>
-                    <div>
-                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Cidade:</label>
-                        <input type="text" class="input" value="${kid.cidade || ''}" onblur="KidsModule.updateField('${kid.id}', 'cidade', this.value)">
+                        <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Autorização de dados / imagem:</label>
+                        <div style="color: white; background: #222; padding: 12px; border-radius: 5px; font-size: 16px;">
+                            ${kid.autorizacao_dados ? '✅' : '❌'} Dados &nbsp; ${kid.autorizacao_imagem ? '✅' : '❌'} Imagem
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div style="margin-bottom: 20px;">
-                <h4 style="color: var(--primary); margin-bottom: 15px;">🏥 Saúde</h4>
-                <textarea class="input" style="min-height: 70px;" onblur="KidsModule.updateField('${kid.id}', 'observacoes_saude', this.value)">${kid.observacoes_saude || ''}</textarea>
+                <h4 style="color: var(--primary); margin-bottom: 15px;">🏥 Saúde e Contexto</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    ${campoTexto('Restrição Alimentar', 'restricao_alimentar', kid.restricao_alimentar)}
+                    ${campoTexto('Alergias', 'alergias', kid.alergias)}
+                    ${campoTexto('Uso de Medicamentos', 'uso_medicamentos', kid.uso_medicamentos)}
+                    ${campoTexto('Necessidade Especial', 'necessidade_especial', kid.necessidade_especial)}
+                    ${campoTexto('Contato de Emergência (Nome)', 'contato_emergencia_nome', kid.contato_emergencia_nome)}
+                    ${campoTexto('Contato de Emergência (Telefone)', 'contato_emergencia_telefone', kid.contato_emergencia_telefone)}
+                </div>
+                <div style="margin-top: 15px;">
+                    <label style="color: var(--text-light); margin-bottom: 5px; display: block;">Observações do Responsável:</label>
+                    <textarea class="input" style="min-height: 60px;" onblur="KidsModule.updateField('${kid.id}', 'observacoes_responsavel', this.value)">${kid.observacoes_responsavel || ''}</textarea>
+                </div>
             </div>
 
             <div style="margin-bottom: 20px;">
                 <h4 style="color: var(--primary); margin-bottom: 15px;">🏆 Equipe</h4>
-                ${kid.funcao !== 'PARTICIPANTE' ? `<div style="color: var(--text-light);">Equipe de trabalho não compete em times.</div>` : `
+                ${kid.funcao !== 'PARTICIPANTE' ? `<div style="color: var(--text-light);">Equipe de trabalho não compete em times.</div>` :
+                    !podeVerEquipe ? `<div style="color: var(--text-light);">🔒 Visível somente para administradores.</div>` : `
                     <select class="input" onchange="KidsModule.moveTeam('${kid.id}', this.value)">
                         <option value="">Sem equipe</option>
                         ${teamsDoEvento.map(t => `<option value="${t.id}" ${t.id === kid.equipe_id ? 'selected' : ''}>${t.nome_time}</option>`).join('')}
@@ -607,6 +632,7 @@
     }
 
     async function moveTeam(kidId, novaEquipeId) {
+        if (!isAdm()) { notify('Apenas administradores podem ver/alterar a equipe.', 'error'); return; }
         try {
             const { error } = await sb()
                 .from('inscricoes_kids')
@@ -648,6 +674,7 @@
     // GERENCIAR EQUIPES
     // ==========================================================
     function openTeamsModal() {
+        if (!isAdm()) { notify('Apenas administradores podem gerenciar as equipes.', 'error'); return; }
         document.getElementById('kids-teams-modal').style.display = 'flex';
         renderTeamsTabs();
         renderTeamsList();
