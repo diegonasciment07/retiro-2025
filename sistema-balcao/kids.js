@@ -1427,7 +1427,7 @@
         const printContent = `
             <div style="font-family: Arial, sans-serif; padding: 20px;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <h1 style="color: #ff6b35;">🧒 RETIRO KIDS</h1>
+                    <h1 style="color: #ff6b35;">RETIRO KIDS</h1>
                     <h2>Inscrições atualizadas até ${fmtData(new Date())}</h2>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
