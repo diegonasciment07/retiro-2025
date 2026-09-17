@@ -28,6 +28,7 @@
     let currentKid = null;
     let currentTeamsTipoEvento = 'ACAMPA_KIDS';
     let initialized = false;
+    let expandedRosterIds = new Set();
 
     // ── Helpers que dependem do app.js ────────────────────────
     function sb() { return window.supabaseBalcao; }
@@ -862,6 +863,14 @@
 
             notify('Equipe atualizada!', 'success');
             searchKids();
+
+            // Se a troca veio de dentro do modal "Gerenciar Equipes" (editor
+            // de escalação), re-renderiza pra refletir a mudança na hora,
+            // sem precisar fechar e reabrir.
+            const teamsModal = document.getElementById('kids-teams-modal');
+            if (teamsModal && teamsModal.style.display !== 'none') {
+                renderTeamsList();
+            }
         } catch (error) {
             console.error('Erro ao mover de equipe:', error);
             notify('Erro ao mover de equipe: ' + error.message, 'error');
@@ -946,7 +955,7 @@
                         </div>
                         <div style="display: flex; gap: 6px;">
                             <button onclick="KidsModule.toggleRoster('${team.id}')" class="btn btn-info" style="padding: 5px 10px; font-size: 0.75em;" id="kids-roster-toggle-${team.id}">Ver lista</button>
-                            ${isAdm() ? `<button onclick="KidsModule.deleteTeam('${team.id}')" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.75em;">🗑️</button>` : ''}
+                            ${isTeamsAdmin() ? `<button onclick="KidsModule.deleteTeam('${team.id}')" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.75em;">🗑️</button>` : ''}
                         </div>
                     </div>
                     <div style="display: flex; gap: 14px; margin-top: 10px; font-size: 0.85em; color: var(--text-light); flex-wrap: wrap;">
@@ -959,9 +968,17 @@
                         ${stats.membros.length === 0
                             ? '<div style="color: #666; font-size: 0.85em;">Nenhum participante ainda.</div>'
                             : stats.membros.map(m => `
-                                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85em; border-bottom: 1px solid #262626;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; font-size: 0.85em; border-bottom: 1px solid #262626; flex-wrap: wrap;">
                                     <span>${m.sexo === 'FEMININO' ? '👧' : '👦'} ${m.nome_crianca} (${m.idade} anos)</span>
-                                    <span class="btn btn-${getStatusClass(m.status_pagamento)}" style="padding: 2px 8px; font-size: 0.72em;">${getStatusText(m.status_pagamento)}</span>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span class="btn btn-${getStatusClass(m.status_pagamento)}" style="padding: 2px 8px; font-size: 0.72em;">${getStatusText(m.status_pagamento)}</span>
+                                        ${isTeamsAdmin() ? `
+                                            <select class="input" style="padding: 4px 8px; font-size: 0.78em; width: auto;" title="Mover pra outra equipe" onchange="KidsModule.moveTeam('${m.id}', this.value)">
+                                                ${teams.map(t => `<option value="${t.id}" ${t.id === team.id ? 'selected' : ''}>${t.nome_time}</option>`).join('')}
+                                                <option value="">Sem equipe</option>
+                                            </select>
+                                        ` : ''}
+                                    </div>
                                 </div>
                             `).join('')
                         }
@@ -969,6 +986,17 @@
                 </div>
             `;
         }).join('');
+
+        // Reaplica quais listas estavam abertas antes do re-render (ex: depois
+        // de mover uma criança pelo editor), pra não fechar tudo de novo.
+        expandedRosterIds.forEach(teamId => {
+            const el = document.getElementById(`kids-roster-${teamId}`);
+            const btn = document.getElementById(`kids-roster-toggle-${teamId}`);
+            if (el) {
+                el.style.display = 'block';
+                if (btn) btn.textContent = 'Ocultar lista';
+            }
+        });
     }
 
     function toggleRoster(teamId) {
@@ -978,6 +1006,7 @@
         const abrindo = el.style.display === 'none';
         el.style.display = abrindo ? 'block' : 'none';
         if (btn) btn.textContent = abrindo ? 'Ocultar lista' : 'Ver lista';
+        if (abrindo) expandedRosterIds.add(teamId); else expandedRosterIds.delete(teamId);
     }
 
     async function createTeam() {
