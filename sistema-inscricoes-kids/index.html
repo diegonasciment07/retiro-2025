@@ -86,6 +86,21 @@
             font-weight: 600; text-transform: uppercase;
         }
 
+        .date-display {
+            font-size: 1.1em;
+            color: var(--texto-branco);
+            font-weight: 600;
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--fundo-card);
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 2px solid var(--borda-secundaria);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+        }
+
         .form-container { padding: 40px; background: var(--fundo-terciario); }
 
         .section-title {
@@ -218,6 +233,7 @@
                 <strong>VEM E VÊ!</strong>
             </div>
             <div class="titulo-retiro">🏕️ ACAMPA KIDS<br>&amp; BROTHERS CAMP</div>
+            <div class="date-display" id="date-display">SELECIONE O EVENTO PARA VER A DATA</div>
             <div class="subtitle-retiro">RETIRO DAS CRIANÇAS E ADOLESCENTES</div>
         </div>
 
@@ -491,6 +507,48 @@
             return idade;
         }
 
+        const DATAS_EVENTO = {
+            ACAMPA_KIDS: '16, 17 E 18 DE OUTUBRO',
+            BROTHERS_CAMP: '23, 24 E 25 DE OUTUBRO'
+        };
+
+        // Mesma ideia do formulário do retiro principal: a data exibida no
+        // topo muda conforme o que foi escolhido (lá é pelo sexo, aqui é
+        // pelo(s) evento(s) marcado(s)).
+        function atualizarDataEvento() {
+            const tipos = getTiposEventoSelecionados();
+            const dateDisplay = document.getElementById('date-display');
+
+            if (tipos.length === 0) {
+                dateDisplay.textContent = 'SELECIONE O EVENTO PARA VER A DATA';
+                dateDisplay.style.background = 'var(--fundo-card)';
+                dateDisplay.style.color = 'var(--texto-branco)';
+                dateDisplay.style.borderColor = 'var(--borda-secundaria)';
+                return;
+            }
+
+            if (tipos.length > 1) {
+                dateDisplay.innerHTML = `👧🏻 ACAMPA KIDS: ${DATAS_EVENTO.ACAMPA_KIDS}<br>👦🏻 BROTHERS CAMP: ${DATAS_EVENTO.BROTHERS_CAMP}`;
+                dateDisplay.style.background = 'rgba(255, 107, 53, 0.15)';
+                dateDisplay.style.color = 'var(--cor-primaria)';
+                dateDisplay.style.borderColor = 'var(--cor-primaria)';
+                return;
+            }
+
+            const tipo = tipos[0];
+            dateDisplay.textContent = `${tipo === 'ACAMPA_KIDS' ? '👧🏻 ACAMPA KIDS' : '👦🏻 BROTHERS CAMP'}: ${DATAS_EVENTO[tipo]}`;
+
+            if (tipo === 'ACAMPA_KIDS') {
+                dateDisplay.style.background = 'rgba(34, 197, 94, 0.15)';
+                dateDisplay.style.color = '#4ade80';
+                dateDisplay.style.borderColor = 'var(--cor-kids)';
+            } else {
+                dateDisplay.style.background = 'rgba(59, 130, 246, 0.15)';
+                dateDisplay.style.color = '#60a5fa';
+                dateDisplay.style.borderColor = 'var(--cor-brothers)';
+            }
+        }
+
         function atualizarValorEIdade() {
             const funcao = getFuncaoSelecionada();
             const tipos = getTiposEventoSelecionados();
@@ -498,6 +556,8 @@
             const idadeHint = document.getElementById('idade-hint');
             const dataNascimento = document.getElementById('data-nascimento').value;
             const idade = calcularIdade(dataNascimento);
+
+            atualizarDataEvento();
 
             const valorTotal = tipos.reduce((soma, tipo) => soma + getValorEsperado(tipo, funcao), 0);
             display.textContent = tipos.length ? `R$ ${valorTotal.toFixed(2).replace('.', ',')}` : 'Selecione o evento';
