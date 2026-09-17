@@ -16,6 +16,36 @@
             return !!(currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
         }
 
+        // Perfil "só Gerenciar Equipes" (Kids): não é ADM geral (não vê
+        // faturamento/pagamentos em lugar nenhum), e o login restringe a UI a
+        // exclusivamente essa tela — sem abas, sem busca, sem dashboard.
+        // A permissão de fato ver/editar equipes é checada à parte em
+        // kids.js (TEAMS_ADMIN_EMAILS/isTeamsAdmin), que também inclui o
+        // adm@alvo.com.
+        const TEAMS_ONLY_EMAILS = ['matheus@alvocuritiba.com.br'];
+
+        function isTeamsOnlyUser() {
+            return !!(currentUser && TEAMS_ONLY_EMAILS.includes(currentUser.email.toLowerCase()));
+        }
+
+        // Some com tudo que não seja a tela de Gerenciar Equipes (Kids) — usado
+        // pros perfis de TEAMS_ONLY_EMAILS logo após o login.
+        async function restrictToTeamsOnlyScreen() {
+            const tabNav = document.querySelector('.tab-nav');
+            if (tabNav) tabNav.style.display = 'none';
+
+            switchTab('kids');
+
+            if (window.KidsModule) {
+                window.KidsModule.applyTeamsOnlyRestriction();
+                // Espera carregar de novo (garantido) antes de abrir o modal,
+                // já que o refreshAll disparado pelo switchTab acima roda em
+                // paralelo e pode não ter terminado ainda.
+                await window.KidsModule.refreshAll();
+                window.KidsModule.openTeamsModal();
+            }
+        }
+
         // ===== FUNÇÕES AUXILIARES =====
         async function getParticipantById(participantId) {
             console.log('🔍 Buscando participante:', participantId);
@@ -277,10 +307,13 @@
 
                 if (isCurrentUserAdm()) {
                     document.getElementById('adm-report-btn').style.display = 'block';
-                    isAdm = true;
                 }
 
-                await loadInitialData();
+                if (isTeamsOnlyUser()) {
+                    await restrictToTeamsOnlyScreen();
+                } else {
+                    await loadInitialData();
+                }
                 showNotification('Login realizado com sucesso!', 'success');
 
             } catch (error) {
@@ -299,10 +332,17 @@
                 await supabase.auth.signOut();
                 currentUser = null;
                 allParticipants = [];
-                isAdm = false;
                 activeEvent = null;
                 eventRegistrations = [];
                 document.getElementById('adm-report-btn').style.display = 'none';
+
+                // Desfaz a restrição de tela do TEAMS_ONLY_EMAILS, se estava
+                // ativa, pra não vazar pro próximo login na mesma aba do navegador.
+                const tabNav = document.querySelector('.tab-nav');
+                if (tabNav) tabNav.style.display = '';
+                if (window.KidsModule) window.KidsModule.removeTeamsOnlyRestriction();
+                switchTab('retiro');
+
                 document.getElementById('login-container').style.display = 'flex';
                 document.getElementById('main-system').style.display = 'none';
                 document.getElementById('main-system-footer').style.display = 'none';
@@ -2533,7 +2573,11 @@
                     if (isCurrentUserAdm()) {
                         document.getElementById('adm-report-btn').style.display = 'block';
                     }
-                    loadInitialData();
+                    if (isTeamsOnlyUser()) {
+                        restrictToTeamsOnlyScreen();
+                    } else {
+                        loadInitialData();
+                    }
                 }
             });
 

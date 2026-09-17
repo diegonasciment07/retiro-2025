@@ -36,6 +36,18 @@
     function fmtData(v) { return window.formatDateTime ? window.formatDateTime(v) : v; }
     function localTime(v) { return window.convertToLocalTime ? window.convertToLocalTime(v) : new Date(v); }
     function isAdm() { return window.isCurrentUserAdm ? window.isCurrentUserAdm() : false; }
+
+    // Permissão exclusiva de "Gerenciar Equipes" — separada do ADM geral,
+    // pra manter o sorteio dos times surpresa: só quem está nessa lista vê
+    // nome de equipe (aqui ou em qualquer outro lugar do app) ou consegue
+    // abrir/editar essa tela, mesmo sendo ADM geral (ex: karina/jayne/julia
+    // NÃO estão aqui, então não veem mais nome de equipe em lugar nenhum).
+    const TEAMS_ADMIN_EMAILS = ['adm@alvo.com', 'matheus@alvocuritiba.com.br'];
+
+    function isTeamsAdmin() {
+        const u = window.getCurrentUserBalcao ? window.getCurrentUserBalcao() : null;
+        return !!(u && TEAMS_ADMIN_EMAILS.includes(u.email.toLowerCase()));
+    }
     function atendenteAtual() {
         const u = window.getCurrentUserBalcao ? window.getCurrentUserBalcao() : null;
         return u ? u.email.split('@')[0] : 'Sistema';
@@ -85,7 +97,7 @@
     // de trabalho) nunca tem equipe mesmo.
     function equipeInfoParaExibicao(kid) {
         if (kid.funcao !== 'PARTICIPANTE') return '—';
-        if (!isAdm()) return '🔒 Somente ADM';
+        if (!isTeamsAdmin()) return '🔒 Restrito';
         return nomeEquipe(kid.equipe_id) || 'Sem equipe';
     }
 
@@ -247,7 +259,7 @@
 
     async function onTabShown() {
         const btnEquipes = document.getElementById('kids-gerenciar-equipes-btn');
-        if (btnEquipes) btnEquipes.style.display = isAdm() ? 'block' : 'none';
+        if (btnEquipes) btnEquipes.style.display = isTeamsAdmin() ? 'block' : 'none';
 
         const btnAdmReportWrap = document.getElementById('kids-adm-report-btn-wrap');
         if (btnAdmReportWrap) btnAdmReportWrap.style.display = isAdm() ? 'block' : 'none';
@@ -261,6 +273,29 @@
         await Promise.all([loadKids(), loadTeams()]);
         renderStats();
         searchKids();
+    }
+
+    // Restringe a tela pro perfil TEAMS_ONLY_EMAILS (ver app.js): esconde
+    // tudo dentro de #section-kids que não seja "Gerenciar Equipes" —
+    // números/estatísticas, busca/resultados, Dashboard, Resumo e Check-in.
+    // Relatório ADM já fica escondido sozinho (isAdm() é falso pra esse
+    // perfil). Chamado pelo app.js logo após o login.
+    function applyTeamsOnlyRestriction() {
+        const hide = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
+        hide('kids-stats-grid');
+        hide('kids-main-content');
+        hide('kids-row-dash-resumo');
+        hide('kids-row-checkin');
+    }
+
+    // Desfaz applyTeamsOnlyRestriction — usado no logout, pra não vazar a
+    // tela restrita pro próximo login na mesma aba do navegador.
+    function removeTeamsOnlyRestriction() {
+        const show = (id) => { const el = document.getElementById(id); if (el) el.style.display = ''; };
+        show('kids-stats-grid');
+        show('kids-main-content');
+        show('kids-row-dash-resumo');
+        show('kids-row-checkin');
     }
 
     // ==========================================================
@@ -678,7 +713,7 @@
 
         const teamsDoEvento = allTeams.filter(t => t.tipo_evento === kid.tipo_evento);
         const showDelete = isAdm();
-        const podeVerEquipe = isAdm();
+        const podeVerEquipe = isTeamsAdmin();
         const wbDetails = getWristbandChipState(kid);
 
         const campoTexto = (label, field, value) => `
@@ -745,7 +780,7 @@
             <div style="margin-bottom: 20px;">
                 <h4 style="color: var(--primary); margin-bottom: 15px;">🏆 Equipe</h4>
                 ${kid.funcao !== 'PARTICIPANTE' ? `<div style="color: var(--text-light);">Equipe de trabalho não compete em times.</div>` :
-                    !podeVerEquipe ? `<div style="color: var(--text-light);">🔒 Visível somente para administradores.</div>` : `
+                    !podeVerEquipe ? `<div style="color: var(--text-light);">🔒 Visível apenas para quem gerencia as equipes.</div>` : `
                     <select class="input" onchange="KidsModule.moveTeam('${kid.id}', this.value)">
                         <option value="">Sem equipe</option>
                         ${teamsDoEvento.map(t => `<option value="${t.id}" ${t.id === kid.equipe_id ? 'selected' : ''}>${t.nome_time}</option>`).join('')}
@@ -814,7 +849,7 @@
     }
 
     async function moveTeam(kidId, novaEquipeId) {
-        if (!isAdm()) { notify('Apenas administradores podem ver/alterar a equipe.', 'error'); return; }
+        if (!isTeamsAdmin()) { notify('Você não tem permissão pra ver/alterar a equipe.', 'error'); return; }
         try {
             const { error } = await sb()
                 .from('inscricoes_kids')
@@ -856,7 +891,7 @@
     // GERENCIAR EQUIPES
     // ==========================================================
     function openTeamsModal() {
-        if (!isAdm()) { notify('Apenas administradores podem gerenciar as equipes.', 'error'); return; }
+        if (!isTeamsAdmin()) { notify('Você não tem permissão pra gerenciar as equipes.', 'error'); return; }
         document.getElementById('kids-teams-modal').style.display = 'flex';
         renderTeamsTabs();
         renderTeamsList();
@@ -946,6 +981,8 @@
     }
 
     async function createTeam() {
+        if (!isTeamsAdmin()) { notify('Você não tem permissão pra criar equipes.', 'error'); return; }
+
         const nomeEl = document.getElementById('kids-new-team-nome');
         const profEl = document.getElementById('kids-new-team-professores');
         const corEl = document.getElementById('kids-new-team-cor');
@@ -983,7 +1020,7 @@
     }
 
     async function deleteTeam(teamId) {
-        if (!isAdm()) { notify('Apenas administradores podem excluir uma equipe.', 'error'); return; }
+        if (!isTeamsAdmin()) { notify('Você não tem permissão pra excluir uma equipe.', 'error'); return; }
 
         const stats = rosterStats(teamId);
         if (stats.total > 0) {
@@ -1010,6 +1047,8 @@
     // existir) e atribui um a um, na ordem de inscrição — cada chamada já
     // recalcula o balanceamento com o estado mais atual (via kids_atribuir_uma).
     async function atribuirPendentes() {
+        if (!isTeamsAdmin()) { notify('Você não tem permissão pra atribuir equipes.', 'error'); return; }
+
         const pendentes = allKids
             .filter(k => k.tipo_evento === currentTeamsTipoEvento && k.funcao === 'PARTICIPANTE' && !k.equipe_id)
             .sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
@@ -1902,6 +1941,8 @@
     window.KidsModule = {
         onTabShown,
         refreshAll,
+        applyTeamsOnlyRestriction,
+        removeTeamsOnlyRestriction,
         searchKids,
         openPaymentsModal,
         closePaymentsModal,

@@ -871,7 +871,7 @@
                     <h2 style="color: white; font-size: 2em; margin-bottom: 15px; text-align: center; text-transform: uppercase; letter-spacing: 3px;">
                         RETIRO KIDS
                     </h2>
-                    <div class="stats-grid">
+                    <div class="stats-grid" id="kids-stats-grid">
                         <div class="stats-item">
                             <div style="font-size: 2.2em; font-weight: 900; color: white;" id="kids-total-acampa">0</div>
                             <div style="color: white; font-weight: bold;">👧🏻 Acampa Kids (crianças)</div>
@@ -901,7 +901,7 @@
                             <div style="color: white; font-weight: bold;">Sem Equipe</div>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                    <div id="kids-row-dash-resumo" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
                         <button onclick="KidsModule.showDashboard()" class="btn btn-info" style="width: 100%; padding: 15px;">
                             📈 DASHBOARD COMPLETO
                         </button>
@@ -917,7 +917,7 @@
                             🔄 ATUALIZAR
                         </button>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px;">
+                    <div id="kids-row-checkin" style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px;">
                         <button onclick="KidsModule.openCheckinModal()" class="btn btn-success" style="width: 100%; padding: 15px;">
                             ✅ CHECK-IN KIDS
                         </button>
