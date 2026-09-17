@@ -370,14 +370,14 @@
                 </div>
 
                 <!-- SAÚDE E CONTEXTO -->
-                <div class="section-title">🏥 Saúde e Contexto</div>
+                <div class="section-title" id="secao-saude-titulo">🏥 Saúde e Contexto</div>
 
-                <div class="form-group">
+                <div class="form-group" id="bloco-saude">
                     <label for="observacoes-saude">Restrição Alimentar, Alergias, Medicamentos ou Necessidade Especial <span class="required">*</span></label>
                     <textarea id="observacoes-saude" name="observacoes-saude" required placeholder="Ex: NÃO / Descreva restrição alimentar, alergias, medicamentos em uso e/ou necessidade especial"></textarea>
                 </div>
 
-                <div class="form-row">
+                <div class="form-row" id="bloco-emergencia">
                     <div class="form-group">
                         <label for="emergencia-nome">Contato Alternativo de Emergência (Nome) <span class="required">*</span></label>
                         <input type="text" id="emergencia-nome" name="emergencia-nome" required placeholder="Nome de um segundo contato">
@@ -389,7 +389,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="observacoes-responsavel">Observações do Responsável</label>
+                    <label for="observacoes-responsavel" id="label-observacoes-responsavel">Observações do Responsável</label>
                     <textarea id="observacoes-responsavel" name="observacoes-responsavel" placeholder="Qualquer outra informação importante (opcional)"></textarea>
                 </div>
 
@@ -405,7 +405,7 @@
                     </div>
                     <label for="autorizacao-imagem" style="display: flex; align-items: center; cursor: pointer;">
                         <input type="checkbox" id="autorizacao-imagem" name="autorizacao-imagem" required style="width: auto; margin-right: 10px; transform: scale(1.5); cursor: pointer;">
-                        <span><span class="required">*</span> Autorizo o uso da imagem do meu filho(a)/dependente conforme descrito acima</span>
+                        <span><span class="required">*</span> <span id="label-autorizacao-imagem">Autorizo o uso da imagem do meu filho(a)/dependente conforme descrito acima</span></span>
                     </label>
                 </div>
 
@@ -548,6 +548,29 @@
             blocoParentesco.style.display = ehTrabalho ? 'none' : 'block';
             document.getElementById('responsavel-nome').required = !ehTrabalho;
             document.getElementById('parentesco').required = !ehTrabalho;
+
+            // Saúde/contato de emergência só fazem sentido pra ficha de criança —
+            // pro adulto da equipe de trabalho fica só um campo de observação.
+            document.getElementById('secao-saude-titulo').textContent = ehTrabalho
+                ? '📝 Observações'
+                : '🏥 Saúde e Contexto';
+
+            const blocoSaude = document.getElementById('bloco-saude');
+            const blocoEmergencia = document.getElementById('bloco-emergencia');
+
+            blocoSaude.style.display = ehTrabalho ? 'none' : 'block';
+            blocoEmergencia.style.display = ehTrabalho ? 'none' : 'grid';
+            document.getElementById('observacoes-saude').required = !ehTrabalho;
+            document.getElementById('emergencia-nome').required = !ehTrabalho;
+            document.getElementById('emergencia-telefone').required = !ehTrabalho;
+
+            document.getElementById('label-observacoes-responsavel').textContent = ehTrabalho
+                ? 'Observações'
+                : 'Observações do Responsável';
+
+            document.getElementById('label-autorizacao-imagem').textContent = ehTrabalho
+                ? 'Autorizo o uso da minha imagem conforme descrito acima'
+                : 'Autorizo o uso da imagem do meu filho(a)/dependente conforme descrito acima';
         }
 
         async function enviarParaSupabase(dados) {
