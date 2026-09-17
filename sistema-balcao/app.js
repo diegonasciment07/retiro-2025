@@ -2620,16 +2620,24 @@
         function switchTab(tab) {
             const sr = document.getElementById('section-retiro');
             const se = document.getElementById('section-eventos');
+            const sk = document.getElementById('section-kids');
             const br = document.getElementById('tab-retiro');
             const be = document.getElementById('tab-eventos');
-            if (tab === 'retiro') {
-                sr.style.display = 'block'; se.style.display = 'none';
-                br.classList.add('active'); be.classList.remove('active');
-            } else {
-                sr.style.display = 'none'; se.style.display = 'block';
-                br.classList.remove('active'); be.classList.add('active');
+            const bk = document.getElementById('tab-kids');
+
+            sr.style.display = tab === 'retiro' ? 'block' : 'none';
+            se.style.display = tab === 'eventos' ? 'block' : 'none';
+            sk.style.display = tab === 'kids' ? 'block' : 'none';
+
+            br.classList.toggle('active', tab === 'retiro');
+            be.classList.toggle('active', tab === 'eventos');
+            bk.classList.toggle('active', tab === 'kids');
+
+            if (tab === 'eventos') {
                 showEventsListView();
                 loadEvents();
+            } else if (tab === 'kids' && window.KidsModule) {
+                window.KidsModule.onTabShown();
             }
         }
 
@@ -3485,4 +3493,16 @@ function exportEventRegistrations() {
         window.handleEventImageUpload = handleEventImageUpload;
         window.handleEventImageDrop   = handleEventImageDrop;
         window.clearEventImage        = clearEventImage;
-    
+
+        // ===== PONTE PARA MÓDULOS EXTERNOS (kids.js) =====
+        // Expõe o client Supabase já autenticado e alguns helpers pra que o módulo
+        // do Retiro Kids (sistema-balcao/kids.js) não precise criar um segundo
+        // client Supabase (o que geraria dois GoTrueClient disputando o mesmo
+        // localStorage/sessão) nem duplicar essas funções utilitárias.
+        window.supabaseBalcao = supabase;
+        window.getCurrentUserBalcao = () => currentUser;
+        window.showNotification = showNotification;
+        window.formatCurrency = formatCurrency;
+        window.formatDateTime = formatDateTime;
+        window.convertToLocalTime = convertToLocalTime;
+        window.isCurrentUserAdm = isCurrentUserAdm;

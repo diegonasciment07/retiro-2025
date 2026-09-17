@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acampa Kids & Brothers Camp - Inscrições</title>
+    <style>
+        /* ==========================================
+           🎨 PALETA DE CORES - FÁCIL DE MODIFICAR
+           ========================================== */
+        :root {
+            --cor-primaria: #ff6b35;
+            --cor-primaria-hover: #ff8a5b;
+            --cor-primaria-escura: #ff4500;
+
+            --fundo-principal: #000000;
+            --fundo-secundario: #0a0a0a;
+            --fundo-terciario: #111111;
+            --fundo-card: #1a1a1a;
+
+            --borda-principal: #222222;
+            --borda-secundaria: #333333;
+
+            --texto-branco: #ffffff;
+            --texto-cinza-claro: #cccccc;
+            --texto-cinza: #999999;
+            --texto-cinza-escuro: #666666;
+
+            --cor-sucesso: #22c55e;
+            --cor-sucesso-fundo: #1a472a;
+            --cor-erro: #ef4444;
+            --cor-erro-fundo: #660000;
+            --cor-info: #1a1a2e;
+
+            --cor-kids: #22c55e;
+            --cor-brothers: #3b82f6;
+            --cor-trabalho: #eab308;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--fundo-principal);
+            min-height: 100vh;
+            color: var(--texto-branco);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+            background: var(--fundo-secundario);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            overflow: hidden;
+            border: 1px solid var(--borda-principal);
+        }
+
+        .header {
+            background: var(--fundo-principal);
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 3px solid var(--cor-primaria);
+        }
+
+        .church-logo { margin-bottom: 20px; display: flex; justify-content: center; }
+        .church-logo img {
+            width: 104px; height: auto; display: block; border: 0;
+            box-shadow: 0 0 18px rgba(255, 107, 53, 0.55);
+            transition: transform 0.3s ease; background: transparent;
+        }
+        .church-logo img:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(255, 107, 53, 0.7); }
+
+        .church-name {
+            font-size: 1.1em; color: var(--texto-branco); margin-bottom: 20px;
+            letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; line-height: 1.4;
+        }
+
+        .titulo-retiro {
+            font-size: 2.4em; margin-bottom: 10px; color: var(--texto-branco);
+            font-weight: 900; letter-spacing: 1px; text-transform: uppercase; line-height: 1.15;
+        }
+
+        .subtitle-retiro {
+            font-size: 1.1em; color: var(--cor-primaria); letter-spacing: 2px;
+            font-weight: 600; text-transform: uppercase;
+        }
+
+        .form-container { padding: 40px; background: var(--fundo-terciario); }
+
+        .section-title {
+            color: var(--cor-primaria); font-size: 1.3em; font-weight: bold;
+            margin: 30px 0 20px 0; padding-bottom: 10px;
+            border-bottom: 2px solid var(--borda-secundaria);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .form-group { margin-bottom: 25px; }
+
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--texto-branco); font-size: 1em; }
+        .required { color: var(--cor-primaria); font-weight: bold; }
+
+        input, select, textarea {
+            width: 100%; padding: 15px; border: 2px solid var(--borda-secundaria);
+            border-radius: 8px; font-size: 16px; transition: all 0.3s ease;
+            background: var(--fundo-card); color: var(--texto-branco);
+            text-transform: uppercase; font-family: inherit;
+        }
+
+        input[type="number"], input[type="tel"], input[type="email"] { text-transform: none; }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none; border-color: var(--cor-primaria); background: var(--fundo-principal);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+        }
+
+        input::placeholder { color: var(--texto-cinza); }
+        textarea { resize: vertical; min-height: 80px; text-transform: none; }
+
+        .cards-evento {
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
+        }
+
+        .card-evento {
+            display: flex; flex-direction: column; gap: 6px; padding: 16px;
+            border: 2px solid var(--borda-secundaria); border-radius: 10px;
+            background: var(--fundo-card); color: var(--texto-branco); cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .card-evento:hover { border-color: var(--cor-primaria); background: var(--fundo-principal); }
+        .card-evento input[type="radio"] { width: auto; margin: 0 6px 0 0; accent-color: var(--cor-primaria); }
+        .card-evento .titulo { font-weight: 800; font-size: 1.05em; display: flex; align-items: center; }
+        .card-evento .faixa { font-size: 0.85em; color: var(--texto-cinza-claro); text-transform: none; }
+        .card-evento .valor { font-size: 1.1em; font-weight: 900; color: var(--cor-primaria); text-transform: none; }
+        .card-evento:has(input:checked) { border-color: var(--cor-primaria); box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15); }
+        .card-evento.kids:has(input:checked) { border-color: var(--cor-kids); box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
+        .card-evento.brothers:has(input:checked) { border-color: var(--cor-brothers); box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+
+        .radio-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .radio-option {
+            display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+            border: 2px solid var(--borda-secundaria); border-radius: 8px;
+            background: var(--fundo-card); color: var(--texto-branco); cursor: pointer;
+            margin-bottom: 0; transition: all 0.3s ease;
+        }
+        .radio-option:hover { border-color: var(--cor-primaria); background: var(--fundo-principal); }
+        .radio-option input[type="radio"] {
+            width: auto; padding: 0; margin: 0; border: 0; cursor: pointer;
+            accent-color: var(--cor-primaria); transform: scale(1.3);
+        }
+        .radio-option:has(input[type="radio"]:checked) {
+            border-color: var(--cor-primaria); box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+        }
+
+        select {
+            cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23ff6b35' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 15px center;
+            background-size: 12px; padding-right: 45px;
+        }
+        select option { background: var(--fundo-card); color: var(--texto-branco); }
+
+        .valor-box {
+            background: var(--cor-info); border-left: 4px solid var(--cor-primaria);
+            padding: 18px; border-radius: 8px; margin-bottom: 25px; text-align: center;
+        }
+        .valor-box .valor-total { font-size: 1.8em; font-weight: 900; color: var(--cor-primaria); }
+        .valor-box .valor-legenda { color: var(--texto-cinza-claro); font-size: 0.9em; margin-top: 4px; }
+
+        .submit-btn {
+            background: linear-gradient(45deg, var(--cor-primaria) 0%, var(--cor-primaria-hover) 100%);
+            color: var(--texto-branco); border: none; padding: 18px 40px; border-radius: 50px;
+            font-size: 1.2em; font-weight: 600; cursor: pointer; width: 100%;
+            transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
+            margin-top: 20px; box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(255, 107, 53, 0.5); }
+        .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+        .success-message {
+            display: none; background: var(--cor-sucesso-fundo); color: var(--cor-sucesso);
+            border: 2px solid var(--cor-sucesso); padding: 20px; border-radius: 8px;
+            margin-bottom: 20px; text-align: center;
+        }
+        .error-message {
+            display: none; background: var(--cor-erro-fundo); color: var(--cor-erro);
+            border: 2px solid var(--cor-erro); padding: 20px; border-radius: 8px;
+            margin-bottom: 20px; text-align: center;
+        }
+        .info-box {
+            background: var(--cor-info); border-left: 4px solid var(--cor-primaria);
+            padding: 15px; margin-bottom: 25px; border-radius: 4px;
+            color: var(--texto-cinza-claro); line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { margin: 0; border-radius: 10px; }
+            .header { padding: 20px; }
+            .church-logo img { width: 92px; }
+            .titulo-retiro { font-size: 1.7em; }
+            .form-container { padding: 20px; }
+            .section-title { font-size: 1.1em; }
+            .radio-group, .cards-evento { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div class="church-logo">
+                <img src="https://i.imgur.com/T5QABfl.jpeg" alt="Alvo Curitiba">
+            </div>
+            <div class="church-name">
+                O ALVO CURITIBA - UMA IGREJA, UMA VISÃO<br>
+                <strong>VEM E VÊ!</strong>
+            </div>
+            <div class="titulo-retiro">🏕️ ACAMPA KIDS<br>&amp; BROTHERS CAMP</div>
+            <div class="subtitle-retiro">RETIRO DAS CRIANÇAS E ADOLESCENTES</div>
+        </div>
+
+        <div class="form-container">
+            <div class="info-box">
+                <strong>🎯 Inscrição Online:</strong> Preencha os dados da criança/adolescente para garantir a vaga. O pagamento é feito presencialmente no balcão da igreja, podendo ser parcelado até o valor total.
+            </div>
+
+            <div class="info-box">
+                <strong>👧🏻 ACAMPA KIDS:</strong> de 05 a 09 anos — R$ 250,00<br>
+                <strong>👦🏻 BROTHERS CAMP:</strong> de 10 a 14 anos — R$ 300,00<br>
+                <strong>🤝 TRABALHO</strong> (equipe de apoio, qualquer um dos dois): R$ 100,00
+            </div>
+
+            <div class="info-box">
+                <strong>🏆 Equipes da Gincana:</strong> cada participante é distribuído automaticamente em uma equipe, buscando equilibrar meninos/meninas e idades entre os times.
+            </div>
+
+            <div class="success-message" id="success-message">
+                🙌 <strong>Inscrição realizada com sucesso!</strong>
+                <div id="next-steps" style="margin-top: 15px;"></div>
+            </div>
+
+            <div class="error-message" id="error-message">
+                ❌ <strong>Erro ao realizar inscrição.</strong><br>
+                <span id="error-details">Tente novamente em alguns instantes.</span>
+            </div>
+
+            <form id="inscricao-form">
+                <!-- EVENTO E FUNÇÃO -->
+                <div class="section-title">🏕️ Qual inscrição?</div>
+
+                <div class="form-group">
+                    <div class="cards-evento" role="radiogroup" aria-label="Tipo de evento">
+                        <label class="card-evento kids" for="evento-kids">
+                            <span class="titulo"><input type="radio" id="evento-kids" name="tipo-evento" value="ACAMPA_KIDS" required> 👧🏻 ACAMPA KIDS</span>
+                            <span class="faixa">05 a 09 anos</span>
+                            <span class="valor">R$ 250,00</span>
+                        </label>
+                        <label class="card-evento brothers" for="evento-brothers">
+                            <span class="titulo"><input type="radio" id="evento-brothers" name="tipo-evento" value="BROTHERS_CAMP" required> 👦🏻 BROTHERS CAMP</span>
+                            <span class="faixa">10 a 14 anos</span>
+                            <span class="valor">R$ 300,00</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>É participante ou vai ajudar na equipe de trabalho? <span class="required">*</span></label>
+                    <div class="radio-group" role="radiogroup" aria-label="Função">
+                        <label class="radio-option" for="funcao-participante">
+                            <input type="radio" id="funcao-participante" name="funcao" value="PARTICIPANTE" checked required>
+                            <span>🎯 Participante</span>
+                        </label>
+                        <label class="radio-option" for="funcao-trabalho">
+                            <input type="radio" id="funcao-trabalho" name="funcao" value="TRABALHO" required>
+                            <span>🤝 Trabalho (R$ 100,00)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="valor-box">
+                    <div class="valor-total" id="valor-total-display">Selecione o evento</div>
+                    <div class="valor-legenda">Valor total da inscrição — pode ser parcelado no balcão</div>
+                </div>
+
+                <!-- IDENTIFICAÇÃO DA CRIANÇA -->
+                <div class="section-title">✅ Dados da Criança/Adolescente</div>
+
+                <div class="form-group">
+                    <label for="nome">Nome Completo <span class="required">*</span></label>
+                    <input type="text" id="nome" name="nome" required placeholder="Nome completo da criança/adolescente">
+                </div>
+
+                <div class="form-group">
+                    <label for="sexo">Sexo <span class="required">*</span></label>
+                    <select id="sexo" name="sexo" required>
+                        <option value="">Selecione</option>
+                        <option value="MASCULINO">👦 Masculino</option>
+                        <option value="FEMININO">👧 Feminino</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="idade">Idade <span class="required">*</span></label>
+                    <input type="number" id="idade" name="idade" required placeholder="Idade" min="1" max="17">
+                    <div style="font-size: 0.9em; color: #ccc; margin-top: 5px;" id="idade-hint">
+                        Selecione o evento acima para ver a faixa etária.
+                    </div>
+                </div>
+
+                <!-- RESPONSÁVEL -->
+                <div class="section-title">👪 Dados do Responsável</div>
+
+                <div class="form-group">
+                    <label for="responsavel-nome">Nome do Responsável <span class="required">*</span></label>
+                    <input type="text" id="responsavel-nome" name="responsavel-nome" required placeholder="Nome completo do responsável">
+                </div>
+
+                <div class="form-group">
+                    <label for="parentesco">Parentesco <span class="required">*</span></label>
+                    <input type="text" id="parentesco" name="parentesco" required placeholder="Mãe, pai, avó, tio...">
+                </div>
+
+                <div class="form-group">
+                    <label for="whatsapp">WhatsApp do Responsável <span class="required">*</span></label>
+                    <input type="tel" id="whatsapp" name="whatsapp" placeholder="(11) 99999-9999" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="seu@email.com" style="text-transform: lowercase;">
+                </div>
+
+                <div class="form-group">
+                    <label for="cidade">Cidade <span class="required">*</span></label>
+                    <input type="text" id="cidade" name="cidade" placeholder="Nome da cidade" required>
+                </div>
+
+                <!-- SAÚDE -->
+                <div class="section-title">🏥 Saúde e Acessibilidade</div>
+
+                <div class="form-group">
+                    <label for="observacoes-saude">Observações</label>
+                    <textarea id="observacoes-saude" name="observacoes-saude" placeholder="Alergias, medicamentos, restrições alimentares, necessidades especiais, etc."></textarea>
+                    <div style="font-size: 0.9em; color: #ccc; margin-top: 5px;">
+                        ⚠️ Muito importante preencher se houver qualquer cuidado especial com a criança.
+                    </div>
+                </div>
+
+                <!-- AUTORIZAÇÃO DE IMAGEM -->
+                <div class="section-title">📸 Autorização de Imagem</div>
+
+                <div class="form-group">
+                    <div style="background: #1a1a2e; border: 2px solid #ff6b35; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+                        <p style="color: #fff; font-size: 1em; line-height: 1.6;">
+                            <strong>📹 AUTORIZAÇÃO DE USO DE IMAGEM:</strong><br>
+                            O evento será gravado e fotografado para fins de registro, divulgação e memória. As imagens poderão ser utilizadas em redes sociais, site da igreja e materiais promocionais da ALVO.
+                        </p>
+                    </div>
+                    <label for="autorizacao-imagem" style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="autorizacao-imagem" name="autorizacao-imagem" required style="width: auto; margin-right: 10px; transform: scale(1.5); cursor: pointer;">
+                        <span><span class="required">*</span> Autorizo o uso da imagem do meu filho(a)/dependente conforme descrito acima</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submit-btn">
+                    Confirmar Inscrição
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        const SUPABASE_CONFIG = {
+            url: 'https://nkifiuenmiwvaqvwfktf.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raWZpdWVubWl3dmFxdndma3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyNTEyNDYsImV4cCI6MjA3NjgyNzI0Nn0.Kis_dGXTLT0KGhC3HkKwAsGi6OMXPlzhOYmhdzWpiTM'
+        };
+
+        let supabaseClient;
+        let isSubmitting = false;
+
+        const FAIXAS_IDADE = {
+            ACAMPA_KIDS:   { min: 5, max: 9,  label: '05 a 09 anos' },
+            BROTHERS_CAMP: { min: 10, max: 14, label: '10 a 14 anos' }
+        };
+
+        function inicializarSistema() {
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+                return true;
+            } catch (error) {
+                console.error('❌ Erro ao inicializar:', error);
+                return false;
+            }
+        }
+
+        function formatarWhatsApp(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length >= 11) {
+                value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            } else if (value.length >= 7) {
+                value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+            } else if (value.length >= 3) {
+                value = value.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+            }
+            input.value = value;
+        }
+
+        function getTipoEventoSelecionado() {
+            const el = document.querySelector('input[name="tipo-evento"]:checked');
+            return el ? el.value : '';
+        }
+
+        function getFuncaoSelecionada() {
+            const el = document.querySelector('input[name="funcao"]:checked');
+            return el ? el.value : 'PARTICIPANTE';
+        }
+
+        function getValorEsperado(tipoEvento, funcao) {
+            if (funcao === 'TRABALHO') return 100;
+            if (tipoEvento === 'ACAMPA_KIDS') return 250;
+            if (tipoEvento === 'BROTHERS_CAMP') return 300;
+            return 0;
+        }
+
+        function atualizarValorEIdade() {
+            const tipoEvento = getTipoEventoSelecionado();
+            const funcao = getFuncaoSelecionada();
+            const valor = getValorEsperado(tipoEvento, funcao);
+            const display = document.getElementById('valor-total-display');
+            const idadeHint = document.getElementById('idade-hint');
+            const idadeInput = document.getElementById('idade');
+
+            display.textContent = tipoEvento ? `R$ ${valor.toFixed(2).replace('.', ',')}` : 'Selecione o evento';
+
+            if (!tipoEvento) {
+                idadeHint.textContent = 'Selecione o evento acima para ver a faixa etária.';
+                idadeInput.removeAttribute('min');
+                idadeInput.removeAttribute('max');
+                return;
+            }
+
+            const faixa = FAIXAS_IDADE[tipoEvento];
+            if (funcao === 'TRABALHO') {
+                idadeHint.textContent = `Equipe de trabalho — sem restrição de idade específica do evento (${faixa.label}).`;
+                idadeInput.removeAttribute('min');
+                idadeInput.removeAttribute('max');
+            } else {
+                idadeHint.textContent = `Faixa etária do ${tipoEvento === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp'}: ${faixa.label}.`;
+                idadeInput.setAttribute('min', faixa.min);
+                idadeInput.setAttribute('max', faixa.max);
+            }
+        }
+
+        async function enviarParaSupabase(dados) {
+            try {
+                const { data, error } = await supabaseClient.rpc('kids_registrar_e_atribuir', {
+                    p_nome_crianca: dados.nome,
+                    p_sexo: dados.sexo,
+                    p_idade: parseInt(dados.idade),
+                    p_tipo_evento: dados.tipoEvento,
+                    p_funcao: dados.funcao,
+                    p_responsavel_nome: dados.responsavelNome,
+                    p_responsavel_whatsapp: dados.whatsapp,
+                    p_responsavel_parentesco: dados.parentesco,
+                    p_email: dados.email ? dados.email.toLowerCase() : null,
+                    p_cidade: dados.cidade,
+                    p_observacoes_saude: dados.observacoesSaude || null,
+                    p_autorizacao_imagem: dados.autorizacaoImagem
+                });
+
+                if (error) {
+                    console.error('❌ Erro Supabase:', error);
+                    throw new Error(error.message);
+                }
+
+                return { success: true, data };
+
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function buscarNomeEquipe(equipeId) {
+            if (!equipeId) return null;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('equipes_kids')
+                    .select('nome_time')
+                    .eq('id', equipeId)
+                    .single();
+                if (error) throw error;
+                return data ? data.nome_time : null;
+            } catch (error) {
+                console.error('Erro ao buscar equipe:', error);
+                return null;
+            }
+        }
+
+        document.getElementById('inscricao-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (isSubmitting) return;
+
+            const tipoEvento = getTipoEventoSelecionado();
+            const funcao = getFuncaoSelecionada();
+            const idade = parseInt(document.getElementById('idade').value);
+
+            if (funcao === 'PARTICIPANTE' && tipoEvento) {
+                const faixa = FAIXAS_IDADE[tipoEvento];
+                if (idade < faixa.min || idade > faixa.max) {
+                    document.getElementById('error-message').style.display = 'block';
+                    document.getElementById('error-details').textContent =
+                        `Para ${tipoEvento === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp'} a idade precisa estar entre ${faixa.min} e ${faixa.max} anos. Se for da equipe de trabalho, selecione a opção "Trabalho" acima.`;
+                    document.getElementById('error-message').scrollIntoView({ block: 'start' });
+                    return;
+                }
+            }
+
+            isSubmitting = true;
+
+            const formData = new FormData(this);
+            const dados = {
+                nome: formData.get('nome'),
+                sexo: formData.get('sexo'),
+                idade: formData.get('idade'),
+                tipoEvento: formData.get('tipo-evento'),
+                funcao: formData.get('funcao'),
+                responsavelNome: formData.get('responsavel-nome'),
+                parentesco: formData.get('parentesco'),
+                whatsapp: formData.get('whatsapp'),
+                email: formData.get('email'),
+                cidade: formData.get('cidade'),
+                observacoesSaude: formData.get('observacoes-saude'),
+                autorizacaoImagem: formData.get('autorizacao-imagem') ? true : false
+            };
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.textContent = 'Enviando...';
+            submitBtn.disabled = true;
+
+            document.getElementById('success-message').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+
+            try {
+                const resultado = await enviarParaSupabase(dados);
+
+                if (resultado.success) {
+                    const registro = Array.isArray(resultado.data) ? resultado.data[0] : resultado.data;
+                    const valor = getValorEsperado(dados.tipoEvento, dados.funcao);
+                    const nomeEquipe = registro && registro.equipe_id ? await buscarNomeEquipe(registro.equipe_id) : null;
+
+                    document.getElementById('success-message').style.display = 'block';
+                    document.getElementById('next-steps').innerHTML = `
+                        ✅ Inscrição de <strong>${dados.nome}</strong> realizada com sucesso!<br><br>
+                        💰 <strong>Valor da inscrição:</strong> R$ ${valor.toFixed(2).replace('.', ',')} (pode ser parcelado no balcão)<br>
+                        ${nomeEquipe ? `🏆 <strong>Equipe:</strong> ${nomeEquipe}<br>` : ''}
+                        <br>📍 <strong>Próximo passo:</strong> Compareça ao balcão da igreja para efetuar o pagamento.<br><br>
+                        📱 <strong>Dúvidas?</strong> Procure a equipe de inscrição.
+                    `;
+
+                    this.reset();
+                    atualizarValorEIdade();
+                    document.getElementById('success-message').scrollIntoView({ block: 'start' });
+
+                } else {
+                    document.getElementById('error-message').style.display = 'block';
+                    document.getElementById('error-details').textContent = resultado.error;
+                    document.getElementById('error-message').scrollIntoView({ block: 'start' });
+                }
+
+            } catch (error) {
+                console.error('Erro geral:', error);
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-details').textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
+                document.getElementById('error-message').scrollIntoView({ block: 'start' });
+            } finally {
+                submitBtn.textContent = 'Confirmar Inscrição';
+                submitBtn.disabled = false;
+                isSubmitting = false;
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarSistema();
+
+            document.querySelectorAll('input[name="tipo-evento"], input[name="funcao"]').forEach(el => {
+                el.addEventListener('change', atualizarValorEIdade);
+            });
+
+            document.getElementById('whatsapp').addEventListener('input', function() {
+                formatarWhatsApp(this);
+            });
+
+            document.querySelectorAll('input[type="text"], textarea').forEach(input => {
+                input.addEventListener('input', function() {
+                    this.value = this.value.toUpperCase();
+                });
+            });
+
+            document.getElementById('email').addEventListener('input', function() {
+                this.value = this.value.toLowerCase();
+            });
+
+            atualizarValorEIdade();
+        });
+    </script>
+</body>
+</html>

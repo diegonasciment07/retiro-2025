@@ -546,6 +546,7 @@
             <div class="tab-nav">
                 <button class="tab-btn active" id="tab-retiro" onclick="switchTab('retiro')">🏕️ RETIRO 2026</button>
                 <button class="tab-btn" id="tab-eventos" onclick="switchTab('eventos')">📅 EVENTOS</button>
+                <button class="tab-btn" id="tab-kids" onclick="switchTab('kids')">🧒 RETIRO KIDS</button>
             </div>
 
             <!-- ══════════════ SEÇÃO RETIRO (existente) ══════════════ -->
@@ -862,6 +863,181 @@
                 </div>
 
             </div><!-- /section-eventos -->
+
+            <!-- ══════════════ SEÇÃO RETIRO KIDS (Acampa Kids / Brothers Camp) ══════════════ -->
+            <div id="section-kids" style="display:none;">
+
+                <div class="stats-panel">
+                    <h2 style="color: white; font-size: 2em; margin-bottom: 15px; text-align: center; text-transform: uppercase; letter-spacing: 3px;">
+                        🧒 RETIRO KIDS
+                    </h2>
+                    <div class="stats-grid">
+                        <div class="stats-item">
+                            <div style="font-size: 2.2em; font-weight: 900; color: white;" id="kids-total-acampa">0</div>
+                            <div style="color: white; font-weight: bold;">👧🏻 Acampa Kids</div>
+                        </div>
+                        <div class="stats-item">
+                            <div style="font-size: 2.2em; font-weight: 900; color: white;" id="kids-total-brothers">0</div>
+                            <div style="color: white; font-weight: bold;">👦🏻 Brothers Camp</div>
+                        </div>
+                        <div class="stats-item">
+                            <div style="font-size: 2.2em; font-weight: 900; color: white;" id="kids-total-geral">0</div>
+                            <div style="color: white; font-weight: bold;">Total Geral</div>
+                        </div>
+                        <div class="stats-item">
+                            <div style="font-size: 2.2em; font-weight: 900; color: white;" id="kids-total-pagos">0</div>
+                            <div style="color: white; font-weight: bold;">Pagos 100%</div>
+                        </div>
+                        <div class="stats-item">
+                            <div style="font-size: 2.2em; font-weight: 900; color: white;" id="kids-total-pendentes">0</div>
+                            <div style="color: white; font-weight: bold;">Faltam Quitar</div>
+                        </div>
+                        <div class="stats-item">
+                            <div style="font-size: 2.2em; font-weight: 900; color: white;" id="kids-total-sem-equipe">0</div>
+                            <div style="color: white; font-weight: bold;">Sem Equipe</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                        <button onclick="KidsModule.openTeamsModal()" class="btn btn-warning" style="width: 100%; padding: 15px;">
+                            🏆 GERENCIAR EQUIPES
+                        </button>
+                        <button onclick="KidsModule.refreshAll()" class="btn btn-info" style="width: 100%; padding: 15px;">
+                            🔄 ATUALIZAR
+                        </button>
+                    </div>
+                </div>
+
+                <div class="main-layout">
+                    <div class="card">
+                        <h2 style="color: var(--primary); font-size: 1.5em; margin-bottom: 20px; text-align: center;">🔍 Buscar Criança/Adolescente</h2>
+
+                        <div style="margin-bottom: 15px;">
+                            <label style="color: white; font-weight: 600; margin-bottom: 8px; display: block;">Nome, Responsável ou WhatsApp:</label>
+                            <input type="text" id="kids-search-termo" class="input" placeholder="Digite para buscar..." oninput="KidsModule.searchKids()">
+                        </div>
+
+                        <div style="margin-bottom: 15px;">
+                            <label style="color: white; font-weight: 600; margin-bottom: 8px; display: block;">Evento:</label>
+                            <select id="kids-filter-tipo" class="input" onchange="KidsModule.searchKids()">
+                                <option value="">Todos</option>
+                                <option value="ACAMPA_KIDS">👧🏻 Acampa Kids</option>
+                                <option value="BROTHERS_CAMP">👦🏻 Brothers Camp</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 15px;">
+                            <label style="color: white; font-weight: 600; margin-bottom: 8px; display: block;">Status de Pagamento:</label>
+                            <select id="kids-filter-status" class="input" onchange="KidsModule.searchKids()">
+                                <option value="">Todos os status</option>
+                                <option value="PAGO">Pago 100%</option>
+                                <option value="PAGO PARCIALMENTE">Pago Parcialmente</option>
+                                <option value="PENDENTE">Pendente</option>
+                            </select>
+                        </div>
+
+                        <div style="text-align: center; color: var(--text-light); font-size: 0.85em;">
+                            As inscrições entram pelo formulário público (sistema-inscricoes-kids)
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2 style="color: var(--primary); font-size: 1.5em; margin-bottom: 20px; text-align: center;">📋 Resultados</h2>
+                        <div id="kids-results" style="max-height: 600px; overflow-y: auto;">
+                            <div style="text-align: center; padding: 40px; color: #666;">Carregando...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /section-kids -->
+
+            <!-- Modal: Gerenciar Pagamentos (Kids) -->
+            <div id="kids-payments-modal" class="modal">
+                <div class="modal-content" style="max-width: 700px; width: 95%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: var(--primary); font-size: 1.6em;">💰 Gerenciar Pagamentos</h3>
+                        <button onclick="KidsModule.closePaymentsModal()" class="btn btn-secondary">❌ Fechar</button>
+                    </div>
+
+                    <div style="background: #222; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <div style="color: var(--primary); font-weight: 900; font-size: 1.1em;" id="kids-payments-nome"></div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; font-size: 0.9em; color: var(--text-light);">
+                            <div><strong>Status Atual:</strong> <span id="kids-payments-status"></span></div>
+                            <div><strong>Valor Total:</strong> <span id="kids-payments-total"></span></div>
+                        </div>
+                    </div>
+
+                    <h4 style="color: var(--primary); margin-bottom: 10px;">📄 Histórico de Pagamentos</h4>
+                    <div id="kids-payments-history" style="max-height: 250px; overflow-y: auto; margin-bottom: 20px;"></div>
+
+                    <div style="background: var(--primary); border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 20px;">
+                        <div style="color: white; font-weight: 900; font-size: 1.2em;">Total Pago: <span id="kids-total-paid">R$ 0,00</span></div>
+                        <div style="color: white; font-size: 0.9em;">Faltam: <span id="kids-remaining-amount">R$ 0,00</span></div>
+                    </div>
+
+                    <h4 style="color: var(--primary); margin-bottom: 10px;">➕ Novo Pagamento</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" id="kids-new-payment-value" class="input" placeholder="Valor (ex: 100,00)">
+                        <select id="kids-new-payment-method" class="input">
+                            <option value="">Forma de pagamento</option>
+                            <option value="PIX">PIX</option>
+                            <option value="DINHEIRO">Dinheiro</option>
+                            <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
+                            <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
+                            <option value="RECIBO">Recibo</option>
+                        </select>
+                    </div>
+                    <input type="text" id="kids-new-payment-obs" class="input" placeholder="Observação (opcional)" style="margin-bottom: 15px;">
+
+                    <button onclick="KidsModule.addNewPayment()" class="btn btn-success" style="width: 100%;">
+                        ➕ Adicionar Pagamento
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal: Detalhes (Kids) -->
+            <div id="kids-details-modal" class="modal details-modal">
+                <div class="modal-content" style="max-width: 700px; width: 95%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: var(--primary); font-size: 1.6em;">📋 Detalhes Completos</h3>
+                        <button onclick="KidsModule.closeDetailsModal()" class="btn btn-secondary" style="padding: 8px 15px;">❌ Fechar</button>
+                    </div>
+                    <div id="kids-details-content"></div>
+                </div>
+            </div>
+
+            <!-- Modal: Gerenciar Equipes (Kids) -->
+            <div id="kids-teams-modal" class="modal">
+                <div class="modal-content" style="max-width: 900px; width: 95%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="color: var(--primary); font-size: 1.8em;">🏆 Gerenciar Equipes</h3>
+                        <button onclick="KidsModule.closeTeamsModal()" class="btn btn-secondary">❌ Fechar</button>
+                    </div>
+
+                    <div class="tab-nav" style="margin-bottom: 20px;">
+                        <button class="tab-btn active" id="kids-teams-tab-acampa" onclick="KidsModule.switchTeamsTipoEvento('ACAMPA_KIDS')">👧🏻 Acampa Kids</button>
+                        <button class="tab-btn" id="kids-teams-tab-brothers" onclick="KidsModule.switchTeamsTipoEvento('BROTHERS_CAMP')">👦🏻 Brothers Camp</button>
+                    </div>
+
+                    <div style="background: #1a1a1a; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="color: var(--primary); margin-bottom: 12px;">➕ Criar Nova Equipe</h4>
+                        <div style="display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="kids-new-team-nome" class="input" placeholder="Nome do time (ex: Leões)">
+                            <input type="text" id="kids-new-team-professores" class="input" placeholder="Professores responsáveis">
+                            <input type="text" id="kids-new-team-cor" class="input" placeholder="Emoji/cor (opcional)">
+                        </div>
+                        <button onclick="KidsModule.createTeam()" class="btn btn-success" style="width: 100%;">➕ Criar Equipe</button>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                        <div id="kids-teams-pendentes-info" style="color: var(--text-light); font-size: 0.9em;"></div>
+                        <button id="kids-atribuir-pendentes-btn" onclick="KidsModule.atribuirPendentes()" class="btn btn-warning" style="padding: 8px 16px; font-size: 0.85em;">
+                            🔀 Atribuir Pendentes
+                        </button>
+                    </div>
+
+                    <div id="kids-teams-list" style="max-height: 45vh; overflow-y: auto;"></div>
+                </div>
+            </div>
 
         </div>
     </div>
@@ -1273,6 +1449,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <script type="module" src="./app.js"></script>
+    <script type="module" src="./kids.js"></script>
 
 </body>
 </html>
