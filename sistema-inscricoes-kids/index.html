@@ -284,7 +284,7 @@
                 <div class="section-title">✅ Cadastro</div>
 
                 <div class="form-group">
-                    <label for="nome">Nome Completo da Criança/Adolescente <span class="required">*</span></label>
+                    <label for="nome" id="label-nome">Nome Completo da Criança/Adolescente <span class="required">*</span></label>
                     <input type="text" id="nome" name="nome" required placeholder="Nome completo">
                 </div>
 
@@ -337,20 +337,20 @@
                     </div>
                 </div>
 
-                <!-- RESPONSÁVEL -->
-                <div class="section-title">👪 Dados do Responsável</div>
+                <!-- RESPONSÁVEL / VOLUNTÁRIO -->
+                <div class="section-title" id="secao-responsavel-titulo">👪 Dados do Responsável</div>
 
-                <div class="form-group">
+                <div class="form-group" id="bloco-responsavel-nome">
                     <label for="responsavel-nome">Nome Completo do Responsável <span class="required">*</span></label>
                     <input type="text" id="responsavel-nome" name="responsavel-nome" required placeholder="Nome completo do responsável">
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="whatsapp">Telefone do Responsável <span class="required">*</span></label>
+                        <label for="whatsapp" id="label-telefone">Telefone do Responsável <span class="required">*</span></label>
                         <input type="tel" id="whatsapp" name="whatsapp" placeholder="(11) 99999-9999" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="bloco-parentesco">
                         <label for="parentesco">Grau de Parentesco <span class="required">*</span></label>
                         <input type="text" id="parentesco" name="parentesco" required placeholder="Mãe, pai, avó, tio...">
                     </div>
@@ -522,6 +522,34 @@
             }
         }
 
+        // A equipe de trabalho é preenchida pelo próprio adulto/voluntário —
+        // não faz sentido pedir "responsável" e "grau de parentesco" nesse
+        // caso, então o formulário troca os rótulos e esconde os campos que
+        // só fazem sentido pra inscrição de uma criança/adolescente.
+        function atualizarCamposPorFuncao() {
+            const ehTrabalho = getFuncaoSelecionada() === 'TRABALHO';
+
+            document.getElementById('label-nome').innerHTML = ehTrabalho
+                ? 'Nome Completo do Voluntário <span class="required">*</span>'
+                : 'Nome Completo da Criança/Adolescente <span class="required">*</span>';
+
+            document.getElementById('secao-responsavel-titulo').textContent = ehTrabalho
+                ? '📞 Contato do Voluntário'
+                : '👪 Dados do Responsável';
+
+            document.getElementById('label-telefone').innerHTML = ehTrabalho
+                ? 'Telefone de Contato <span class="required">*</span>'
+                : 'Telefone do Responsável <span class="required">*</span>';
+
+            const blocoResponsavelNome = document.getElementById('bloco-responsavel-nome');
+            const blocoParentesco = document.getElementById('bloco-parentesco');
+
+            blocoResponsavelNome.style.display = ehTrabalho ? 'none' : 'block';
+            blocoParentesco.style.display = ehTrabalho ? 'none' : 'block';
+            document.getElementById('responsavel-nome').required = !ehTrabalho;
+            document.getElementById('parentesco').required = !ehTrabalho;
+        }
+
         async function enviarParaSupabase(dados) {
             try {
                 const { data, error } = await supabaseClient.rpc('kids_registrar_e_atribuir', {
@@ -581,6 +609,7 @@
             isSubmitting = true;
 
             const formData = new FormData(this);
+            const ehTrabalho = funcao === 'TRABALHO';
             const dados = {
                 nome: formData.get('nome'),
                 dataNascimento: formData.get('data-nascimento'),
@@ -590,8 +619,10 @@
                 igreja: formData.get('igreja'),
                 tipoEvento: formData.get('tipo-evento'),
                 funcao: formData.get('funcao'),
-                responsavelNome: formData.get('responsavel-nome'),
-                parentesco: formData.get('parentesco'),
+                // Na equipe de trabalho quem se inscreve é o próprio adulto/voluntário —
+                // não existe "responsável" separado, então usamos os dados dele mesmo.
+                responsavelNome: ehTrabalho ? formData.get('nome') : formData.get('responsavel-nome'),
+                parentesco: ehTrabalho ? 'PRÓPRIO (VOLUNTÁRIO)' : formData.get('parentesco'),
                 whatsapp: formData.get('whatsapp'),
                 autorizacaoDados: formData.get('autorizacao-dados') ? true : false,
                 autorizacaoImagem: formData.get('autorizacao-imagem') ? true : false,
@@ -626,6 +657,7 @@
 
                     this.reset();
                     atualizarValorEIdade();
+                    atualizarCamposPorFuncao();
                     document.getElementById('success-message').scrollIntoView({ block: 'start' });
 
                 } else {
@@ -652,6 +684,9 @@
             document.querySelectorAll('input[name="tipo-evento"], input[name="funcao"]').forEach(el => {
                 el.addEventListener('change', atualizarValorEIdade);
             });
+            document.querySelectorAll('input[name="funcao"]').forEach(el => {
+                el.addEventListener('change', atualizarCamposPorFuncao);
+            });
             document.getElementById('data-nascimento').addEventListener('change', atualizarValorEIdade);
 
             document.getElementById('whatsapp').addEventListener('input', function() { formatarTelefone(this); });
@@ -664,6 +699,7 @@
             });
 
             atualizarValorEIdade();
+            atualizarCamposPorFuncao();
         });
     </script>
 </body>
