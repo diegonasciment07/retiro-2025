@@ -129,7 +129,7 @@
             transition: all 0.3s ease;
         }
         .card-evento:hover { border-color: var(--cor-primaria); background: var(--fundo-principal); }
-        .card-evento input[type="radio"] { width: auto; margin: 0 6px 0 0; accent-color: var(--cor-primaria); }
+        .card-evento input[type="radio"], .card-evento input[type="checkbox"] { width: auto; margin: 0 6px 0 0; accent-color: var(--cor-primaria); }
         .card-evento .titulo { font-weight: 800; font-size: 1.05em; display: flex; align-items: center; }
         .card-evento .faixa { font-size: 0.85em; color: var(--texto-cinza-claro); text-transform: none; }
         .card-evento .valor { font-size: 1.1em; font-weight: 900; color: var(--cor-primaria); text-transform: none; }
@@ -247,17 +247,20 @@
                 <div class="section-title">🏕️ Qual inscrição?</div>
 
                 <div class="form-group">
-                    <div class="cards-evento" role="radiogroup" aria-label="Tipo de evento">
+                    <div class="cards-evento" id="cards-evento" role="group" aria-label="Tipo de evento">
                         <label class="card-evento kids" for="evento-kids">
-                            <span class="titulo"><input type="radio" id="evento-kids" name="tipo-evento" value="ACAMPA_KIDS" required> 👧🏻 ACAMPA KIDS</span>
+                            <span class="titulo"><input type="radio" id="evento-kids" name="tipo-evento" value="ACAMPA_KIDS"> 👧🏻 ACAMPA KIDS</span>
                             <span class="faixa">05 a 09 anos</span>
                             <span class="valor">R$ 250,00</span>
                         </label>
                         <label class="card-evento brothers" for="evento-brothers">
-                            <span class="titulo"><input type="radio" id="evento-brothers" name="tipo-evento" value="BROTHERS_CAMP" required> 👦🏻 BROTHERS CAMP</span>
+                            <span class="titulo"><input type="radio" id="evento-brothers" name="tipo-evento" value="BROTHERS_CAMP"> 👦🏻 BROTHERS CAMP</span>
                             <span class="faixa">10 a 14 anos</span>
                             <span class="valor">R$ 300,00</span>
                         </label>
+                    </div>
+                    <div id="evento-hint" style="font-size: 0.85em; color: #ccc; margin-top: 8px; display: none;">
+                        💡 Se for ajudar nos dois eventos, pode marcar os dois (R$ 100,00 em cada, R$ 200,00 no total).
                     </div>
                 </div>
 
@@ -459,6 +462,12 @@
             return el ? el.value : '';
         }
 
+        // Trabalho permite marcar os dois eventos (ajuda no Acampa Kids e no
+        // Brothers Camp, R$100 em cada); Participante continua sendo só um.
+        function getTiposEventoSelecionados() {
+            return Array.from(document.querySelectorAll('input[name="tipo-evento"]:checked')).map(el => el.value);
+        }
+
         function getFuncaoSelecionada() {
             const el = document.querySelector('input[name="funcao"]:checked');
             return el ? el.value : 'PARTICIPANTE';
@@ -483,29 +492,32 @@
         }
 
         function atualizarValorEIdade() {
-            const tipoEvento = getTipoEventoSelecionado();
             const funcao = getFuncaoSelecionada();
-            const valor = getValorEsperado(tipoEvento, funcao);
+            const tipos = getTiposEventoSelecionados();
             const display = document.getElementById('valor-total-display');
             const idadeHint = document.getElementById('idade-hint');
             const dataNascimento = document.getElementById('data-nascimento').value;
             const idade = calcularIdade(dataNascimento);
 
-            display.textContent = tipoEvento ? `R$ ${valor.toFixed(2).replace('.', ',')}` : 'Selecione o evento';
+            const valorTotal = tipos.reduce((soma, tipo) => soma + getValorEsperado(tipo, funcao), 0);
+            display.textContent = tipos.length ? `R$ ${valorTotal.toFixed(2).replace('.', ',')}` : 'Selecione o evento';
 
-            if (!tipoEvento) {
+            if (tipos.length === 0) {
                 idadeHint.textContent = 'Selecione o evento acima para ver a faixa etária.';
                 idadeHint.style.color = '#ccc';
                 return;
             }
 
-            const faixa = FAIXAS_IDADE[tipoEvento];
-
             if (funcao === 'TRABALHO') {
-                idadeHint.textContent = `Equipe de trabalho — sem restrição de idade específica do evento (${faixa.label}).${idade !== null ? ' Idade calculada: ' + idade + ' anos.' : ''}`;
+                const nomes = tipos.map(t => t === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp').join(' + ');
+                idadeHint.textContent = `Equipe de trabalho (${nomes}) — sem restrição de idade específica do evento.${idade !== null ? ' Idade calculada: ' + idade + ' anos.' : ''}`;
                 idadeHint.style.color = '#ccc';
                 return;
             }
+
+            // Participante só marca um evento por vez.
+            const tipoEvento = tipos[0];
+            const faixa = FAIXAS_IDADE[tipoEvento];
 
             if (idade === null) {
                 idadeHint.textContent = `Faixa etária do ${tipoEvento === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp'}: ${faixa.label}.`;
@@ -528,6 +540,16 @@
         // sentido pra inscrição de uma criança/adolescente.
         function atualizarCamposPorFuncao() {
             const ehTrabalho = getFuncaoSelecionada() === 'TRABALHO';
+
+            // Trabalho pode marcar os dois eventos (checkbox); Participante só um
+            // (radio). Ao trocar de modo, reseta a seleção pra evitar estado
+            // ambíguo (ex: os dois marcados e depois voltando pra Participante).
+            const inputsEvento = document.querySelectorAll('#evento-kids, #evento-brothers');
+            inputsEvento.forEach(el => {
+                el.checked = false;
+                el.type = ehTrabalho ? 'checkbox' : 'radio';
+            });
+            document.getElementById('evento-hint').style.display = ehTrabalho ? 'block' : 'none';
 
             document.getElementById('label-nome').innerHTML = ehTrabalho
                 ? 'Nome Completo (Equipe de Trabalho) <span class="required">*</span>'
@@ -571,6 +593,8 @@
             document.getElementById('label-autorizacao-imagem').textContent = ehTrabalho
                 ? 'Autorizo o uso da minha imagem conforme descrito acima'
                 : 'Autorizo o uso da imagem do meu filho(a)/dependente conforme descrito acima';
+
+            atualizarValorEIdade();
         }
 
         async function enviarParaSupabase(dados) {
@@ -613,17 +637,24 @@
 
             if (isSubmitting) return;
 
-            const tipoEvento = getTipoEventoSelecionado();
             const funcao = getFuncaoSelecionada();
+            const tipos = getTiposEventoSelecionados();
             const dataNascimento = document.getElementById('data-nascimento').value;
             const idade = calcularIdade(dataNascimento);
 
-            if (funcao === 'PARTICIPANTE' && tipoEvento && idade !== null) {
-                const faixa = FAIXAS_IDADE[tipoEvento];
+            if (tipos.length === 0) {
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-details').textContent = 'Selecione pelo menos um evento (Acampa Kids ou Brothers Camp).';
+                document.getElementById('error-message').scrollIntoView({ block: 'start' });
+                return;
+            }
+
+            if (funcao === 'PARTICIPANTE' && idade !== null) {
+                const faixa = FAIXAS_IDADE[tipos[0]];
                 if (idade < faixa.min || idade > faixa.max) {
                     document.getElementById('error-message').style.display = 'block';
                     document.getElementById('error-details').textContent =
-                        `Para ${tipoEvento === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp'} a idade precisa estar entre ${faixa.min} e ${faixa.max} anos (calculamos ${idade} anos pela data de nascimento). Se for da equipe de trabalho, selecione a opção "Trabalho" acima.`;
+                        `Para ${tipos[0] === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp'} a idade precisa estar entre ${faixa.min} e ${faixa.max} anos (calculamos ${idade} anos pela data de nascimento). Se for da equipe de trabalho, selecione a opção "Trabalho" acima.`;
                     document.getElementById('error-message').scrollIntoView({ block: 'start' });
                     return;
                 }
@@ -633,14 +664,13 @@
 
             const formData = new FormData(this);
             const ehTrabalho = funcao === 'TRABALHO';
-            const dados = {
+            const dadosBase = {
                 nome: formData.get('nome'),
                 dataNascimento: formData.get('data-nascimento'),
                 idade: idade,
                 sexo: formData.get('sexo'),
                 rede: formData.get('rede'),
                 igreja: formData.get('igreja'),
-                tipoEvento: formData.get('tipo-evento'),
                 funcao: formData.get('funcao'),
                 // Na equipe de trabalho quem se inscreve é o próprio adulto —
                 // não existe "responsável" separado, então usamos os dados dele mesmo.
@@ -662,30 +692,48 @@
             document.getElementById('success-message').style.display = 'none';
             document.getElementById('error-message').style.display = 'none';
 
+            // Trabalho em 2 eventos = 2 inscrições separadas (uma por evento,
+            // R$100 cada). Feito em sequência e sem tentar de novo o que já deu
+            // certo, pra não arriscar duplicar inscrição em caso de erro parcial.
+            const sucesso = [];
+            const falha = [];
+
             try {
-                const resultado = await enviarParaSupabase(dados);
+                for (const tipoEvento of tipos) {
+                    const resultado = await enviarParaSupabase({ ...dadosBase, tipoEvento });
+                    if (resultado.success) {
+                        sucesso.push(tipoEvento);
+                    } else {
+                        falha.push({ tipoEvento, erro: resultado.error });
+                        break; // não tenta o próximo depois de uma falha
+                    }
+                }
 
-                if (resultado.success) {
-                    const valor = getValorEsperado(dados.tipoEvento, dados.funcao);
+                const valorTotal = sucesso.reduce((soma, tipo) => soma + getValorEsperado(tipo, funcao), 0);
+                const nomeEvento = t => t === 'ACAMPA_KIDS' ? 'Acampa Kids' : 'Brothers Camp';
 
+                if (sucesso.length > 0) {
                     // Não mostramos qual equipe a criança caiu — isso é informação
                     // exclusiva do ADM, revelada no dia do evento.
                     document.getElementById('success-message').style.display = 'block';
                     document.getElementById('next-steps').innerHTML = `
-                        ✅ Inscrição de <strong>${dados.nome}</strong> realizada com sucesso!<br><br>
-                        💰 <strong>Valor da inscrição:</strong> R$ ${valor.toFixed(2).replace('.', ',')} (pode ser parcelado no balcão)<br><br>
+                        ✅ Inscrição de <strong>${dadosBase.nome}</strong> realizada com sucesso${sucesso.length > 1 ? ` (${sucesso.map(nomeEvento).join(' + ')})` : ` (${nomeEvento(sucesso[0])})`}!<br><br>
+                        💰 <strong>Valor da inscrição:</strong> R$ ${valorTotal.toFixed(2).replace('.', ',')} (pode ser parcelado no balcão)<br><br>
+                        ${falha.length > 0 ? `⚠️ <strong>Atenção:</strong> não foi possível registrar em ${nomeEvento(falha[0].tipoEvento)} (${falha[0].erro}). Procure o balcão pra completar essa parte.<br><br>` : ''}
                         📍 <strong>Próximo passo:</strong> Compareça ao balcão da igreja para efetuar o pagamento.<br><br>
                         📱 <strong>Dúvidas?</strong> Procure a equipe de inscrição.
                     `;
 
-                    this.reset();
-                    atualizarValorEIdade();
-                    atualizarCamposPorFuncao();
+                    if (falha.length === 0) {
+                        this.reset();
+                        atualizarValorEIdade();
+                        atualizarCamposPorFuncao();
+                    }
                     document.getElementById('success-message').scrollIntoView({ block: 'start' });
 
                 } else {
                     document.getElementById('error-message').style.display = 'block';
-                    document.getElementById('error-details').textContent = resultado.error;
+                    document.getElementById('error-details').textContent = falha[0].erro;
                     document.getElementById('error-message').scrollIntoView({ block: 'start' });
                 }
 
