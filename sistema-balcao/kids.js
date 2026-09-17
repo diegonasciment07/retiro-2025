@@ -139,8 +139,11 @@
         const ativos = allKids;
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
-        set('kids-total-acampa', ativos.filter(k => k.tipo_evento === 'ACAMPA_KIDS').length);
-        set('kids-total-brothers', ativos.filter(k => k.tipo_evento === 'BROTHERS_CAMP').length);
+        // Acampa Kids / Brothers Camp contam só CRIANÇAS (participante) —
+        // equipe de trabalho tem contador próprio, separado.
+        set('kids-total-acampa', ativos.filter(k => k.tipo_evento === 'ACAMPA_KIDS' && k.funcao === 'PARTICIPANTE').length);
+        set('kids-total-brothers', ativos.filter(k => k.tipo_evento === 'BROTHERS_CAMP' && k.funcao === 'PARTICIPANTE').length);
+        set('kids-total-trabalho', ativos.filter(k => k.funcao === 'TRABALHO').length);
         set('kids-total-geral', ativos.length);
         set('kids-total-pagos', ativos.filter(k => k.status_pagamento === 'PAGO').length);
         set('kids-total-pendentes', ativos.filter(k => k.status_pagamento !== 'PAGO').length);
@@ -174,6 +177,47 @@
         renderKidsList(resultado);
     }
 
+    function renderKidCard(kid) {
+        const statusClass = getStatusClass(kid.status_pagamento);
+        const statusText = getStatusText(kid.status_pagamento);
+        const equipeInfo = equipeInfoParaExibicao(kid);
+
+        return `
+            <div class="person-card" onclick="KidsModule.showDetails('${kid.id}')">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
+                    <h3 style="color: var(--primary); margin: 0;">${kid.nome_crianca || 'Nome não informado'}</h3>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                        <span class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.72em;">${tipoEventoLabel(kid.tipo_evento)}</span>
+                        <span class="btn btn-${statusClass}" style="padding: 5px 10px; font-size: 0.8em;">${statusText}</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: var(--text-light);">
+                    <div><strong>🎂 Idade:</strong> ${kid.idade ?? 'N/A'} anos</div>
+                    <div><strong>${kid.sexo === 'FEMININO' ? '👧' : '👦'} Sexo:</strong> ${kid.sexo || 'N/A'}</div>
+                    <div><strong>${funcaoLabel(kid.funcao)}</strong></div>
+                    <div><strong>🏆 Equipe:</strong> ${equipeInfo}</div>
+                    <div><strong>👪 Responsável:</strong> ${kid.responsavel_nome || 'N/A'}</div>
+                    <div><strong>📱 WhatsApp:</strong> ${kid.responsavel_whatsapp || 'N/A'}</div>
+                    <div><strong>💰 Valor Pago:</strong> ${fmtMoeda(kid.valor_pago)}</div>
+                    <div><strong>🎯 Total:</strong> ${fmtMoeda(getValorEsperado(kid))}</div>
+                </div>
+
+                <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <button onclick="event.stopPropagation(); KidsModule.openPaymentsModal('${kid.id}')" class="btn btn-success" style="padding: 8px; font-size: 0.8em;">
+                        💰 Pagamentos
+                    </button>
+                    <button onclick="event.stopPropagation(); KidsModule.showDetails('${kid.id}')" class="btn btn-info" style="padding: 8px; font-size: 0.8em;">
+                        📋 Detalhes
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Separa os resultados em 3 grupos: crianças do Acampa Kids, crianças do
+    // Brothers Camp e equipe de trabalho (à parte, já que não é criança e não
+    // compete em equipe) — cada grupo com seu próprio contador.
     function renderKidsList(kids) {
         const container = document.getElementById('kids-results');
         if (!container) return;
@@ -183,43 +227,26 @@
             return;
         }
 
-        container.innerHTML = kids.map(kid => {
-            const statusClass = getStatusClass(kid.status_pagamento);
-            const statusText = getStatusText(kid.status_pagamento);
-            const equipeInfo = equipeInfoParaExibicao(kid);
+        const acampaCriancas = kids.filter(k => k.tipo_evento === 'ACAMPA_KIDS' && k.funcao === 'PARTICIPANTE');
+        const brothersCriancas = kids.filter(k => k.tipo_evento === 'BROTHERS_CAMP' && k.funcao === 'PARTICIPANTE');
+        const trabalho = kids.filter(k => k.funcao === 'TRABALHO');
 
+        const renderGrupo = (titulo, lista) => {
+            if (lista.length === 0) return '';
             return `
-                <div class="person-card" onclick="KidsModule.showDetails('${kid.id}')">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
-                        <h3 style="color: var(--primary); margin: 0;">${kid.nome_crianca || 'Nome não informado'}</h3>
-                        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-                            <span class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.72em;">${tipoEventoLabel(kid.tipo_evento)}</span>
-                            <span class="btn btn-${statusClass}" style="padding: 5px 10px; font-size: 0.8em;">${statusText}</span>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: var(--text-light);">
-                        <div><strong>🎂 Idade:</strong> ${kid.idade ?? 'N/A'} anos</div>
-                        <div><strong>${kid.sexo === 'FEMININO' ? '👧' : '👦'} Sexo:</strong> ${kid.sexo || 'N/A'}</div>
-                        <div><strong>${funcaoLabel(kid.funcao)}</strong></div>
-                        <div><strong>🏆 Equipe:</strong> ${equipeInfo}</div>
-                        <div><strong>👪 Responsável:</strong> ${kid.responsavel_nome || 'N/A'}</div>
-                        <div><strong>📱 WhatsApp:</strong> ${kid.responsavel_whatsapp || 'N/A'}</div>
-                        <div><strong>💰 Valor Pago:</strong> ${fmtMoeda(kid.valor_pago)}</div>
-                        <div><strong>🎯 Total:</strong> ${fmtMoeda(getValorEsperado(kid))}</div>
-                    </div>
-
-                    <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <button onclick="event.stopPropagation(); KidsModule.openPaymentsModal('${kid.id}')" class="btn btn-success" style="padding: 8px; font-size: 0.8em;">
-                            💰 Pagamentos
-                        </button>
-                        <button onclick="event.stopPropagation(); KidsModule.showDetails('${kid.id}')" class="btn btn-info" style="padding: 8px; font-size: 0.8em;">
-                            📋 Detalhes
-                        </button>
-                    </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--primary); font-size: 1.05em; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);">
+                        ${titulo} — ${lista.length}
+                    </h3>
+                    ${lista.map(renderKidCard).join('')}
                 </div>
             `;
-        }).join('');
+        };
+
+        container.innerHTML =
+            renderGrupo('👧🏻 ACAMPA KIDS (crianças)', acampaCriancas) +
+            renderGrupo('👦🏻 BROTHERS CAMP (crianças)', brothersCriancas) +
+            renderGrupo('🤝 EQUIPE DE TRABALHO', trabalho);
     }
 
     // ==========================================================
