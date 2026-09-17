@@ -522,19 +522,19 @@
             }
         }
 
-        // A equipe de trabalho é preenchida pelo próprio adulto/voluntário —
-        // não faz sentido pedir "responsável" e "grau de parentesco" nesse
-        // caso, então o formulário troca os rótulos e esconde os campos que
-        // só fazem sentido pra inscrição de uma criança/adolescente.
+        // Quem se inscreve como Trabalho é o próprio adulto — não faz sentido
+        // pedir "responsável" e "grau de parentesco" nesse caso, então o
+        // formulário troca os rótulos e esconde os campos que só fazem
+        // sentido pra inscrição de uma criança/adolescente.
         function atualizarCamposPorFuncao() {
             const ehTrabalho = getFuncaoSelecionada() === 'TRABALHO';
 
             document.getElementById('label-nome').innerHTML = ehTrabalho
-                ? 'Nome Completo do Voluntário <span class="required">*</span>'
+                ? 'Nome Completo (Equipe de Trabalho) <span class="required">*</span>'
                 : 'Nome Completo da Criança/Adolescente <span class="required">*</span>';
 
             document.getElementById('secao-responsavel-titulo').textContent = ehTrabalho
-                ? '📞 Contato do Voluntário'
+                ? '📞 Contato'
                 : '👪 Dados do Responsável';
 
             document.getElementById('label-telefone').innerHTML = ehTrabalho
@@ -619,10 +619,10 @@
                 igreja: formData.get('igreja'),
                 tipoEvento: formData.get('tipo-evento'),
                 funcao: formData.get('funcao'),
-                // Na equipe de trabalho quem se inscreve é o próprio adulto/voluntário —
+                // Na equipe de trabalho quem se inscreve é o próprio adulto —
                 // não existe "responsável" separado, então usamos os dados dele mesmo.
                 responsavelNome: ehTrabalho ? formData.get('nome') : formData.get('responsavel-nome'),
-                parentesco: ehTrabalho ? 'PRÓPRIO (VOLUNTÁRIO)' : formData.get('parentesco'),
+                parentesco: ehTrabalho ? 'PRÓPRIO (EQUIPE DE TRABALHO)' : formData.get('parentesco'),
                 whatsapp: formData.get('whatsapp'),
                 autorizacaoDados: formData.get('autorizacao-dados') ? true : false,
                 autorizacaoImagem: formData.get('autorizacao-imagem') ? true : false,
