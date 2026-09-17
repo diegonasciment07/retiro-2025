@@ -898,6 +898,14 @@
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                        <button onclick="KidsModule.showDashboard()" class="btn btn-info" style="width: 100%; padding: 15px;">
+                            📈 DASHBOARD COMPLETO
+                        </button>
+                        <button onclick="KidsModule.generateSummaryReport()" class="btn btn-primary" style="width: 100%; padding: 15px;">
+                            🚌 RESUMO INSCRIÇÕES
+                        </button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
                         <button id="kids-gerenciar-equipes-btn" onclick="KidsModule.openTeamsModal()" class="btn btn-warning" style="width: 100%; padding: 15px; display: none;">
                             🏆 GERENCIAR EQUIPES
                         </button>
@@ -905,8 +913,14 @@
                             🔄 ATUALIZAR
                         </button>
                     </div>
+                    <div id="kids-adm-report-btn-wrap" style="display: none; margin-top: 15px;">
+                        <button onclick="KidsModule.openAdmReport()" class="btn btn-danger" style="width: 100%; padding: 15px;">
+                            📋 RELATÓRIO ADM
+                        </button>
+                    </div>
                 </div>
 
+                <div id="kids-main-content">
                 <div class="main-layout">
                     <div class="card">
                         <h2 style="color: var(--primary); font-size: 1.5em; margin-bottom: 20px; text-align: center;">🔍 Buscar Criança/Adolescente</h2>
@@ -945,6 +959,117 @@
                         <div id="kids-results" style="max-height: 600px; overflow-y: auto;">
                             <div style="text-align: center; padding: 40px; color: #666;">Carregando...</div>
                         </div>
+                    </div>
+                </div>
+                </div><!-- /kids-main-content -->
+
+                <div id="kids-dashboard-container" class="dashboard-container" style="display:none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                        <h2 style="color: var(--primary); font-size: 2em;">📈 Dashboard de Fechamento (Kids)</h2>
+                        <button onclick="KidsModule.hideDashboard()" class="btn btn-secondary">← Voltar</button>
+                    </div>
+
+                    <div class="card" style="margin-bottom: 30px;">
+                        <h3 style="color: var(--primary); margin-bottom: 15px;">🔍 Filtros</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div>
+                                <label style="color: white; margin-bottom: 5px; display: block;">📅 Data Pagamento:</label>
+                                <input type="date" id="kids-filter-data" class="input" onchange="KidsModule.updateDashboard()"
+                                title="Filtrar por data do último pagamento realizado">
+                                <div style="font-size: 0.8em; color: #666; margin-top: 3px;">
+                                    Filtra por data do último pagamento
+                                </div>
+                            </div>
+                            <div>
+                                <label style="color: white; margin-bottom: 5px; display: block;">👤 Atendente:</label>
+                                <select id="kids-filter-atendente" class="input" onchange="KidsModule.updateDashboard()">
+                                    <option value="">Todos os atendentes</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="color: white; margin-bottom: 5px; display: block;">💳 Forma de Pagamento:</label>
+                                <select id="kids-filter-forma" class="input" onchange="KidsModule.updateDashboard()">
+                                    <option value="">Todas as formas</option>
+                                    <option value="PIX">PIX</option>
+                                    <option value="DINHEIRO">Dinheiro</option>
+                                    <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
+                                    <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
+                                    <option value="RECIBO">Recibo</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="color: white; margin-bottom: 5px; display: block;">📊 Status:</label>
+                                <select id="kids-filter-status-dash" class="input" onchange="KidsModule.updateDashboard()">
+                                    <option value="">Todos os status</option>
+                                    <option value="PAGO PARCIALMENTE">Pago Parcialmente</option>
+                                    <option value="PAGO">Pago</option>
+                                    <option value="PENDENTE">Pendente</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="metric-card">
+                            <div class="metric-value" id="kids-dash-total-inscricoes">0</div>
+                            <div class="metric-label">📊 Total Inscrições</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="kids-dash-pre-inscricoes">0</div>
+                            <div class="metric-label">🎽 Pago Parcialmente</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="kids-dash-pagos-completo">0</div>
+                            <div class="metric-label">✅ Pagos Completo</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="kids-dash-valor-pix">0</div>
+                            <div class="metric-label">🏦 PIX</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="kids-dash-valor-dinheiro">0</div>
+                            <div class="metric-label">💵 Dinheiro</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="kids-dash-valor-cartao">0</div>
+                            <div class="metric-label">💳 Cartão Crédito</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="kids-dash-valor-debito">0</div>
+                            <div class="metric-label">💳 Cartão Débito</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="kids-dash-valor-recibo">0</div>
+                            <div class="metric-label">🧾 Recibo</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="kids-total-arrecadado">R$ 0,00</div>
+                            <div class="metric-label">💰 Total Arrecadado</div>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <h3 style="color: var(--primary); margin-bottom: 15px;">📋 Inscrições Detalhadas</h3>
+                        <div style="overflow-x: auto;">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Forma Pagamento</th>
+                                        <th>Valor Pago no Dia</th>
+                                        <th>Atendente</th>
+                                        <th>Data Pagamento</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kids-inscricoes-tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                        <button onclick="KidsModule.exportDashboard()" class="btn btn-success">📊 Exportar Base Completa</button>
+                        <button onclick="KidsModule.exportFiltrado()" class="btn btn-info">📋 Exportar Pagamentos Filtrados</button>
                     </div>
                 </div>
 
@@ -1036,6 +1161,58 @@
                     </div>
 
                     <div id="kids-teams-list" style="max-height: 45vh; overflow-y: auto;"></div>
+                </div>
+            </div>
+
+            <!-- Modal: Resumo de Inscrições (Kids) -->
+            <div id="kids-summary-modal" class="modal">
+                <div class="modal-content" style="max-width: 700px; width: 95%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: var(--primary); font-size: 1.8em;">🚌 Resumo de Inscrições (Kids)</h3>
+                        <button onclick="KidsModule.closeSummaryModal()" class="btn btn-secondary">❌ Fechar</button>
+                    </div>
+
+                    <div id="kids-summary-content" style="max-height: 70vh; overflow-y: auto;">
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <button onclick="KidsModule.printSummaryReport()" class="btn btn-info" style="width: 100%;">🖨️ Imprimir Resumo</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Relatório ADM (Kids) -->
+            <div id="kids-adm-report-modal" class="modal">
+                <div class="modal-content" style="max-width: 1100px; width: 95%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: var(--primary); font-size: 1.8em;">📋 Relatório de Fechamento por Atendente (Kids)</h3>
+                        <button onclick="KidsModule.closeAdmReportModal()" class="btn btn-secondary">❌ Fechar</button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; margin-bottom: 20px; align-items: end;">
+                        <div>
+                            <label style="color: white; margin-bottom: 5px; display: block;">📅 Data Início:</label>
+                            <input type="date" id="kids-adm-report-start" class="input">
+                        </div>
+                        <div>
+                            <label style="color: white; margin-bottom: 5px; display: block;">📅 Data Fim:</label>
+                            <input type="date" id="kids-adm-report-end" class="input">
+                        </div>
+                        <button onclick="KidsModule.generateAttendantReport()" class="btn btn-primary" style="padding: 12px 20px;">
+                            🔍 Gerar Relatório
+                        </button>
+                    </div>
+
+                    <div id="kids-adm-report-content" style="max-height: 60vh; overflow-y: auto;">
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            Selecione o período e clique em Gerar Relatório
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <button onclick="KidsModule.exportAdmReport()" class="btn btn-success" id="kids-adm-export-btn" style="display: none;">📊 Exportar Excel</button>
+                        <button onclick="KidsModule.closeAdmReportModal()" class="btn btn-secondary" style="grid-column: 2;">❌ Fechar</button>
+                    </div>
                 </div>
             </div>
 

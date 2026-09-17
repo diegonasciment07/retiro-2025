@@ -118,6 +118,9 @@
         const btnEquipes = document.getElementById('kids-gerenciar-equipes-btn');
         if (btnEquipes) btnEquipes.style.display = isAdm() ? 'block' : 'none';
 
+        const btnAdmReportWrap = document.getElementById('kids-adm-report-btn-wrap');
+        if (btnAdmReportWrap) btnAdmReportWrap.style.display = isAdm() ? 'block' : 'none';
+
         await Promise.all([loadKids(), loadTeams()]);
         renderStats();
         searchKids();
@@ -859,6 +862,654 @@
     }
 
     // ==========================================================
+    // DASHBOARD DE FECHAMENTO (Kids) — mesma lógica do retiro principal,
+    // adaptada pra pagamentos_kids/inscricoes_kids. Ver app.js
+    // (buildFilteredPaymentsQueryFactory/fetchAllRows/fetchParticipantsStatus/
+    // applyStatusFilter) pra referência do porquê dessa estrutura: garante
+    // que painel e exportação nunca divirjam, e pagina a busca de pagamentos
+    // pra não truncar silenciosamente se o volume crescer.
+    // ==========================================================
+    const KIDS_CHUNK_SIZE = 1000;
+
+    function dateRange(v) { return window.getUTCDateRangeForLocalDate ? window.getUTCDateRangeForLocalDate(v) : null; }
+
+    async function fetchAllRowsKids(buildQuery) {
+        let rows = [];
+        let page = 0;
+        let keepFetching = true;
+
+        while (keepFetching) {
+            const from = page * KIDS_CHUNK_SIZE;
+            const to = from + KIDS_CHUNK_SIZE - 1;
+            const { data, error } = await buildQuery().range(from, to);
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                keepFetching = false;
+            } else {
+                rows = rows.concat(data);
+                page += 1;
+                if (data.length < KIDS_CHUNK_SIZE) keepFetching = false;
+            }
+        }
+
+        return rows;
+    }
+
+    function buildFilteredPaymentsQueryFactoryKids({ filterData, filterAtendente, filterForma }) {
+        const range = dateRange(filterData);
+        const normalizedAtendente = filterAtendente ? filterAtendente.trim() : '';
+
+        return () => {
+            let q = sb().from('pagamentos_kids').select('*');
+            if (range) q = q.gte('data_pagamento', range.start).lte('data_pagamento', range.end);
+            if (normalizedAtendente) q = q.ilike('atendente', normalizedAtendente);
+            if (filterForma) q = q.eq('forma_pagamento', filterForma);
+            return q;
+        };
+    }
+
+    async function fetchParticipantsStatusKids(ids = []) {
+        const uniqueIds = [...new Set(ids.filter(Boolean))];
+        if (uniqueIds.length === 0) return [];
+
+        const participants = [];
+        for (let i = 0; i < uniqueIds.length; i += KIDS_CHUNK_SIZE) {
+            const chunk = uniqueIds.slice(i, i + KIDS_CHUNK_SIZE);
+            const { data, error } = await sb().from('inscricoes_kids').select('id, status_pagamento').in('id', chunk);
+            if (error) throw error;
+            participants.push(...(data || []));
+        }
+        return participants;
+    }
+
+    function applyStatusFilterKids(pagamentos, participants, status) {
+        if (!status) return { pagamentos, participants };
+        const allowedIds = new Set(participants.filter(p => p.status_pagamento === status).map(p => p.id));
+        return {
+            pagamentos: pagamentos.filter(p => allowedIds.has(p.inscricao_id)),
+            participants: participants.filter(p => allowedIds.has(p.id))
+        };
+    }
+
+    async function loadAtendentesKids() {
+        try {
+            const { data, error } = await sb().from('pagamentos_kids').select('atendente');
+            if (error) throw error;
+
+            const atendentes = [...new Set((data || []).map(p => p.atendente).filter(a => a && a.trim() !== ''))];
+            const select = document.getElementById('kids-filter-atendente');
+            if (!select) return;
+
+            while (select.children.length > 1) select.removeChild(select.lastChild);
+            atendentes.forEach(a => {
+                const option = document.createElement('option');
+                option.value = a;
+                option.textContent = a;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Erro ao carregar atendentes (kids):', error);
+        }
+    }
+
+    function showDashboard() {
+        document.getElementById('kids-main-content').style.display = 'none';
+        document.getElementById('kids-dashboard-container').style.display = 'block';
+        loadAtendentesKids();
+        updateDashboard();
+    }
+
+    function hideDashboard() {
+        document.getElementById('kids-main-content').style.display = 'block';
+        document.getElementById('kids-dashboard-container').style.display = 'none';
+    }
+
+    function resetDashboardMetricsKids() {
+        document.getElementById('kids-dash-total-inscricoes').textContent = 0;
+        document.getElementById('kids-dash-pre-inscricoes').textContent = 0;
+        document.getElementById('kids-dash-pagos-completo').textContent = 0;
+        document.getElementById('kids-total-arrecadado').textContent = 'R$ 0,00';
+
+        const zeroCard = (id) => {
+            document.getElementById(id).innerHTML = `
+                <div style="font-size: 1.8em; font-weight: bold;">0</div>
+                <div style="font-size: 0.9em;">R$ 0,00</div>
+            `;
+        };
+
+        zeroCard('kids-dash-valor-pix');
+        zeroCard('kids-dash-valor-dinheiro');
+        zeroCard('kids-dash-valor-cartao');
+        zeroCard('kids-dash-valor-debito');
+        zeroCard('kids-dash-valor-recibo');
+
+        document.getElementById('kids-inscricoes-tbody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">Nenhum resultado encontrado</td></tr>';
+    }
+
+    async function updateDashboard() {
+        try {
+            const filterData = document.getElementById('kids-filter-data').value;
+            const filterAtendente = document.getElementById('kids-filter-atendente').value;
+            const filterForma = document.getElementById('kids-filter-forma').value;
+            const filterStatus = document.getElementById('kids-filter-status-dash').value;
+
+            const buildPayQuery = buildFilteredPaymentsQueryFactoryKids({ filterData, filterAtendente, filterForma });
+            const pagamentos = await fetchAllRowsKids(buildPayQuery);
+
+            if (!pagamentos || pagamentos.length === 0) {
+                resetDashboardMetricsKids();
+                return;
+            }
+
+            const participantsInfo = await fetchParticipantsStatusKids(pagamentos.map(p => p.inscricao_id));
+            const { pagamentos: filteredPayments, participants: filteredParticipants } =
+                applyStatusFilterKids(pagamentos, participantsInfo, filterStatus);
+
+            if (!filteredPayments.length) {
+                resetDashboardMetricsKids();
+                return;
+            }
+
+            const participantLookup = new Map(filteredParticipants.map(p => [p.id, p]));
+            const participantsForMetrics = [...new Set(filteredPayments.map(p => p.inscricao_id))]
+                .map(id => participantLookup.get(id) || { id, status_pagamento: 'N/A' });
+
+            const stats = {
+                totalArrecadado: 0,
+                formas: {
+                    'PIX': { qtd: 0, valor: 0 },
+                    'DINHEIRO': { qtd: 0, valor: 0 },
+                    'CARTÃO DE CRÉDITO': { qtd: 0, valor: 0 },
+                    'CARTÃO DE DÉBITO': { qtd: 0, valor: 0 },
+                    'RECIBO': { qtd: 0, valor: 0 }
+                }
+            };
+
+            filteredPayments.forEach(p => {
+                const valor = parseFloat(p.valor_pago) || 0;
+                stats.totalArrecadado += valor;
+                if (stats.formas[p.forma_pagamento]) {
+                    stats.formas[p.forma_pagamento].qtd += 1;
+                    stats.formas[p.forma_pagamento].valor += valor;
+                }
+            });
+
+            document.getElementById('kids-dash-total-inscricoes').textContent = participantsForMetrics.length;
+            document.getElementById('kids-dash-pagos-completo').textContent = participantsForMetrics.filter(p => p.status_pagamento === 'PAGO').length;
+            document.getElementById('kids-dash-pre-inscricoes').textContent = participantsForMetrics.filter(p => p.status_pagamento === 'PAGO PARCIALMENTE').length;
+            document.getElementById('kids-total-arrecadado').textContent = `R$ ${stats.totalArrecadado.toFixed(2).replace('.', ',')}`;
+
+            const updateFormaCard = (id, forma) => {
+                document.getElementById(id).innerHTML = `
+                    <div style="font-size: 1.8em; font-weight: bold;">${stats.formas[forma]?.qtd || 0}</div>
+                    <div style="font-size: 0.9em;">R$ ${stats.formas[forma]?.valor.toFixed(2).replace('.', ',') || '0,00'}</div>
+                `;
+            };
+
+            updateFormaCard('kids-dash-valor-pix', 'PIX');
+            updateFormaCard('kids-dash-valor-dinheiro', 'DINHEIRO');
+            updateFormaCard('kids-dash-valor-cartao', 'CARTÃO DE CRÉDITO');
+            updateFormaCard('kids-dash-valor-debito', 'CARTÃO DE DÉBITO');
+            updateFormaCard('kids-dash-valor-recibo', 'RECIBO');
+
+            await updateInscricoesTableFromPayments(filteredPayments);
+
+        } catch (error) {
+            console.error('❌ Erro no dashboard (kids):', error);
+            notify('Erro ao atualizar dashboard: ' + error.message, 'error');
+        }
+    }
+
+    async function updateInscricoesTableFromPayments(pagamentos) {
+        const tbody = document.getElementById('kids-inscricoes-tbody');
+        if (!tbody) return;
+
+        if (!pagamentos || pagamentos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">Nenhum resultado encontrado</td></tr>';
+            return;
+        }
+
+        const linhas = pagamentos.map(p => {
+            const dataPagamento = new Date(p.data_pagamento).toLocaleString('pt-BR', {
+                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const valorFormatado = `R$ ${parseFloat(p.valor_pago).toFixed(2).replace('.', ',')}`;
+
+            return `
+                <tr style="cursor: pointer; border-bottom: 1px solid #333;" onclick="KidsModule.showDetails('${p.inscricao_id}')">
+                    <td style="padding: 10px;">${p.nome_participante || 'N/A'}</td>
+                    <td style="padding: 10px;">${p.forma_pagamento || 'N/A'}</td>
+                    <td style="padding: 10px; text-align: left;"><strong style="color: #22c55e;">${valorFormatado}</strong></td>
+                    <td style="padding: 10px;">${p.atendente || 'N/A'}</td>
+                    <td style="padding: 10px;">${dataPagamento}</td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = linhas.join('');
+    }
+
+    function exportDashboard() {
+        try {
+            notify('Gerando base completa...', 'info');
+
+            const data = allKids.map(k => ({
+                ...k,
+                criado_em: k.criado_em ? fmtData(localTime(k.criado_em)) : 'N/A',
+                data_confirmacao_pagamento: k.data_confirmacao_pagamento ? fmtData(localTime(k.data_confirmacao_pagamento)) : 'N/A',
+                data_ultima_atualizacao: k.data_ultima_atualizacao ? fmtData(localTime(k.data_ultima_atualizacao)) : 'N/A'
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Base Completa Kids');
+            XLSX.writeFile(wb, `base_completa_kids_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+        } catch (error) {
+            console.error('Erro ao exportar base completa (kids):', error);
+            notify('Erro ao exportar base completa', 'error');
+        }
+    }
+
+    async function exportFiltrado() {
+        try {
+            notify('Gerando relatório filtrado...', 'info');
+
+            const filterData = document.getElementById('kids-filter-data').value;
+            const filterAtendente = document.getElementById('kids-filter-atendente').value;
+            const filterForma = document.getElementById('kids-filter-forma').value;
+            const filterStatus = document.getElementById('kids-filter-status-dash').value;
+
+            const buildPayQuery = buildFilteredPaymentsQueryFactoryKids({ filterData, filterAtendente, filterForma });
+            const pagamentosBrutos = await fetchAllRowsKids(buildPayQuery);
+
+            if (!pagamentosBrutos || pagamentosBrutos.length === 0) {
+                notify('Nenhum dado para exportar', 'warning');
+                return;
+            }
+
+            const participantsInfo = await fetchParticipantsStatusKids(pagamentosBrutos.map(p => p.inscricao_id));
+            const { pagamentos } = applyStatusFilterKids(pagamentosBrutos, participantsInfo, filterStatus);
+
+            if (pagamentos.length === 0) {
+                notify('Nenhum dado para exportar', 'warning');
+                return;
+            }
+
+            const data = pagamentos.map(p => ({
+                'Participante': p.nome_participante,
+                'Valor_Pago': parseFloat(p.valor_pago),
+                'Forma': p.forma_pagamento,
+                'Atendente': p.atendente,
+                'Data': fmtData(localTime(p.data_pagamento)),
+                'Observações': p.observacoes
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Pagamentos Filtrados Kids');
+            XLSX.writeFile(wb, `pagamentos_filtrados_kids_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+            notify(`Relatório exportado: ${pagamentos.length} pagamento(s)!`, 'success');
+
+        } catch (error) {
+            console.error('Erro ao exportar (kids):', error);
+            notify('Erro ao exportar: ' + error.message, 'error');
+        }
+    }
+
+    // ==========================================================
+    // RESUMO DE INSCRIÇÕES (Kids) — mesma ideia do resumo de ônibus do
+    // retiro principal, só que por tipo_evento em vez de sexo.
+    // ==========================================================
+    const RESUMO_TIPOS_KIDS = ['ACAMPA_KIDS', 'BROTHERS_CAMP'];
+    const RESUMO_STATUS_KIDS = ['PAGO', 'PAGO PARCIALMENTE', 'PENDENTE'];
+
+    function contarInscricoesKids({ tipoEvento, funcao, status } = {}) {
+        return allKids.filter(k =>
+            (!tipoEvento || k.tipo_evento === tipoEvento) &&
+            (!funcao || k.funcao === funcao) &&
+            (!status || k.status_pagamento === status)
+        ).length;
+    }
+
+    function montarLinhasResumoKids(tipoEvento) {
+        const linhaTotal = `
+            <tr style="background: rgba(255,255,255,0.08); font-weight: 900;">
+                <td style="padding: 10px;">${tipoEventoLabel(tipoEvento)}</td>
+                <td style="text-align: center;">${contarInscricoesKids({ tipoEvento, funcao: 'PARTICIPANTE' })}</td>
+                <td style="text-align: center;">${contarInscricoesKids({ tipoEvento, funcao: 'TRABALHO' })}</td>
+                <td style="text-align: center;">${contarInscricoesKids({ tipoEvento })}</td>
+            </tr>
+        `;
+        const linhasStatus = RESUMO_STATUS_KIDS.map(status => `
+            <tr>
+                <td style="padding: 8px 8px 8px 24px; color: var(--text-light);">${getStatusText(status)}</td>
+                <td style="text-align: center;">${contarInscricoesKids({ tipoEvento, funcao: 'PARTICIPANTE', status })}</td>
+                <td style="text-align: center;">${contarInscricoesKids({ tipoEvento, funcao: 'TRABALHO', status })}</td>
+                <td style="text-align: center;">${contarInscricoesKids({ tipoEvento, status })}</td>
+            </tr>
+        `).join('');
+        return linhaTotal + linhasStatus;
+    }
+
+    function montarTabelaResumoKids() {
+        const linhaTotalGeral = `
+            <tr style="background: rgba(255,255,255,0.08); font-weight: 900; border-top: 2px solid var(--border-strong);">
+                <td style="padding: 10px;">Total Geral</td>
+                <td style="text-align: center;">${contarInscricoesKids({ funcao: 'PARTICIPANTE' })}</td>
+                <td style="text-align: center;">${contarInscricoesKids({ funcao: 'TRABALHO' })}</td>
+                <td style="text-align: center;">${allKids.length}</td>
+            </tr>
+        `;
+
+        return `
+            <table class="table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>RETIRO KIDS</th>
+                        <th style="text-align: center;">PARTICIPANTE</th>
+                        <th style="text-align: center;">TRABALHO</th>
+                        <th style="text-align: center;">Total Geral</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${montarLinhasResumoKids('ACAMPA_KIDS')}
+                    ${montarLinhasResumoKids('BROTHERS_CAMP')}
+                    ${linhaTotalGeral}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function generateSummaryReport() {
+        try {
+            const dataAtualizacao = fmtData(new Date());
+            const content = `
+                <div style="margin-bottom: 15px; color: var(--text-light); text-align: center;">
+                    Inscrições atualizadas até ${dataAtualizacao}
+                </div>
+                ${montarTabelaResumoKids()}
+            `;
+            document.getElementById('kids-summary-content').innerHTML = content;
+            document.getElementById('kids-summary-modal').style.display = 'flex';
+        } catch (error) {
+            console.error('Erro ao gerar resumo (kids):', error);
+            notify('Erro ao gerar resumo de inscrições', 'error');
+        }
+    }
+
+    function closeSummaryModal() {
+        document.getElementById('kids-summary-modal').style.display = 'none';
+    }
+
+    function printSummaryReport() {
+        const printContent = `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h1 style="color: #ff6b35;">🧒 RETIRO KIDS</h1>
+                    <h2>Inscrições atualizadas até ${fmtData(new Date())}</h2>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="background: #ff6b35; color: white;">
+                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">RETIRO KIDS</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">PARTICIPANTE</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">TRABALHO</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">Total Geral</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${RESUMO_TIPOS_KIDS.map(tipo => `
+                            <tr style="background: #eee; font-weight: bold;">
+                                <td style="border: 1px solid #ddd; padding: 8px;">${tipoEventoLabel(tipo)}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoesKids({ tipoEvento: tipo, funcao: 'PARTICIPANTE' })}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoesKids({ tipoEvento: tipo, funcao: 'TRABALHO' })}</td>
+                                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoesKids({ tipoEvento: tipo })}</td>
+                            </tr>
+                            ${RESUMO_STATUS_KIDS.map(status => `
+                                <tr>
+                                    <td style="border: 1px solid #ddd; padding: 8px 8px 8px 24px;">${getStatusText(status)}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoesKids({ tipoEvento: tipo, funcao: 'PARTICIPANTE', status })}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoesKids({ tipoEvento: tipo, funcao: 'TRABALHO', status })}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoesKids({ tipoEvento: tipo, status })}</td>
+                                </tr>
+                            `).join('')}
+                        `).join('')}
+                        <tr style="background: #eee; font-weight: bold;">
+                            <td style="border: 1px solid #ddd; padding: 8px;">Total Geral</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoesKids({ funcao: 'PARTICIPANTE' })}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${contarInscricoesKids({ funcao: 'TRABALHO' })}</td>
+                            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${allKids.length}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">
+                    Gerado em ${fmtData(new Date())} - Sistema de Balcão O Retiro 2026 (Kids)
+                </div>
+            </div>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.print();
+    }
+
+    // ==========================================================
+    // RELATÓRIO ADM — fechamento por atendente (Kids), ADM only
+    // ==========================================================
+    let admReportDataKids = null;
+
+    function openAdmReport() {
+        if (!isAdm()) { notify('Apenas administradores podem ver o relatório ADM.', 'error'); return; }
+        document.getElementById('kids-adm-report-modal').style.display = 'flex';
+        document.getElementById('kids-adm-report-content').innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Selecione o período e clique em Gerar Relatório</div>';
+        document.getElementById('kids-adm-export-btn').style.display = 'none';
+        admReportDataKids = null;
+    }
+
+    function closeAdmReportModal() {
+        document.getElementById('kids-adm-report-modal').style.display = 'none';
+        admReportDataKids = null;
+    }
+
+    async function generateAttendantReport() {
+        if (!isAdm()) { notify('Apenas administradores podem gerar o relatório ADM.', 'error'); return; }
+
+        const startDate = document.getElementById('kids-adm-report-start').value;
+        const endDate = document.getElementById('kids-adm-report-end').value;
+        const contentDiv = document.getElementById('kids-adm-report-content');
+        contentDiv.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading"></div> Carregando...</div>';
+        document.getElementById('kids-adm-export-btn').style.display = 'none';
+
+        try {
+            let query = sb().from('pagamentos_kids').select('*');
+
+            if (startDate) {
+                const startRange = dateRange(startDate);
+                if (startRange) query = query.gte('data_pagamento', startRange.start);
+            }
+            if (endDate) {
+                const endRange = dateRange(endDate);
+                if (endRange) query = query.lte('data_pagamento', endRange.end);
+            }
+
+            const { data: pagamentos, error } = await query;
+            if (error) throw error;
+
+            if (!pagamentos || pagamentos.length === 0) {
+                contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Nenhum pagamento encontrado no período</div>';
+                return;
+            }
+
+            const byAtendente = {};
+            pagamentos.forEach(p => {
+                const atendente = (p.atendente || 'SEM ATENDENTE').trim();
+                if (!byAtendente[atendente]) {
+                    byAtendente[atendente] = { dinheiro: 0, debito: 0, credito: 0, pix: 0, recibo: 0, participantes: new Set() };
+                }
+                const valor = parseFloat(p.valor_pago) || 0;
+                const forma = p.forma_pagamento || '';
+                if (forma === 'DINHEIRO') byAtendente[atendente].dinheiro += valor;
+                else if (forma === 'CARTÃO DE DÉBITO') byAtendente[atendente].debito += valor;
+                else if (forma === 'CARTÃO DE CRÉDITO') byAtendente[atendente].credito += valor;
+                else if (forma === 'PIX') byAtendente[atendente].pix += valor;
+                else if (forma === 'RECIBO') byAtendente[atendente].recibo += valor;
+                if (p.inscricao_id) byAtendente[atendente].participantes.add(p.inscricao_id);
+            });
+
+            admReportDataKids = Object.entries(byAtendente)
+                .map(([atendente, a]) => ({
+                    atendente,
+                    dinheiro: a.dinheiro,
+                    debito: a.debito,
+                    credito: a.credito,
+                    pix: a.pix,
+                    acumulado: a.debito + a.credito + a.pix,
+                    recibo: a.recibo,
+                    totalComRecibo: a.dinheiro + a.debito + a.credito + a.pix + a.recibo,
+                    totalSemRecibo: a.dinheiro + a.debito + a.credito + a.pix,
+                    unicos: a.participantes.size
+                }))
+                .sort((a, b) => a.atendente.localeCompare(b.atendente));
+
+            const totals = admReportDataKids.reduce((acc, r) => ({
+                dinheiro: acc.dinheiro + r.dinheiro,
+                debito: acc.debito + r.debito,
+                credito: acc.credito + r.credito,
+                pix: acc.pix + r.pix,
+                acumulado: acc.acumulado + r.acumulado,
+                recibo: acc.recibo + r.recibo,
+                totalComRecibo: acc.totalComRecibo + r.totalComRecibo,
+                totalSemRecibo: acc.totalSemRecibo + r.totalSemRecibo,
+                unicos: acc.unicos + r.unicos
+            }), { dinheiro: 0, debito: 0, credito: 0, pix: 0, acumulado: 0, recibo: 0, totalComRecibo: 0, totalSemRecibo: 0, unicos: 0 });
+
+            const fmt = v => `R$ ${v.toFixed(2).replace('.', ',')}`;
+
+            const rows = admReportDataKids.map(r => `
+                <tr>
+                    <td style="padding: 10px; font-weight: bold; color: var(--primary);">${r.atendente}</td>
+                    <td style="padding: 10px; text-align: right;">${fmt(r.dinheiro)}</td>
+                    <td style="padding: 10px; text-align: right;">${fmt(r.debito)}</td>
+                    <td style="padding: 10px; text-align: right;">${fmt(r.credito)}</td>
+                    <td style="padding: 10px; text-align: right;">${fmt(r.pix)}</td>
+                    <td style="padding: 10px; text-align: right; color: #22c55e;">${fmt(r.acumulado)}</td>
+                    <td style="padding: 10px; text-align: right;">${fmt(r.recibo)}</td>
+                    <td style="padding: 10px; text-align: right; color: var(--primary); font-weight: bold;">${fmt(r.totalComRecibo)}</td>
+                    <td style="padding: 10px; text-align: right; color: #22c55e; font-weight: bold;">${fmt(r.totalSemRecibo)}</td>
+                    <td style="padding: 10px; text-align: center;">${r.unicos}</td>
+                </tr>
+            `).join('');
+
+            const periodoLabel = (startDate || endDate)
+                ? `Período: ${startDate ? new Date(startDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'início'} até ${endDate ? new Date(endDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'hoje'}`
+                : 'Todos os períodos';
+
+            contentDiv.innerHTML = `
+                <div style="margin-bottom: 15px; color: #ccc; font-size: 0.9em;">${periodoLabel} · ${pagamentos.length} pagamentos encontrados</div>
+                <div style="overflow-x: auto;">
+                    <table class="table" style="font-size: 0.85em; min-width: 950px;">
+                        <thead>
+                            <tr style="background: #222;">
+                                <th style="padding: 10px; white-space: nowrap;">Atendente</th>
+                                <th style="padding: 10px; text-align: right; white-space: nowrap;">💵 Dinheiro</th>
+                                <th style="padding: 10px; text-align: right; white-space: nowrap;">💳 Débito</th>
+                                <th style="padding: 10px; text-align: right; white-space: nowrap;">💳 Crédito</th>
+                                <th style="padding: 10px; text-align: right; white-space: nowrap;">🏦 PIX</th>
+                                <th style="padding: 10px; text-align: right; white-space: nowrap;">📊 Acumulado ¹</th>
+                                <th style="padding: 10px; text-align: right; white-space: nowrap;">🧾 Recibo</th>
+                                <th style="padding: 10px; text-align: right; white-space: nowrap;">✅ Total c/ Recibo</th>
+                                <th style="padding: 10px; text-align: right; white-space: nowrap;">🔹 Total s/ Recibo</th>
+                                <th style="padding: 10px; text-align: center; white-space: nowrap;">👥 Únicos</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                        <tfoot>
+                            <tr style="background: var(--primary); color: white; font-weight: bold;">
+                                <td style="padding: 10px;">TOTAL GERAL</td>
+                                <td style="padding: 10px; text-align: right;">${fmt(totals.dinheiro)}</td>
+                                <td style="padding: 10px; text-align: right;">${fmt(totals.debito)}</td>
+                                <td style="padding: 10px; text-align: right;">${fmt(totals.credito)}</td>
+                                <td style="padding: 10px; text-align: right;">${fmt(totals.pix)}</td>
+                                <td style="padding: 10px; text-align: right;">${fmt(totals.acumulado)}</td>
+                                <td style="padding: 10px; text-align: right;">${fmt(totals.recibo)}</td>
+                                <td style="padding: 10px; text-align: right;">${fmt(totals.totalComRecibo)}</td>
+                                <td style="padding: 10px; text-align: right;">${fmt(totals.totalSemRecibo)}</td>
+                                <td style="padding: 10px; text-align: center;">${totals.unicos}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.75em; color: #888;">¹ Acumulado = Crédito + Débito + PIX</div>
+            `;
+
+            document.getElementById('kids-adm-export-btn').style.display = 'block';
+
+        } catch (error) {
+            console.error('❌ Erro ao gerar relatório ADM (kids):', error);
+            contentDiv.innerHTML = `<div style="text-align: center; padding: 40px; color: #ff6666;">Erro: ${error.message}</div>`;
+            notify('Erro ao gerar relatório: ' + error.message, 'error');
+        }
+    }
+
+    function exportAdmReport() {
+        if (!admReportDataKids) return;
+
+        const startDate = document.getElementById('kids-adm-report-start').value;
+        const endDate = document.getElementById('kids-adm-report-end').value;
+        const fmt = v => parseFloat(v.toFixed(2));
+
+        const totals = admReportDataKids.reduce((acc, r) => ({
+            dinheiro: acc.dinheiro + r.dinheiro,
+            debito: acc.debito + r.debito,
+            credito: acc.credito + r.credito,
+            pix: acc.pix + r.pix,
+            acumulado: acc.acumulado + r.acumulado,
+            recibo: acc.recibo + r.recibo,
+            totalComRecibo: acc.totalComRecibo + r.totalComRecibo,
+            totalSemRecibo: acc.totalSemRecibo + r.totalSemRecibo,
+            unicos: acc.unicos + r.unicos
+        }), { dinheiro: 0, debito: 0, credito: 0, pix: 0, acumulado: 0, recibo: 0, totalComRecibo: 0, totalSemRecibo: 0, unicos: 0 });
+
+        const data = [
+            ...admReportDataKids.map(r => ({
+                'Atendente': r.atendente,
+                'Valor Dinheiro (R$)': fmt(r.dinheiro),
+                'Valor Débito (R$)': fmt(r.debito),
+                'Valor Crédito (R$)': fmt(r.credito),
+                'Valor PIX (R$)': fmt(r.pix),
+                'Acumulado Créd+Déb+PIX (R$)': fmt(r.acumulado),
+                'Valor Recibo (R$)': fmt(r.recibo),
+                'Total c/ Recibo (R$)': fmt(r.totalComRecibo),
+                'Total s/ Recibo (R$)': fmt(r.totalSemRecibo),
+                'Atendimentos Únicos': r.unicos
+            })),
+            {
+                'Atendente': 'TOTAL GERAL',
+                'Valor Dinheiro (R$)': fmt(totals.dinheiro),
+                'Valor Débito (R$)': fmt(totals.debito),
+                'Valor Crédito (R$)': fmt(totals.credito),
+                'Valor PIX (R$)': fmt(totals.pix),
+                'Acumulado Créd+Déb+PIX (R$)': fmt(totals.acumulado),
+                'Valor Recibo (R$)': fmt(totals.recibo),
+                'Total c/ Recibo (R$)': fmt(totals.totalComRecibo),
+                'Total s/ Recibo (R$)': fmt(totals.totalSemRecibo),
+                'Atendimentos Únicos': totals.unicos
+            }
+        ];
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Fechamento por Atendente Kids');
+        const periodoStr = (startDate && endDate) ? `_${startDate}_a_${endDate}` : '';
+        XLSX.writeFile(wb, `relatorio_atendentes_kids${periodoStr}_${new Date().toISOString().split('T')[0]}.xlsx`);
+        notify('Relatório exportado com sucesso!', 'success');
+    }
+
+    // ==========================================================
     // API PÚBLICA DO MÓDULO
     // ==========================================================
     window.KidsModule = {
@@ -883,6 +1534,18 @@
         toggleRoster,
         createTeam,
         deleteTeam,
-        atribuirPendentes
+        atribuirPendentes,
+        showDashboard,
+        hideDashboard,
+        updateDashboard,
+        exportDashboard,
+        exportFiltrado,
+        generateSummaryReport,
+        closeSummaryModal,
+        printSummaryReport,
+        openAdmReport,
+        closeAdmReportModal,
+        generateAttendantReport,
+        exportAdmReport
     };
 })();

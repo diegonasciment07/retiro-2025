@@ -3505,4 +3505,5 @@ function exportEventRegistrations() {
         window.formatCurrency = formatCurrency;
         window.formatDateTime = formatDateTime;
         window.convertToLocalTime = convertToLocalTime;
+        window.getUTCDateRangeForLocalDate = getUTCDateRangeForLocalDate;
         window.isCurrentUserAdm = isCurrentUserAdm;
