@@ -992,12 +992,13 @@
             return `
                 <div style="border: 1px solid #333; border-radius: 8px; padding: 15px; margin-bottom: 12px; background: #1a1a1a;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                        <div>
+                        <div id="kids-team-info-${team.id}">
                             <strong style="color: var(--primary); font-size: 1.1em;">${team.cor ? team.cor + ' ' : ''}${team.nome_time}</strong>
                             <div style="font-size: 0.8em; color: var(--text-light); margin-top: 2px;">👨‍🏫 ${team.professores_responsaveis || 'Sem professor definido'}</div>
                         </div>
-                        <div style="display: flex; gap: 6px;">
+                        <div style="display: flex; gap: 6px;" id="kids-team-actions-${team.id}">
                             <button onclick="KidsModule.toggleRoster('${team.id}')" class="btn btn-info" style="padding: 5px 10px; font-size: 0.75em;" id="kids-roster-toggle-${team.id}">Ver lista</button>
+                            ${isTeamsAdmin() ? `<button onclick="KidsModule.startEditTeam('${team.id}')" class="btn btn-warning" style="padding: 5px 10px; font-size: 0.75em;">✏️</button>` : ''}
                             ${isTeamsAdmin() ? `<button onclick="KidsModule.deleteTeam('${team.id}')" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.75em;">🗑️</button>` : ''}
                         </div>
                     </div>
@@ -1112,6 +1113,73 @@
         } catch (error) {
             console.error('Erro ao excluir equipe:', error);
             notify('Erro ao excluir equipe: ' + error.message, 'error');
+        }
+    }
+
+    // Troca nome/professores/cor da equipe por campos editáveis, direto no
+    // card — sem precisar excluir e recriar o time pra corrigir/completar
+    // essas informações.
+    function startEditTeam(teamId) {
+        if (!isTeamsAdmin()) { notify('Você não tem permissão pra editar equipes.', 'error'); return; }
+
+        const team = allTeams.find(t => t.id === teamId);
+        if (!team) return;
+
+        const infoEl = document.getElementById(`kids-team-info-${teamId}`);
+        const actionsEl = document.getElementById(`kids-team-actions-${teamId}`);
+        if (!infoEl || !actionsEl) return;
+
+        const esc = (v) => (v || '').replace(/"/g, '&quot;');
+
+        infoEl.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 6px; min-width: 220px;">
+                <input type="text" id="kids-edit-team-nome-${teamId}" class="input" style="padding: 6px 10px; font-size: 0.95em;" value="${esc(team.nome_time)}" placeholder="Nome do time">
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="kids-edit-team-prof-${teamId}" class="input" style="padding: 6px 10px; font-size: 0.8em; flex: 1;" value="${esc(team.professores_responsaveis)}" placeholder="Professores responsáveis">
+                    <input type="text" id="kids-edit-team-cor-${teamId}" class="input" style="padding: 6px 10px; font-size: 0.8em; max-width: 90px;" value="${esc(team.cor)}" placeholder="Emoji/cor">
+                </div>
+            </div>
+        `;
+
+        actionsEl.innerHTML = `
+            <button onclick="KidsModule.saveEditTeam('${teamId}')" class="btn btn-success" style="padding: 5px 10px; font-size: 0.75em;">✅ Salvar</button>
+            <button onclick="KidsModule.renderTeamsList()" class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.75em;">❌</button>
+        `;
+
+        const nomeInput = document.getElementById(`kids-edit-team-nome-${teamId}`);
+        if (nomeInput) { nomeInput.focus(); nomeInput.select(); }
+    }
+
+    async function saveEditTeam(teamId) {
+        if (!isTeamsAdmin()) { notify('Você não tem permissão pra editar equipes.', 'error'); return; }
+
+        const nomeEl = document.getElementById(`kids-edit-team-nome-${teamId}`);
+        const profEl = document.getElementById(`kids-edit-team-prof-${teamId}`);
+        const corEl = document.getElementById(`kids-edit-team-cor-${teamId}`);
+        if (!nomeEl) return;
+
+        const nome = nomeEl.value.trim();
+        if (!nome) { notify('Informe o nome do time', 'error'); return; }
+
+        try {
+            const { error } = await sb()
+                .from('equipes_kids')
+                .update({
+                    nome_time: nome,
+                    professores_responsaveis: profEl.value.trim() || null,
+                    cor: corEl.value.trim() || null,
+                    atualizado_em: new Date().toISOString()
+                })
+                .eq('id', teamId);
+
+            if (error) throw error;
+
+            await loadTeams();
+            renderTeamsList();
+            notify('Equipe atualizada!', 'success');
+        } catch (error) {
+            console.error('Erro ao editar equipe:', error);
+            notify('Erro ao editar equipe: ' + error.message, 'error');
         }
     }
 
@@ -2040,6 +2108,9 @@
         toggleRoster,
         createTeam,
         deleteTeam,
+        startEditTeam,
+        saveEditTeam,
+        renderTeamsList,
         atribuirPendentes,
         showDashboard,
         hideDashboard,
