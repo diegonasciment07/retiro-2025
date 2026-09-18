@@ -1115,23 +1115,31 @@
         }
     }
 
-    // Varre quem ficou sem equipe (porque se inscreveu antes de qualquer time
-    // existir) e atribui um a um, na ordem de inscrição — cada chamada já
-    // recalcula o balanceamento com o estado mais atual (via kids_atribuir_uma).
+    // Confere TODO participante do evento que já bateu o valor mínimo — não
+    // só quem o cache local (allKids) mostra sem equipe. Igual à correção
+    // do forceSync: confiar no cache local pra decidir quem processar é
+    // frágil (cache desatualizado — ex: limpeza retroativa rodada direto no
+    // banco — fazia participantes já pagos ficarem de fora da varredura).
+    // kids_atribuir_uma já é seguro de chamar de novo pra quem já tem
+    // equipe (não faz nada nesse caso), então processamos todo mundo
+    // elegível e deixamos o banco decidir.
     async function atribuirPendentes() {
         if (!isTeamsAdmin()) { notify('Você não tem permissão pra atribuir equipes.', 'error'); return; }
-
-        const pendentes = allKids
-            .filter(k => k.tipo_evento === currentTeamsTipoEvento && k.funcao === 'PARTICIPANTE' && !k.equipe_id && valorPagoNumerico(k) >= VALOR_MINIMO_ENTRADA)
-            .sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
-
-        if (pendentes.length === 0) { notify('Não há pendentes para atribuir.', 'warning'); return; }
 
         const btn = document.getElementById('kids-atribuir-pendentes-btn');
         if (btn) { btn.disabled = true; btn.textContent = '⏳ Atribuindo...'; }
 
         try {
-            for (const kid of pendentes) {
+            // Recarrega antes de decidir quem processar.
+            await loadKids();
+
+            const candidatos = allKids
+                .filter(k => k.tipo_evento === currentTeamsTipoEvento && k.funcao === 'PARTICIPANTE' && valorPagoNumerico(k) >= VALOR_MINIMO_ENTRADA)
+                .sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
+
+            if (candidatos.length === 0) { notify('Não há ninguém elegível pra atribuir.', 'warning'); return; }
+
+            for (const kid of candidatos) {
                 const { error } = await sb().rpc('kids_atribuir_uma', { p_inscricao_id: kid.id });
                 if (error) throw error;
             }
@@ -1142,7 +1150,7 @@
             renderStats();
             searchKids();
 
-            notify(`${pendentes.length} participante(s) atribuído(s) às equipes!`, 'success');
+            notify(`Sorteio conferido para ${candidatos.length} participante(s) elegível(is).`, 'success');
         } catch (error) {
             console.error('Erro ao atribuir pendentes:', error);
             notify('Erro ao atribuir pendentes: ' + error.message, 'error');
