@@ -570,10 +570,22 @@
         // Só a partir daqui a criança entra no sorteio de equipe — igual ao
         // retiro, que também exige o valor mínimo de entrada antes de contar
         // como "confirmado". Equipe de trabalho nunca é sorteada (mesma
-        // exclusão de sempre, já aplicada dentro de kids_atribuir_uma).
-        if (kid.funcao === 'PARTICIPANTE' && !kid.equipe_id && totalPago >= VALOR_MINIMO_ENTRADA) {
+        // exclusão de sempre).
+        //
+        // Não checamos aqui se já tem equipe usando o cache local (allKids) —
+        // de propósito. kids_atribuir_uma já faz esse no-op sozinho lendo o
+        // dado mais atual direto do banco, e confiar no cache local pra
+        // decidir se chama ou não a função é frágil (cache desatualizado —
+        // ex: outro atendente mexeu na equipe em outra aba, ou uma limpeza
+        // retroativa foi rodada direto no banco sem dar refresh na tela —
+        // fazia o sorteio ser pulado silenciosamente, mesmo com o pagamento
+        // mínimo batido).
+        if (kid.funcao === 'PARTICIPANTE' && totalPago >= VALOR_MINIMO_ENTRADA) {
             const { error: atribuirError } = await sb().rpc('kids_atribuir_uma', { p_inscricao_id: kidId });
-            if (atribuirError) console.error('Erro ao atribuir equipe automaticamente:', atribuirError);
+            if (atribuirError) {
+                console.error('Erro ao atribuir equipe automaticamente:', atribuirError);
+                notify('Pagamento salvo, mas houve um erro ao atribuir a equipe automaticamente: ' + atribuirError.message, 'error');
+            }
         }
     }
 
