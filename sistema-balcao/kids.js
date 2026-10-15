@@ -119,6 +119,153 @@
     // marcar com pagamento 100%, chip com 3 estados.
     // ==========================================================
     const WRISTBAND_MARKER = 'PULSEIRA ENTREGUE';
+    let pickupKid = null;
+    let pickupSaving = false;
+
+    function escapePickupText(value) {
+        return String(value || '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    function pickupNames(kid) {
+        return Array.isArray(kid.responsaveis_retirada) ? kid.responsaveis_retirada : [];
+    }
+
+    function pickupSummary(kid) {
+        const names = pickupNames(kid);
+        return names.length ? names.map(escapePickupText).join(' • ') : 'Ainda não confirmado no check-in';
+    }
+
+    function addPickupName(value = '') {
+        if (pickupSaving) return;
+        const row = document.createElement('div');
+        row.style.cssText = 'display: flex; gap: 8px; align-items: end; margin-bottom: 10px;';
+        const label = document.createElement('label');
+        label.style.cssText = 'flex: 1; min-width: 0; color: var(--text-light);';
+        label.textContent = 'Nome completo de quem vai buscar';
+        const input = document.createElement('input');
+        input.className = 'input';
+        input.type = 'text';
+        input.maxLength = 150;
+        input.placeholder = 'Digite o nome completo';
+        input.value = value;
+        input.style.marginTop = '5px';
+        label.appendChild(input);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'btn btn-secondary';
+        remove.textContent = 'Remover';
+        remove.setAttribute('aria-label', 'Remover este responsável pela retirada');
+        remove.onclick = () => {
+            if (pickupSaving) return;
+            row.remove();
+            if (!document.querySelector('#kids-pickup-names input')) addPickupName();
+        };
+        row.append(label, remove);
+        document.getElementById('kids-pickup-names').appendChild(row);
+        input.focus();
+    }
+
+    function showPickupModal(kid) {
+        pickupKid = kid;
+        document.getElementById('kids-pickup-child').textContent = kid.nome_crianca;
+        document.getElementById('kids-pickup-error').textContent = '';
+        document.getElementById('kids-pickup-save').textContent = isWristbandDelivered(kid)
+            ? 'Salvar responsáveis pela retirada' : 'Confirmar e entregar pulseira';
+        document.getElementById('kids-pickup-names').replaceChildren();
+        document.getElementById('kids-pickup-modal').style.display = 'flex';
+        const names = pickupNames(kid);
+        (names.length ? names : [kid.responsavel_nome || '']).forEach(addPickupName);
+        document.querySelector('#kids-pickup-names input')?.focus();
+    }
+
+    async function openPickupModal(kidId) {
+        if (pickupSaving) return;
+        try {
+            const { data, error } = await sb().from('inscricoes_kids').select('*').eq('id', kidId).single();
+            if (error) throw error;
+            if (data.funcao !== 'PARTICIPANTE') return;
+            if (!isWristbandDelivered(data) && data.status_pagamento !== 'PAGO') {
+                notify('Só é possível marcar a pulseira com pagamento 100%', 'error');
+                return;
+            }
+            showPickupModal(data);
+        } catch (error) {
+            notify('Erro ao carregar responsáveis pela retirada: ' + error.message, 'error');
+        }
+    }
+
+    function closePickupModal() {
+        if (pickupSaving) return;
+        document.getElementById('kids-pickup-modal').style.display = 'none';
+        pickupKid = null;
+    }
+
+    async function savePickup() {
+        if (!pickupKid || pickupSaving) return;
+        const errorEl = document.getElementById('kids-pickup-error');
+        const names = [...document.querySelectorAll('#kids-pickup-names input')]
+            .map(input => input.value.trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR'));
+        if (!names.length || names.some(name => !name)) {
+            errorEl.textContent = 'Informe pelo menos um nome. Preencha ou remova os campos vazios.';
+            return;
+        }
+        const uniqueNames = [...new Set(names)];
+        const kidId = pickupKid.id;
+        const markingWristband = !isWristbandDelivered(pickupKid);
+        pickupSaving = true;
+        errorEl.textContent = '';
+        document.getElementById('kids-pickup-save').disabled = true;
+        document.getElementById('kids-pickup-cancel').disabled = true;
+        try {
+            // Releitura e comparação evitam sobrescrever observações de outro atendente.
+            const { data: fresh, error: fetchError } = await sb().from('inscricoes_kids')
+                .select('*').eq('id', kidId).single();
+            if (fetchError) throw fetchError;
+            if (fresh.status !== 'ATIVO') throw new Error('Esta inscrição não está mais ativa.');
+            if (markingWristband && fresh.status_pagamento !== 'PAGO') {
+                throw new Error('Só é possível marcar a pulseira com pagamento 100%');
+            }
+            if (isWristbandDelivered(fresh) !== isWristbandDelivered(pickupKid) ||
+                JSON.stringify(pickupNames(fresh)) !== JSON.stringify(pickupNames(pickupKid))) {
+                throw new Error('O check-in foi alterado por outro atendente. Cancele e abra novamente para conferir.');
+            }
+            let observations = fresh.observacoes;
+            if (markingWristband) {
+                const timestamp = new Date().toLocaleString('pt-BR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+                const note = `[${timestamp}] 🎗️ ${WRISTBAND_MARKER} (${atendenteAtual()})`;
+                observations = observations ? `${observations} | ${note}` : note;
+            }
+            const changes = {
+                responsaveis_retirada: uniqueNames,
+                observacoes: observations,
+                data_ultima_atualizacao: new Date().toISOString()
+            };
+            let update = sb().from('inscricoes_kids').update(changes).eq('id', kidId)
+                .eq('status', 'ATIVO').eq('status_pagamento', fresh.status_pagamento)
+                .eq('data_ultima_atualizacao', fresh.data_ultima_atualizacao);
+            update = fresh.observacoes === null ? update.is('observacoes', null) : update.eq('observacoes', fresh.observacoes);
+            const { data: saved, error } = await update.select('*').single();
+            if (error) throw error;
+            const localKid = allKids.find(k => k.id === kidId);
+            if (localKid) Object.assign(localKid, saved);
+            pickupSaving = false;
+            closePickupModal();
+            searchKids();
+            if (currentKid?.id === kidId && document.getElementById('kids-details-modal').style.display === 'flex') showDetails(kidId);
+            if (document.getElementById('kids-checkin-modal').style.display === 'flex') renderCheckinModal();
+            notify(markingWristband ? 'Pulseira entregue e responsáveis pela retirada confirmados!' : 'Responsáveis pela retirada atualizados!', 'success');
+        } catch (error) {
+            errorEl.textContent = 'Não foi possível salvar: ' + error.message;
+        } finally {
+            pickupSaving = false;
+            document.getElementById('kids-pickup-save').disabled = false;
+            document.getElementById('kids-pickup-cancel').disabled = false;
+        }
+    }
 
     function isWristbandDelivered(kid) {
         return !!(kid.observacoes && kid.observacoes.includes(WRISTBAND_MARKER));
@@ -183,7 +330,7 @@
         try {
             const { data: currentData, error: fetchError } = await sb()
                 .from('inscricoes_kids')
-                .select('observacoes, status_pagamento')
+                .select('*')
                 .eq('id', kidId)
                 .single();
 
@@ -195,6 +342,11 @@
             }
 
             const jaEntregue = !!(currentData.observacoes && currentData.observacoes.includes(WRISTBAND_MARKER));
+
+            if (!jaEntregue && currentData.funcao === 'PARTICIPANTE') {
+                showPickupModal(currentData);
+                return;
+            }
 
             if (jaEntregue && !confirm('Desmarcar a entrega da pulseira desse participante?')) return;
 
@@ -225,6 +377,9 @@
             if (kidLocal) kidLocal.observacoes = updatedObservations;
 
             if (btn) applyWristbandChip(btn, getWristbandChipState({ status_pagamento: 'PAGO', observacoes: updatedObservations }));
+
+            searchKids();
+            if (document.getElementById('kids-checkin-modal').style.display === 'flex') renderCheckinModal();
 
             notify(jaEntregue ? 'Pulseira desmarcada.' : '🎗️ Pulseira marcada como entregue!', 'success');
 
@@ -385,6 +540,10 @@
                     <div><strong>🏆 Equipe:</strong> ${equipeInfo}</div>
                     <div><strong>👪 Responsável:</strong> ${kid.responsavel_nome || 'N/A'}</div>
                     <div><strong>📱 WhatsApp:</strong> ${kid.responsavel_whatsapp || 'N/A'}</div>
+                    ${kid.funcao === 'PARTICIPANTE' ? `<div style="grid-column: 1 / -1; overflow-wrap: anywhere;">
+                        <strong>👪 Autorizados a buscar:</strong> ${pickupSummary(kid)}
+                        ${isWristbandDelivered(kid) ? `<button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8em; margin-left: 6px;" onclick="event.stopPropagation(); KidsModule.openPickupModal('${kid.id}')">${pickupNames(kid).length ? 'Editar' : 'Confirmar nomes'}</button>` : ''}
+                    </div>` : ''}
                     <div><strong>💰 Valor Pago:</strong> ${fmtMoeda(kid.valor_pago)}</div>
                     <div><strong>🎯 Total:</strong> ${fmtMoeda(getValorEsperado(kid))}</div>
                 </div>
@@ -804,6 +963,12 @@
                     </div>
                 </div>
             </div>
+
+            ${kid.funcao === 'PARTICIPANTE' ? `<div style="margin-bottom: 20px;">
+                <h4 style="color: var(--primary); margin-bottom: 12px;">👪 Autorizados a buscar no final do retiro</h4>
+                <p style="color: var(--text-light); overflow-wrap: anywhere;">${pickupSummary(kid)}</p>
+                ${isWristbandDelivered(kid) || kid.status_pagamento === 'PAGO' ? `<button type="button" class="btn btn-secondary" style="margin-top: 10px;" onclick="KidsModule.openPickupModal('${kid.id}')">${isWristbandDelivered(kid) ? 'Confirmar / editar nomes' : 'Confirmar nomes e entregar pulseira'}</button>` : ''}
+            </div>` : ''}
 
             <div style="margin-bottom: 20px;">
                 <h4 style="color: var(--primary); margin-bottom: 15px;">🏥 Saúde e Contexto</h4>
@@ -1462,6 +1627,7 @@
 
             const data = allKids.map(k => ({
                 ...k,
+                responsaveis_retirada: pickupNames(k).join(' • '),
                 criado_em: k.criado_em ? fmtData(localTime(k.criado_em)) : 'N/A',
                 data_confirmacao_pagamento: k.data_confirmacao_pagamento ? fmtData(localTime(k.data_confirmacao_pagamento)) : 'N/A',
                 data_ultima_atualizacao: k.data_ultima_atualizacao ? fmtData(localTime(k.data_ultima_atualizacao)) : 'N/A'
@@ -2126,6 +2292,10 @@
         exportAdmReport,
         toggleWristband,
         toggleWristbandFromDetails,
+        openPickupModal,
+        closePickupModal,
+        addPickupName,
+        savePickup,
         openCheckinModal,
         closeCheckinModal,
         refreshCheckinModal,

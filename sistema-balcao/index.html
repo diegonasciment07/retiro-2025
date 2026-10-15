@@ -1139,6 +1139,22 @@
                 </div>
             </div>
 
+            <!-- Modal: responsáveis pela retirada no check-in (Kids) -->
+            <div id="kids-pickup-modal" class="modal details-modal" style="z-index: 10001;" role="dialog" aria-modal="true" aria-labelledby="kids-pickup-title">
+                <form class="modal-content" style="max-width: 560px; width: 95%;" onsubmit="event.preventDefault(); KidsModule.savePickup()">
+                    <h3 id="kids-pickup-title" style="color: var(--primary);">👪 Quem vai buscar a criança?</h3>
+                    <p id="kids-pickup-child" style="margin: 12px 0; font-weight: 700;"></p>
+                    <p style="color: var(--text-light); margin-bottom: 16px;">Confirme com o responsável os nomes das pessoas autorizadas a buscar a criança no final do retiro. Você pode corrigir o nome sugerido ou adicionar outras pessoas.</p>
+                    <div id="kids-pickup-names"></div>
+                    <button type="button" class="btn btn-secondary" onclick="KidsModule.addPickupName()" style="margin: 12px 0;">➕ Adicionar outro nome</button>
+                    <p id="kids-pickup-error" role="alert" style="color: #f87171; margin-bottom: 12px;"></p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <button type="submit" id="kids-pickup-save" class="btn btn-success">Confirmar e entregar pulseira</button>
+                        <button type="button" id="kids-pickup-cancel" class="btn btn-secondary" onclick="KidsModule.closePickupModal()">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
             <!-- Modal: Gerenciar Equipes (Kids) -->
             <div id="kids-teams-modal" class="modal">
                 <div class="modal-content" style="max-width: 900px; width: 95%;">

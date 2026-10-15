@@ -38,6 +38,24 @@ cd retiro-2025
 - **Inscrições**: Abra `sistema-inscricoes/index.html` no navegador
 - **Balcão**: Abra `sistema-balcao/index.html` no navegador
 
+## Retirada das crianças no check-in Kids
+
+Antes de publicar esta versão do balcão, execute no SQL Editor do Supabase
+o arquivo `supabase/migrations/20261015_kids_responsaveis_retirada.sql`.
+Ele cria a lista `responsaveis_retirada` nas inscrições Kids, mantendo as
+permissões de acesso já existentes para os atendentes autenticados.
+
+Ao clicar em **Marcar Pulseira** para um participante com pagamento completo,
+o atendente confirma pelo menos um nome de quem poderá buscar a criança.
+O responsável da inscrição aparece como sugestão e pode ser substituído;
+outros nomes podem ser adicionados. **Confirmar e entregar pulseira** salva
+os nomes e a entrega juntos. Cancelar não altera o check-in.
+
+Os autorizados aparecem no cartão e nos detalhes, onde podem ser editados
+após a entrega. Para pulseiras entregues antes desta mudança, use
+**Confirmar nomes**. Desmarcar uma pulseira preserva os nomes para uma nova
+confirmação. A exportação da base completa também inclui essa lista.
+
 ## 📧 Contato
 
 Para dúvidas: oalvocuritiba@gmail.com
