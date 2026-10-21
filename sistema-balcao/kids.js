@@ -1118,6 +1118,108 @@
         document.getElementById('kids-teams-modal').style.display = 'none';
     }
 
+    function buildTeamsReport(teams, participants, tipoEvento) {
+        const esc = escapePickupText;
+        const sortedTeams = teams.filter(t => t.tipo_evento === tipoEvento)
+            .sort((a, b) => (a.nome_time || '').localeCompare(b.nome_time || '', 'pt-BR'));
+        const members = participants.filter(k => k.tipo_evento === tipoEvento &&
+            k.funcao === 'PARTICIPANTE' && k.status === 'ATIVO')
+            .sort((a, b) => (a.nome_crianca || '').localeCompare(b.nome_crianca || '', 'pt-BR'));
+        const teamIds = new Set(sortedTeams.map(t => t.id));
+        const unassigned = members.filter(k => !teamIds.has(k.equipe_id));
+        const label = tipoEvento === 'BROTHERS_CAMP' ? 'Teens' : 'Participantes';
+        const section = (title, teachers, roster) => `
+            <section class="team">
+                <div class="team-heading">
+                    <h2>${esc(title)}</h2>
+                    <p><strong>Professores responsáveis:</strong> ${esc(teachers || 'Sem professor definido')}</p>
+                    <p class="count">${label}: ${roster.length}</p>
+                </div>
+                ${roster.length ? `<table>
+                    <thead><tr><th class="check">Conferido</th><th class="number">Nº</th><th>Nome do participante</th><th class="age">Idade</th></tr></thead>
+                    <tbody>${roster.map((kid, i) => `<tr>
+                        <td class="check"><span class="checkbox" aria-label="Espaço para conferência"></span></td>
+                        <td class="number">${i + 1}</td>
+                        <td>${esc(kid.nome_crianca || 'Nome não informado')}</td>
+                        <td class="age">${kid.idade == null ? '—' : `${esc(String(kid.idade))} anos`}</td>
+                    </tr>`).join('')}</tbody>
+                </table>` : '<p class="empty">Nenhum participante neste time.</p>'}
+            </section>`;
+        return `<!DOCTYPE html>
+            <html lang="pt-BR"><head><meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Relatório dos Times — ${esc(tipoEventoLabel(tipoEvento))}</title>
+            <style>
+                * { box-sizing: border-box; }
+                body { margin: 0; background: #f1f5f9; color: #172033; font: 15px Arial, sans-serif; line-height: 1.5; }
+                main { max-width: 960px; margin: 24px auto; padding: 28px; background: white; }
+                h1 { margin: 0; font-size: 26px; } h2 { margin: 0 0 8px; font-size: 21px; overflow-wrap: anywhere; }
+                p { margin: 6px 0; } .meta, .count { color: #475569; }
+                .toolbar { margin-bottom: 24px; }
+                button { padding: 12px 18px; background: #172033; color: white; border: 0; border-radius: 6px; cursor: pointer; font: inherit; }
+                .summary { margin: 20px 0 28px; padding: 14px; border: 1px solid #94a3b8; border-radius: 6px; }
+                .team { margin: 0 0 32px; border: 1px solid #94a3b8; border-radius: 6px; overflow: hidden; }
+                .team-heading { padding: 16px; background: #f1f5f9; border-bottom: 2px solid #475569; break-after: avoid; overflow-wrap: anywhere; }
+                table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                th, td { padding: 10px; text-align: left; border-bottom: 1px solid #cbd5e1; overflow-wrap: anywhere; }
+                th { font-size: 12px; background: #f8fafc; } tr { break-inside: avoid; }
+                .check { width: 80px; text-align: center; } .number { width: 48px; text-align: center; } .age { width: 85px; text-align: center; }
+                .checkbox { display: inline-block; width: 16px; height: 16px; border: 1px solid #475569; vertical-align: middle; }
+                .empty { padding: 16px; }
+                @media (max-width: 600px) { main { margin: 0; padding: 14px; } th, td { padding: 8px 4px; } .check { width: 66px; } .number { width: 34px; } .age { width: 60px; } }
+                @page { size: A4; margin: 14mm; }
+                @media print {
+                    body { background: white; font-size: 11pt; color: black; }
+                    main { margin: 0; padding: 0; max-width: none; }
+                    .toolbar { display: none; } .team { border-radius: 0; overflow: visible; }
+                    .team + .team { break-before: page; }
+                    thead { display: table-header-group; }
+                }
+            </style></head><body><main>
+                <div class="toolbar"><button type="button" id="print-teams-report">Imprimir / Salvar em PDF</button></div>
+                <h1>Relatório dos Times</h1>
+                <p><strong>${esc(tipoEventoLabel(tipoEvento))}</strong></p>
+                <p class="meta">Gerado em ${esc(new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}</p>
+                <div class="summary">Times: <strong>${sortedTeams.length}</strong> · ${label}: <strong>${members.length}</strong> · Sem time: <strong>${unassigned.length}</strong>
+                    <p>Inscrições ativas. Nomes em ordem alfabética. Use a coluna “Conferido” para marcar a revisão.</p>
+                </div>
+                ${sortedTeams.map(t => section(`${t.cor ? t.cor + ' ' : ''}${t.nome_time || 'Time sem nome'}`,
+                    t.professores_responsaveis, members.filter(k => k.equipe_id === t.id))).join('')}
+                ${unassigned.length ? section('Participantes sem time', 'A definir', unassigned) : ''}
+                ${!sortedTeams.length && !members.length ? '<p>Nenhum time ou participante cadastrado para este evento.</p>' : ''}
+            </main></body></html>`;
+    }
+
+    async function generateTeamsReport() {
+        if (!isTeamsAdmin()) { notify('Você não tem permissão para gerar o relatório dos times.', 'error'); return; }
+        const tipoEvento = currentTeamsTipoEvento;
+        // Abre durante o clique para evitar bloqueio de pop-up após a consulta.
+        const reportWindow = window.open('', '_blank');
+        if (!reportWindow) { notify('Permita pop-ups para abrir o relatório dos times.', 'warning'); return; }
+        reportWindow.opener = null;
+        reportWindow.document.body.textContent = 'Carregando relatório dos times...';
+        try {
+            const results = await Promise.allSettled([
+                fetchAllRowsKids(() => sb().from('equipes_kids').select('id,tipo_evento,nome_time,cor,professores_responsaveis')
+                    .eq('tipo_evento', tipoEvento).order('id')),
+                fetchAllRowsKids(() => sb().from('inscricoes_kids').select('id,tipo_evento,funcao,status,equipe_id,nome_crianca,idade')
+                    .eq('tipo_evento', tipoEvento).eq('funcao', 'PARTICIPANTE').eq('status', 'ATIVO').order('id'))
+            ]);
+            const failed = results.find(result => result.status === 'rejected');
+            if (failed) throw failed.reason;
+            if (reportWindow.closed) return;
+            if (!isTeamsAdmin()) { reportWindow.close(); return; }
+            reportWindow.document.open();
+            reportWindow.document.write(buildTeamsReport(results[0].value, results[1].value, tipoEvento));
+            reportWindow.document.close();
+            reportWindow.document.getElementById('print-teams-report').addEventListener('click', () => reportWindow.print());
+        } catch (error) {
+            if (!reportWindow.closed) reportWindow.document.body.textContent = 'Não foi possível gerar o relatório. Feche esta aba e tente novamente.';
+            console.error('Erro ao gerar relatório dos times:', error);
+            notify('Erro ao gerar relatório dos times: ' + error.message, 'error');
+        }
+    }
+
     function renderTeamsTabs() {
         document.getElementById('kids-teams-tab-acampa').classList.toggle('active', currentTeamsTipoEvento === 'ACAMPA_KIDS');
         document.getElementById('kids-teams-tab-brothers').classList.toggle('active', currentTeamsTipoEvento === 'BROTHERS_CAMP');
@@ -2270,6 +2372,7 @@
         cancelKid,
         openTeamsModal,
         closeTeamsModal,
+        generateTeamsReport,
         switchTeamsTipoEvento,
         toggleRoster,
         createTeam,
