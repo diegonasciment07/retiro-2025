@@ -81,6 +81,12 @@ não promete medir força física nem encontrar o ótimo matemático global.
 Uma distribuição existente que já atende às cotas só é trocada por uma proposta
 melhor nos critérios de idade, com preferência por preservar os times em empates.
 
+Exceção solicitada pela organização: **Arthur Oliveira Nascimento permanece em
+João Azuis no Brothers Camp**. O planejador o inclui nas cotas e idades, reserva
+sua vaga antes da distribuição e o exclui das trocas de otimização. A prévia
+mostra essa regra como “Time fixo”. Se houver cadastros duplicados ou o time
+não existir/estiver inativo, a proposta é interrompida para conferência.
+
 **Aplicar esta distribuição** grava todas as trocas em uma transação. Se equipes,
 cadastros ou pagamentos mudaram desde a prévia, é preciso gerar outra. O banco
 valida os participantes, os destinos e as cotas novamente. Somente os mesmos

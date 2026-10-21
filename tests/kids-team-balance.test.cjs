@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {plan, eligible} = require('../sistema-balcao/kids-team-balance.js');
+const {plan, eligible, fixedAssignments} = require('../sistema-balcao/kids-team-balance.js');
 const event = 'BROTHERS_CAMP';
 const teams = Array.from({length: 4}, (_, i) => ({id: `team-${i}`, tipo_evento: event, ativo: true}));
 const kid = (id, sexo, idade, equipe_id = null, extra = {}) => ({id: String(id), sexo, idade, equipe_id,
@@ -70,4 +70,33 @@ test('propriedades das cotas em 150 cenários de 2 a 8 times', () => {
         const kids=Array.from({length:Math.floor(random()*180)},(_,i)=>kid(i,random()<0.43?'MASCULINO':'FEMININO',10+Math.floor(random()*5),available[Math.floor(random()*available.length)].id));
         verify(available,kids);
     }
+});
+
+test('Arthur permanece no João Azuis em todos os rebalanceamentos e conta nas cotas', () => {
+    const namedTeams = teams.map((t,i)=>({...t,nome_time:i===1?'João Azuis':`Time ${i}`}));
+    for(let run=0;run<40;run++) {
+        const kids=Array.from({length:80+run},(_,i)=>kid(i,i%5<2?'MASCULINO':'FEMININO',10+(i+run)%5,teams[i%4].id));
+        kids[0]={...kids[0],nome_crianca:'  ARTHUR  OLIVEIRA NASCIMENTO ',equipe_id:teams[run%4].id};
+        const {result}=verify(namedTeams,kids);
+        assert.equal(result.find(d=>d.id==='0').equipe_id,teams[1].id);
+        const after=kids.map(k=>({...k,equipe_id:result.find(d=>d.id===k.id).equipe_id}));
+        assert.equal(plan(namedTeams,after).find(d=>d.id==='0').equipe_id,teams[1].id);
+    }
+});
+test('time fixo funciona quando Arthur é o único menino e quando há menos participantes que times', () => {
+    const namedTeams=teams.map((t,i)=>({...t,nome_time:i===3?'Joao Azuis':`Time ${i}`}));
+    for(let n=1;n<15;n++) {
+        const kids=Array.from({length:n},(_,i)=>kid(i,i?'FEMININO':'MASCULINO',12,null));
+        kids[0].nome_crianca='Arthur Oliveira Nascimento';
+        const {result}=verify(namedTeams,kids);
+        assert.equal(result.find(d=>d.id==='0').equipe_id,teams[3].id);
+    }
+});
+test('cadastro ou destino ambíguo impede proposta; outros eventos não recebem a exceção', () => {
+    const arthur=kid('arthur','MASCULINO',12,teams[0].id,{nome_crianca:'Arthur Oliveira Nascimento'});
+    const namedTeams=teams.map((t,i)=>({...t,nome_time:i===1?'João Azuis':`Time ${i}`}));
+    assert.throws(()=>plan(teams,[arthur]),/time fixo/);
+    assert.throws(()=>plan(namedTeams,[arthur,{...arthur,id:'duplicado'}]),/mais de um cadastro/);
+    assert.throws(()=>plan([...namedTeams,{...namedTeams[1],id:'duplicado'}],[arthur]),/uma única vez/);
+    assert.deepEqual(fixedAssignments(namedTeams,[{...arthur,tipo_evento:'ACAMPA_KIDS'}]),[]);
 });

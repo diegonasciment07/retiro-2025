@@ -1144,6 +1144,7 @@
             const changes = kids.filter(k => k.equipe_id !== destinations.get(k.id))
                 .sort((a, b) => a.nome_crianca.localeCompare(b.nome_crianca, 'pt-BR'));
             const esc = escapePickupText;
+            const fixedAssignments = window.KidsTeamBalance.fixedAssignments(data.equipes, data.participantes);
             const teamName = id => data.equipes.find(t => t.id === id)?.nome_time || (id ? 'Time inativo / indisponível' : 'Sem time');
             const stats = roster => {
                 const boys = roster.filter(k => k.sexo === 'MASCULINO').length;
@@ -1156,6 +1157,7 @@
             }).join(' • ') || 'Nenhum participante';
             document.getElementById('kids-balance-content').innerHTML = `
                 <p style="margin-bottom: 14px;"><strong>${esc(tipoEventoLabel(tipoEvento))}</strong> · ${kids.length} participantes · ${changes.length} mudança(s) de time. Ainda não foi aplicada nenhuma mudança.</p>
+                ${fixedAssignments.map(k => `<p style="margin-bottom: 14px;">🔒 <strong>Time fixo:</strong> ${esc(k.name)} permanece em ${esc(k.team)}.</p>`).join('')}
                 ${data.equipes.map(team => {
                     const before = kids.filter(k => k.equipe_id === team.id);
                     const after = kids.filter(k => destinations.get(k.id) === team.id);

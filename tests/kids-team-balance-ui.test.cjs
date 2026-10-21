@@ -3,9 +3,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const planner = require('../sistema-balcao/kids-team-balance.js');
-function fixture({failApply = false, failPreview = false, email = 'adm@alvo.com'} = {}) {
-    const teams = ['a','b'].map(id=>({id,tipo_evento:'ACAMPA_KIDS',nome_time:`Time <${id}>`,ativo:true}));
-    let kids = Array.from({length:8},(_,i)=>({id:`k${i}`,tipo_evento:'ACAMPA_KIDS',nome_crianca:`Teen <${i}>`,sexo:i<4?'MASCULINO':'FEMININO',idade:5+i%4,equipe_id:'a',status:'ATIVO',funcao:'PARTICIPANTE',valor_pago:'100,00'}));
+function fixture({failApply = false, failPreview = false, email = 'adm@alvo.com', arthur = false} = {}) {
+    const event = arthur ? 'BROTHERS_CAMP' : 'ACAMPA_KIDS';
+    const teams = ['a','b'].map(id=>({id,tipo_evento:event,nome_time:arthur && id==='b'?'João Azuis':`Time <${id}>`,ativo:true}));
+    let kids = Array.from({length:8},(_,i)=>({id:`k${i}`,tipo_evento:event,nome_crianca:arthur && i===0?'Arthur Oliveira Nascimento':`Teen <${i}>`,sexo:i<4?'MASCULINO':'FEMININO',idade:5+i%4,equipe_id:'a',status:'ATIVO',funcao:'PARTICIPANTE',valor_pago:'100,00'}));
     const elements = new Map(), calls=[], notices=[];
     const doc = {getElementById(id) {
         if(!elements.has(id)) elements.set(id,{style:{display:'none'},innerHTML:'',textContent:'',value:'',disabled:false,classList:{toggle(){}}});
@@ -25,6 +26,7 @@ function fixture({failApply = false, failPreview = false, email = 'adm@alvo.com'
         }
     }}};
     vm.runInNewContext(fs.readFileSync(require.resolve('../sistema-balcao/kids.js'),'utf8'),context);
+    if (arthur) context.window.KidsModule.switchTeamsTipoEvento(event);
     return {api:context.window.KidsModule,doc,calls,notices};
 }
 test('prévia não aplica mudanças e exibe antes/depois, idades, trocas e nomes escapados',async()=>{
@@ -60,4 +62,14 @@ test('migration ausente tem mensagem clara e atendente não acessa a função',a
     assert(missing.notices.some(n=>n[0].includes('ainda não foi ativado')));
     const denied=fixture({email:'atendente@alvo.com'}); await denied.api.previewTeamsBalance(); await denied.api.applyTeamsBalance();
     assert.equal(denied.calls.length,0);
+});
+test('prévia informa o time fixo do Arthur e aplicação mantém seu destino',async()=>{
+    const {api,doc,calls}=fixture({arthur:true});
+    await api.previewTeamsBalance();
+    const html=doc.getElementById('kids-balance-content').innerHTML;
+    assert(html.includes('Time fixo:'));
+    assert(html.includes('Arthur Oliveira Nascimento permanece em João Azuis'));
+    await api.applyTeamsBalance();
+    const applied=calls.find(c=>c.name==='kids_aplicar_equilibrio');
+    assert.equal(applied.args.p_distribuicao.find(d=>d.id==='k0').equipe_id,'b');
 });
