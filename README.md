@@ -83,8 +83,9 @@ melhor nos critérios de idade, com preferência por preservar os times em empat
 
 Exceção solicitada pela organização: **Arthur Oliveira Nascimento permanece em
 João Azuis no Brothers Camp**. O planejador o inclui nas cotas e idades, reserva
-sua vaga antes da distribuição e o exclui das trocas de otimização. A prévia
-mostra essa regra como “Time fixo”. Se houver cadastros duplicados ou o time
+sua vaga antes da distribuição e o exclui das trocas de otimização. A interface
+não mostra marcações dessa regra e permite a troca manual normalmente.
+Se houver cadastros duplicados ou o time
 não existir/estiver inativo, a proposta é interrompida para conferência.
 
 **Aplicar esta distribuição** grava todas as trocas em uma transação. Se equipes,

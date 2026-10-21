@@ -95,7 +95,7 @@ test('time fixo funciona quando Arthur é o único menino e quando há menos par
 test('cadastro ou destino ambíguo impede proposta; outros eventos não recebem a exceção', () => {
     const arthur=kid('arthur','MASCULINO',12,teams[0].id,{nome_crianca:'Arthur Oliveira Nascimento'});
     const namedTeams=teams.map((t,i)=>({...t,nome_time:i===1?'João Azuis':`Time ${i}`}));
-    assert.throws(()=>plan(teams,[arthur]),/time fixo/);
+    assert.throws(()=>plan(teams,[arthur]),/cadastro do time/);
     assert.throws(()=>plan(namedTeams,[arthur,{...arthur,id:'duplicado'}]),/mais de um cadastro/);
     assert.throws(()=>plan([...namedTeams,{...namedTeams[1],id:'duplicado'}],[arthur]),/uma única vez/);
     assert.deepEqual(fixedAssignments(namedTeams,[{...arthur,tipo_evento:'ACAMPA_KIDS'}]),[]);

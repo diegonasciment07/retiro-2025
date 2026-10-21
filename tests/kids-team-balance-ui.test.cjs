@@ -21,7 +21,7 @@ function fixture({failApply = false, failPreview = false, email = 'adm@alvo.com'
             return {data:4};
         },
         from(table) {
-            const q={select(){return q},eq(){return q},order(){return q},async range(from,to){return {data:(table==='equipes_kids'?teams:kids).slice(from,to+1)}}};
+            const q={select(){return q},update(values){calls.push({name:'manual-update',table,values});return q},eq(){return q},order(){return q},async range(from,to){return {data:(table==='equipes_kids'?teams:kids).slice(from,to+1)}}};
             return q;
         }
     }}};
@@ -63,13 +63,18 @@ test('migration ausente tem mensagem clara e atendente não acessa a função',a
     const denied=fixture({email:'atendente@alvo.com'}); await denied.api.previewTeamsBalance(); await denied.api.applyTeamsBalance();
     assert.equal(denied.calls.length,0);
 });
-test('prévia informa o time fixo do Arthur e aplicação mantém seu destino',async()=>{
+test('rebalanceamento mantém Arthur no Azuis sem indicação visual e permite troca manual',async()=>{
     const {api,doc,calls}=fixture({arthur:true});
     await api.previewTeamsBalance();
     const html=doc.getElementById('kids-balance-content').innerHTML;
-    assert(html.includes('Time fixo:'));
-    assert(html.includes('Arthur Oliveira Nascimento permanece em João Azuis'));
+    assert(!html.includes('Time fixo'));
+    assert(!html.includes('permanece em João Azuis'));
+    assert(!html.includes('🔒'));
     await api.applyTeamsBalance();
     const applied=calls.find(c=>c.name==='kids_aplicar_equilibrio');
     assert.equal(applied.args.p_distribuicao.find(d=>d.id==='k0').equipe_id,'b');
+    await api.moveTeam('k0','a');
+    const manual=calls.find(c=>c.name==='manual-update');
+    assert.equal(manual.table,'inscricoes_kids');
+    assert.equal(manual.values.equipe_id,'a');
 });

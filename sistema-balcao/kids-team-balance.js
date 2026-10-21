@@ -21,7 +21,7 @@
             if (!matches.length) continue;
             if (matches.length !== 1) throw new Error(`Há mais de um cadastro de ${rule.name}. Confira os cadastros antes de equilibrar.`);
             const targets = teams.filter(t => t.ativo !== false && t.tipo_evento === rule.event && normalize(t.nome_time) === normalize(rule.team));
-            if (targets.length !== 1) throw new Error(`O time fixo ${rule.team}, de ${rule.name}, precisa existir e estar ativo uma única vez.`);
+            if (targets.length !== 1) throw new Error(`Confira o cadastro do time ${rule.team}: ele precisa existir e estar ativo uma única vez.`);
             assignments.push({id: matches[0].id, equipe_id: targets[0].id, name: matches[0].nome_crianca, team: targets[0].nome_time});
         }
         return assignments;
@@ -75,7 +75,7 @@
                 paths = next;
             }
             const solution = paths.get(remainders.join(','));
-            if (!solution) throw new Error('Não é possível equilibrar os times mantendo os participantes fixos. Nenhuma troca foi aplicada.');
+            if (!solution) throw new Error('Não foi possível gerar uma distribuição equilibrada. Confira os cadastros dos times e participantes. Nenhuma troca foi aplicada.');
             states.forEach((s, i) => SEXES.forEach((sex, j) => { s.quota[sex] = solution.quotas[i][j]; }));
         }
         function add(state, kid, direction) {
