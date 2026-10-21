@@ -35,6 +35,8 @@
     let currentTeamsTipoEvento = 'ACAMPA_KIDS';
     let initialized = false;
     let expandedRosterIds = new Set();
+    let teamsBalancePreview = null;
+    let teamsBalanceSaving = false;
 
     // ── Helpers que dependem do app.js ────────────────────────
     function sb() { return window.supabaseBalcao; }
@@ -1116,6 +1118,117 @@
 
     function closeTeamsModal() {
         document.getElementById('kids-teams-modal').style.display = 'none';
+    }
+
+    function balanceRpcError(error) {
+        return error.code === 'PGRST202'
+            ? 'O recurso ainda não foi ativado no banco de dados. Peça ao administrador para concluir a atualização.'
+            : error.message;
+    }
+
+    async function previewTeamsBalance() {
+        if (!isTeamsAdmin()) { notify('Você não tem permissão para equilibrar os times.', 'error'); return; }
+        const button = document.getElementById('kids-balance-preview-btn');
+        if (button.disabled || teamsBalanceSaving) return;
+        button.disabled = true;
+        teamsBalancePreview = null;
+        const tipoEvento = currentTeamsTipoEvento;
+        try {
+            const {data, error} = await sb().rpc('kids_preparar_equilibrio', {p_tipo_evento: tipoEvento});
+            if (error) throw error;
+            if (!isTeamsAdmin() || currentTeamsTipoEvento !== tipoEvento) return;
+            const distribution = window.KidsTeamBalance.plan(data.equipes, data.participantes);
+            if (!distribution.length) { notify('Não há participantes elegíveis para equilibrar.', 'warning'); return; }
+            const destinations = new Map(distribution.map(d => [d.id, d.equipe_id]));
+            const kids = data.participantes.filter(k => destinations.has(k.id));
+            const changes = kids.filter(k => k.equipe_id !== destinations.get(k.id))
+                .sort((a, b) => a.nome_crianca.localeCompare(b.nome_crianca, 'pt-BR'));
+            const esc = escapePickupText;
+            const teamName = id => data.equipes.find(t => t.id === id)?.nome_time || (id ? 'Time inativo / indisponível' : 'Sem time');
+            const stats = roster => {
+                const boys = roster.filter(k => k.sexo === 'MASCULINO').length;
+                const average = roster.length ? (roster.reduce((sum, k) => sum + k.idade, 0) / roster.length).toFixed(2).replace('.', ',') : '—';
+                return `${roster.length} pessoas · ${boys} meninos · ${roster.length - boys} meninas · média ${average}`;
+            };
+            const ageBreakdown = roster => [...new Set(roster.map(k => k.idade))].sort((a, b) => a - b).map(age => {
+                const group = roster.filter(k => k.idade === age);
+                return `${age} anos: ${group.filter(k => k.sexo === 'MASCULINO').length} M / ${group.filter(k => k.sexo === 'FEMININO').length} F`;
+            }).join(' • ') || 'Nenhum participante';
+            document.getElementById('kids-balance-content').innerHTML = `
+                <p style="margin-bottom: 14px;"><strong>${esc(tipoEventoLabel(tipoEvento))}</strong> · ${kids.length} participantes · ${changes.length} mudança(s) de time. Ainda não foi aplicada nenhuma mudança.</p>
+                ${data.equipes.map(team => {
+                    const before = kids.filter(k => k.equipe_id === team.id);
+                    const after = kids.filter(k => destinations.get(k.id) === team.id);
+                    return `<section style="border: 1px solid #555; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                        <h4>${esc(team.nome_time)}</h4>
+                        <p style="margin: 6px 0;">Antes: ${stats(before)}</p>
+                        <p style="margin: 6px 0;"><strong>Depois: ${stats(after)}</strong></p>
+                        <p style="color: var(--text-light); font-size: 0.85em;">Idades depois (M = meninos, F = meninas): ${ageBreakdown(after)}</p>
+                    </section>`;
+                }).join('')}
+                <h4 style="margin: 18px 0 10px;">Mudanças propostas</h4>
+                ${changes.length ? `<table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead><tr><th style="padding: 8px;">Participante</th><th style="padding: 8px;">Time atual</th><th style="padding: 8px;">Time proposto</th></tr></thead>
+                    <tbody>${changes.map(k => `<tr><td style="padding: 8px; border-top: 1px solid #555;">${esc(k.nome_crianca)}<br><small>${k.idade} anos · ${k.sexo === 'MASCULINO' ? 'Menino' : 'Menina'}</small></td>
+                        <td style="padding: 8px; border-top: 1px solid #555;">${esc(teamName(k.equipe_id))}</td><td style="padding: 8px; border-top: 1px solid #555;">${esc(teamName(destinations.get(k.id)))}</td></tr>`).join('')}</tbody></table>`
+                    : '<p>Os times já atendem à distribuição proposta.</p>'}`;
+            teamsBalancePreview = {tipoEvento, signature: data.assinatura, distribution};
+            document.getElementById('kids-balance-error').textContent = '';
+            document.getElementById('kids-balance-apply-btn').disabled = !changes.length;
+            document.getElementById('kids-balance-modal').style.display = 'flex';
+        } catch (error) {
+            notify('Não foi possível gerar a prévia: ' + balanceRpcError(error), 'error');
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    function closeTeamsBalance() {
+        if (teamsBalanceSaving) return;
+        document.getElementById('kids-balance-modal').style.display = 'none';
+        teamsBalancePreview = null;
+    }
+
+    async function applyTeamsBalance() {
+        if (!isTeamsAdmin() || !teamsBalancePreview || teamsBalanceSaving) return;
+        teamsBalanceSaving = true;
+        const apply = document.getElementById('kids-balance-apply-btn');
+        const close = document.getElementById('kids-balance-close-btn');
+        apply.disabled = true;
+        close.disabled = true;
+        apply.textContent = 'Aplicando...';
+        document.getElementById('kids-balance-error').textContent = '';
+        let applied = false;
+        try {
+            const preview = teamsBalancePreview;
+            const {data, error} = await sb().rpc('kids_aplicar_equilibrio', {
+                p_tipo_evento: preview.tipoEvento, p_assinatura: preview.signature, p_distribuicao: preview.distribution
+            });
+            if (error) throw error;
+            applied = true;
+            teamsBalancePreview = null;
+            // Recarrega todas as páginas, inclusive em eventos com mais de mil inscrições.
+            const results = await Promise.allSettled([
+                fetchAllRowsKids(() => sb().from('inscricoes_kids').select('*').eq('status', 'ATIVO').order('id')),
+                fetchAllRowsKids(() => sb().from('equipes_kids').select('*').order('id'))
+            ]);
+            const failed = results.find(r => r.status === 'rejected');
+            if (failed) throw failed.reason;
+            allKids = results[0].value;
+            allTeams = results[1].value;
+            renderTeamsList(); renderStats(); searchKids();
+            document.getElementById('kids-balance-modal').style.display = 'none';
+            notify(`Times equilibrados! ${data} participante(s) com novo time.`, 'success');
+        } catch (error) {
+            teamsBalancePreview = null;
+            document.getElementById('kids-balance-error').textContent = applied
+                ? 'Os times foram atualizados, mas não foi possível recarregar a tela. Atualize a página para conferir.'
+                : 'Não foi possível confirmar a aplicação: ' + balanceRpcError(error) + ' Atualize os dados e gere uma nova prévia.';
+        } finally {
+            teamsBalanceSaving = false;
+            close.disabled = false;
+            apply.textContent = 'Aplicar esta distribuição';
+        }
     }
 
     function buildTeamsReport(teams, participants, tipoEvento) {
@@ -2373,6 +2486,9 @@
         openTeamsModal,
         closeTeamsModal,
         generateTeamsReport,
+        previewTeamsBalance,
+        closeTeamsBalance,
+        applyTeamsBalance,
         switchTeamsTipoEvento,
         toggleRoster,
         createTeam,

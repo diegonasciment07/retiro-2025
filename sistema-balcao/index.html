@@ -1169,6 +1169,7 @@
                     </div>
 
                     <button type="button" onclick="KidsModule.generateTeamsReport()" class="btn btn-info" style="margin-bottom: 10px;">📋 Relatório dos Times</button>
+                    <button type="button" id="kids-balance-preview-btn" onclick="KidsModule.previewTeamsBalance()" class="btn btn-secondary" style="margin-bottom: 10px;">⚖️ Prévia de Equilibrar Times</button>
                     <p style="color: var(--text-light); font-size: 0.85em; margin-bottom: 20px;">Gera a lista do evento selecionado, separada por time, com professores e participantes, para conferir e imprimir ou salvar em PDF.</p>
 
                     <div style="background: #1a1a1a; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
@@ -1189,6 +1190,20 @@
                     </div>
 
                     <div id="kids-teams-list" style="max-height: 45vh; overflow-y: auto;"></div>
+                </div>
+            </div>
+
+            <!-- Modal: Prévia de equilíbrio dos times -->
+            <div id="kids-balance-modal" class="modal" style="z-index: 10001;" role="dialog" aria-modal="true" aria-labelledby="kids-balance-title">
+                <div class="modal-content" style="max-width: 1000px; width: 95%;">
+                    <h3 id="kids-balance-title" style="color: var(--primary);">⚖️ Prévia de Equilibrar Times</h3>
+                    <p style="margin: 12px 0; color: var(--text-light);">A proposta equilibra o total, meninos e meninas, e distribui as idades dentro de cada gênero. Inclui quem já tem time e os participantes com entrada mínima de R$ 100. Confira as trocas antes de aplicar.</p>
+                    <div id="kids-balance-content" style="max-height: 60vh; overflow: auto;"></div>
+                    <p id="kids-balance-error" role="alert" style="color: #f87171; margin: 12px 0;"></p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px;">
+                        <button type="button" id="kids-balance-apply-btn" onclick="KidsModule.applyTeamsBalance()" class="btn btn-success">Aplicar esta distribuição</button>
+                        <button type="button" id="kids-balance-close-btn" onclick="KidsModule.closeTeamsBalance()" class="btn btn-secondary">Fechar sem aplicar</button>
+                    </div>
                 </div>
             </div>
 
@@ -1709,6 +1724,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <script type="module" src="./app.js"></script>
+    <script src="./kids-team-balance.js"></script>
     <script type="module" src="./kids.js"></script>
 
 </body>

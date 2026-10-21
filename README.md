@@ -56,6 +56,39 @@ após a entrega. Para pulseiras entregues antes desta mudança, use
 **Confirmar nomes**. Desmarcar uma pulseira preserva os nomes para uma nova
 confirmação. A exportação da base completa também inclui essa lista.
 
+## Equilíbrio dos times Kids e Brothers Camp
+
+Antes de publicar esta atualização, execute no SQL Editor do projeto Supabase
+o arquivo `supabase/migrations/20261021_kids_equilibrio_times.sql`.
+Ele atualiza a atribuição incremental e instala as funções de prévia e aplicação.
+A instalação não redistribui participantes automaticamente.
+
+Novas atribuições consideram, nesta ordem: tamanho do time, quantidade do mesmo
+gênero, quantidade do mesmo gênero e idade, e somas de idades. Só atribuem
+participantes ativos sem equipe com pagamento de pelo menos R$ 100.
+
+Em **Gerenciar Equipes → Prévia de Equilibrar Times**, o administrador vê os
+números antes/depois, as idades por gênero e cada mudança proposta para o evento
+selecionado. A proposta inclui participantes ativos já escalados e novos
+participantes com entrada mínima de R$ 100. Quem já está escalado é preservado
+na base do jogo mesmo se seu pagamento tiver sido corrigido para menos de R$ 100.
+Equipe de trabalho, cancelados e outros eventos ficam fora da proposta.
+
+O planejador mantém diferença máxima de uma pessoa no total de cada time e
+também nas quantidades de meninos e meninas entre os times. Distribui idades
+por gênero e melhora essa distribuição com trocas que preservam as cotas;
+não promete medir força física nem encontrar o ótimo matemático global.
+Uma distribuição existente que já atende às cotas só é trocada por uma proposta
+melhor nos critérios de idade, com preferência por preservar os times em empates.
+
+**Aplicar esta distribuição** grava todas as trocas em uma transação. Se equipes,
+cadastros ou pagamentos mudaram desde a prévia, é preciso gerar outra. O banco
+valida os participantes, os destinos e as cotas novamente. Somente os mesmos
+administradores autorizados a gerenciar equipes podem usar essas funções.
+
+Validação local: `npm ci` e `npm test`. Os testes de SQL usam PostgreSQL embarcado
+via PGlite, sem acesso nem alterações ao banco de produção.
+
 ## 📧 Contato
 
 Para dúvidas: oalvocuritiba@gmail.com

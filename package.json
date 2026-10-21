@@ -1,5 +1,9 @@
 {
+  "scripts": {
+    "test": "node --test tests/*.test.cjs"
+  },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "supabase": "^2.54.11"
   }
 }
