@@ -405,25 +405,31 @@
     // CARREGAMENTO DE DADOS
     // ==========================================================
     async function loadKids() {
-        const { data, error } = await sb()
-            .from('inscricoes_kids')
-            .select('*')
-            .eq('status', 'ATIVO')
-            .order('criado_em', { ascending: false });
-
-        if (error) { console.error('Erro ao carregar inscrições kids:', error); notify('Erro ao carregar inscrições: ' + error.message, 'error'); return; }
-        allKids = data || [];
+        try {
+            allKids = await fetchAllRowsKids(() => sb()
+                .from('inscricoes_kids')
+                .select('*')
+                .eq('status', 'ATIVO')
+                .order('criado_em', { ascending: false }).order('id'));
+        } catch (error) {
+            console.error('Erro ao carregar inscrições kids:', error);
+            notify('Não foi possível carregar todas as inscrições. Atualize a página. ' + error.message, 'error');
+            throw error;
+        }
     }
 
     async function loadTeams() {
-        const { data, error } = await sb()
-            .from('equipes_kids')
-            .select('*')
-            .order('tipo_evento', { ascending: true })
-            .order('criado_em', { ascending: true });
-
-        if (error) { console.error('Erro ao carregar equipes:', error); notify('Erro ao carregar equipes: ' + error.message, 'error'); return; }
-        allTeams = data || [];
+        try {
+            allTeams = await fetchAllRowsKids(() => sb()
+                .from('equipes_kids')
+                .select('*')
+                .order('tipo_evento', { ascending: true })
+                .order('criado_em', { ascending: true }).order('id'));
+        } catch (error) {
+            console.error('Erro ao carregar equipes:', error);
+            notify('Não foi possível carregar todas as equipes. Atualize a página. ' + error.message, 'error');
+            throw error;
+        }
     }
 
     async function onTabShown() {
@@ -621,15 +627,14 @@
     }
 
     async function loadPaymentHistory(kidId) {
-        const { data, error } = await sb()
-            .from('pagamentos_kids')
-            .select('*')
-            .eq('inscricao_id', kidId)
-            .order('criado_em', { ascending: false });
-
-        if (error) { notify('Erro ao carregar histórico: ' + error.message, 'error'); return; }
-
-        const payments = data || [];
+        let payments;
+        try {
+            payments = await fetchAllRowsKids(() => sb()
+                .from('pagamentos_kids')
+                .select('*')
+                .eq('inscricao_id', kidId)
+                .order('criado_em', { ascending: false }).order('id'));
+        } catch (error) { notify('Erro ao carregar histórico: ' + error.message, 'error'); return; }
         displayPaymentHistory(payments);
 
         const totalPago = payments.reduce((sum, p) => sum + parseFloat(p.valor_pago), 0);
@@ -679,12 +684,10 @@
         const kid = allKids.find(k => k.id === kidId) || currentKid;
         if (!kid) return;
 
-        const { data: payments, error } = await sb()
+        const payments = await fetchAllRowsKids(() => sb()
             .from('pagamentos_kids')
             .select('*')
-            .eq('inscricao_id', kidId);
-
-        if (error) throw error;
+            .eq('inscricao_id', kidId).order('id'));
 
         const totalPago = (payments || []).reduce((sum, p) => sum + (parseFloat(p.valor_pago) || 0), 0);
         const esperado = getValorEsperado(kid);
@@ -769,10 +772,10 @@
         const esperado = getValorEsperado(currentKid);
 
         try {
-            const { data: pagamentosExistentes } = await sb()
+            const pagamentosExistentes = await fetchAllRowsKids(() => sb()
                 .from('pagamentos_kids')
                 .select('valor_pago')
-                .eq('inscricao_id', currentKid.id);
+                .eq('inscricao_id', currentKid.id).order('id'));
 
             const totalRealPago = (pagamentosExistentes || []).reduce((sum, p) => sum + parseFloat(p.valor_pago), 0);
 
@@ -869,12 +872,10 @@
         const esperado = getValorEsperado(currentKid);
 
         try {
-            const { data: outrosPagamentos, error: fetchError } = await sb()
+            const outrosPagamentos = await fetchAllRowsKids(() => sb()
                 .from('pagamentos_kids')
                 .select('id, valor_pago')
-                .eq('inscricao_id', currentKid.id);
-
-            if (fetchError) throw fetchError;
+                .eq('inscricao_id', currentKid.id).order('id'));
 
             const totalOutros = (outrosPagamentos || [])
                 .filter(p => p.id !== paymentId)
@@ -1268,8 +1269,10 @@
                 main { max-width: 960px; margin: 24px auto; padding: 28px; background: white; }
                 h1 { margin: 0; font-size: 26px; } h2 { margin: 0 0 8px; font-size: 21px; overflow-wrap: anywhere; }
                 p { margin: 6px 0; } .meta, .count { color: #475569; }
-                .toolbar { margin-bottom: 24px; }
-                button { padding: 12px 18px; background: #172033; color: white; border: 0; border-radius: 6px; cursor: pointer; font: inherit; }
+                .toolbar { margin-bottom: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+                button, select { padding: 12px 18px; border: 1px solid #94a3b8; border-radius: 6px; font: inherit; }
+                button { background: #172033; color: white; cursor: pointer; }
+                .download-status { flex-basis: 100%; color: #b91c1c; }
                 .summary { margin: 20px 0 28px; padding: 14px; border: 1px solid #94a3b8; border-radius: 6px; }
                 .team { margin: 0 0 32px; border: 1px solid #94a3b8; border-radius: 6px; overflow: hidden; }
                 .team-heading { padding: 16px; background: #f1f5f9; border-bottom: 2px solid #475569; break-after: avoid; overflow-wrap: anywhere; }
@@ -1289,7 +1292,17 @@
                     thead { display: table-header-group; }
                 }
             </style></head><body><main>
-                <div class="toolbar"><button type="button" id="print-teams-report">Imprimir / Salvar em PDF</button></div>
+                <div class="toolbar">
+                    <label for="teams-report-format">Formato do download:</label>
+                    <select id="teams-report-format">
+                        <option value="pdf">PDF (.pdf)</option>
+                        <option value="xlsx">Excel (.xlsx) — para editar</option>
+                        <option value="html">Página HTML (.html)</option>
+                    </select>
+                    <button type="button" id="download-teams-report">Baixar relatório</button>
+                    <button type="button" id="print-teams-report">Imprimir / Salvar em PDF</button>
+                    <span id="teams-report-download-status" class="download-status" role="status"></span>
+                </div>
                 <h1>Relatório dos Times</h1>
                 <p><strong>${esc(tipoEventoLabel(tipoEvento))}</strong></p>
                 <p class="meta">Gerado em ${esc(new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}</p>
@@ -1301,6 +1314,99 @@
                 ${unassigned.length ? section('Participantes sem time', 'A definir', unassigned) : ''}
                 ${!sortedTeams.length && !members.length ? '<p>Nenhum time ou participante cadastrado para este evento.</p>' : ''}
             </main></body></html>`;
+    }
+
+    function downloadTeamsReport(reportWindow, tipoEvento) {
+        const report = reportWindow.document;
+        const status = report.getElementById('teams-report-download-status');
+        status.textContent = '';
+        const format = report.getElementById('teams-report-format').value;
+        const filename = `relatorio_times_${tipoEvento.toLowerCase()}_${new Date().toLocaleDateString('sv-SE', {timeZone: 'America/Sao_Paulo'})}`;
+        // Exporta a mesma fotografia dos dados que está aberta para conferência.
+        const sections = Array.from(report.querySelectorAll('.team')).map(section => ({
+            title: section.querySelector('h2').textContent,
+            teachers: section.querySelector('.team-heading p').textContent,
+            count: section.querySelector('.count').textContent,
+            rows: Array.from(section.querySelectorAll('tbody tr')).map(row =>
+                Array.from(row.querySelectorAll('td')).map(cell => cell.textContent.trim()))
+        }));
+        try {
+            if (format === 'pdf') {
+                if (!window.jspdf || !window.jspdf.jsPDF || !window.jspdf.jsPDF.API.autoTable) {
+                    throw new Error('O gerador de PDF não carregou. Recarregue a página ou use Imprimir / Salvar em PDF.');
+                }
+                const pdf = new window.jspdf.jsPDF({format: 'a4'});
+                // As fontes padrão do PDF suportam acentos portugueses, mas não emojis.
+                const text = value => String(value).replace(/[^\x20-\x7e\xa0-\xff\n]/gu, '').trim();
+                pdf.setFontSize(18);
+                pdf.text('Relatório dos Times', 14, 22);
+                pdf.setFontSize(11);
+                pdf.text(text(tipoEventoLabel(tipoEvento)), 14, 30);
+                pdf.setFontSize(9);
+                pdf.text(text(report.querySelector('.meta').textContent), 14, 37);
+                const summary = pdf.splitTextToSize(text(report.querySelector('.summary').textContent.replace(/\s+/g, ' ')), 182);
+                pdf.text(summary, 14, 44);
+                sections.forEach((section, index) => {
+                    if (index) pdf.addPage();
+                    pdf.autoTable({
+                        startY: index ? 14 : 49 + summary.length * 4,
+                        margin: {top: 14, right: 14, bottom: 18, left: 14},
+                        theme: 'grid',
+                        head: [
+                            [{content: text(section.title), colSpan: 4, styles: {fontSize: 14}}],
+                            [{content: text(`${section.teachers}\n${section.count}`), colSpan: 4}],
+                            ['Conferido', 'Nº', 'Nome do participante', 'Idade']
+                        ],
+                        body: section.rows.length ? section.rows.map(row => row.map(text)) :
+                            [[{content: 'Nenhum participante neste time.', colSpan: 4}]],
+                        styles: {fontSize: 10, cellPadding: 3, overflow: 'linebreak'},
+                        headStyles: {fillColor: [23, 32, 51]},
+                        columnStyles: {0: {cellWidth: 23, halign: 'center'}, 1: {cellWidth: 12, halign: 'center'}, 3: {cellWidth: 22, halign: 'center'}},
+                        rowPageBreak: 'avoid',
+                        didDrawCell(data) {
+                            if (data.section === 'body' && data.column.index === 0 && section.rows.length) {
+                                pdf.setDrawColor(71, 85, 105);
+                                pdf.rect(data.cell.x + (data.cell.width - 4) / 2, data.cell.y + (data.cell.height - 4) / 2, 4, 4);
+                            }
+                        }
+                    });
+                });
+                for (let page = 1; page <= pdf.getNumberOfPages(); page++) {
+                    pdf.setPage(page);
+                    pdf.setFontSize(9);
+                    pdf.text(`Página ${page} de ${pdf.getNumberOfPages()}`, 196, 289, {align: 'right'});
+                }
+                pdf.save(`${filename}.pdf`);
+            } else if (format === 'xlsx') {
+                if (typeof XLSX === 'undefined') throw new Error('O gerador de Excel não carregou. Recarregue a página e tente novamente.');
+                const rows = [['Relatório dos Times', tipoEventoLabel(tipoEvento)],
+                    [report.querySelector('.meta').textContent], [],
+                    ['Time', 'Professores responsáveis', 'Conferido', 'Nº', 'Nome do participante', 'Idade']];
+                sections.forEach(section => {
+                    const teachers = section.teachers.replace(/^Professores responsáveis:\s*/, '');
+                    if (!section.rows.length) rows.push([section.title, teachers, '', '', 'Nenhum participante neste time.', '']);
+                    section.rows.forEach(row => rows.push([section.title, teachers, ...row]));
+                });
+                const workbook = XLSX.utils.book_new();
+                const sheet = XLSX.utils.aoa_to_sheet(rows);
+                sheet['!cols'] = [28, 45, 12, 8, 48, 12].map(wch => ({wch}));
+                XLSX.utils.book_append_sheet(workbook, sheet, 'Times');
+                XLSX.writeFile(workbook, `${filename}.xlsx`);
+            } else if (format === 'html') {
+                const copy = report.documentElement.cloneNode(true);
+                copy.querySelector('.toolbar').remove();
+                const url = URL.createObjectURL(new Blob(['<!DOCTYPE html>\n', copy.outerHTML], {type: 'text/html;charset=utf-8'}));
+                const link = report.createElement('a');
+                link.href = url;
+                link.download = `${filename}.html`;
+                report.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            }
+        } catch (error) {
+            status.textContent = 'Não foi possível baixar o relatório. ' + error.message;
+        }
     }
 
     async function generateTeamsReport() {
@@ -1326,6 +1432,7 @@
             reportWindow.document.write(buildTeamsReport(results[0].value, results[1].value, tipoEvento));
             reportWindow.document.close();
             reportWindow.document.getElementById('print-teams-report').addEventListener('click', () => reportWindow.print());
+            reportWindow.document.getElementById('download-teams-report').addEventListener('click', () => downloadTeamsReport(reportWindow, tipoEvento));
         } catch (error) {
             if (!reportWindow.closed) reportWindow.document.body.textContent = 'Não foi possível gerar o relatório. Feche esta aba e tente novamente.';
             console.error('Erro ao gerar relatório dos times:', error);
@@ -1621,22 +1728,15 @@
 
     async function fetchAllRowsKids(buildQuery) {
         let rows = [];
-        let page = 0;
-        let keepFetching = true;
-
-        while (keepFetching) {
-            const from = page * KIDS_CHUNK_SIZE;
+        while (true) {
+            const from = rows.length;
             const to = from + KIDS_CHUNK_SIZE - 1;
             const { data, error } = await buildQuery().range(from, to);
             if (error) throw error;
-
-            if (!data || data.length === 0) {
-                keepFetching = false;
-            } else {
-                rows = rows.concat(data);
-                page += 1;
-                if (data.length < KIDS_CHUNK_SIZE) keepFetching = false;
-            }
+            if (!data || data.length === 0) break;
+            // O servidor pode aplicar um limite menor que o lote solicitado.
+            // Avança pelo total recebido e só termina com uma página vazia.
+            rows = rows.concat(data);
         }
 
         return rows;
@@ -1651,7 +1751,7 @@
             if (range) q = q.gte('data_pagamento', range.start).lte('data_pagamento', range.end);
             if (normalizedAtendente) q = q.ilike('atendente', normalizedAtendente);
             if (filterForma) q = q.eq('forma_pagamento', filterForma);
-            return q;
+            return q.order('id');
         };
     }
 
@@ -1662,8 +1762,8 @@
         const participants = [];
         for (let i = 0; i < uniqueIds.length; i += KIDS_CHUNK_SIZE) {
             const chunk = uniqueIds.slice(i, i + KIDS_CHUNK_SIZE);
-            const { data, error } = await sb().from('inscricoes_kids').select('id, status_pagamento').in('id', chunk);
-            if (error) throw error;
+            const data = await fetchAllRowsKids(() => sb().from('inscricoes_kids')
+                .select('id, status_pagamento').in('id', chunk).order('id'));
             participants.push(...(data || []));
         }
         return participants;
@@ -1680,8 +1780,7 @@
 
     async function loadAtendentesKids() {
         try {
-            const { data, error } = await sb().from('pagamentos_kids').select('atendente');
-            if (error) throw error;
+            const data = await fetchAllRowsKids(() => sb().from('pagamentos_kids').select('atendente').order('id'));
 
             const atendentes = [...new Set((data || []).map(p => p.atendente).filter(a => a && a.trim() !== ''))];
             const select = document.getElementById('kids-filter-atendente');
@@ -2072,19 +2171,18 @@
         document.getElementById('kids-adm-export-btn').style.display = 'none';
 
         try {
-            let query = sb().from('pagamentos_kids').select('*');
-
-            if (startDate) {
-                const startRange = dateRange(startDate);
-                if (startRange) query = query.gte('data_pagamento', startRange.start);
-            }
-            if (endDate) {
-                const endRange = dateRange(endDate);
-                if (endRange) query = query.lte('data_pagamento', endRange.end);
-            }
-
-            const { data: pagamentos, error } = await query;
-            if (error) throw error;
+            const pagamentos = await fetchAllRowsKids(() => {
+                let query = sb().from('pagamentos_kids').select('*');
+                if (startDate) {
+                    const startRange = dateRange(startDate);
+                    if (startRange) query = query.gte('data_pagamento', startRange.start);
+                }
+                if (endDate) {
+                    const endRange = dateRange(endDate);
+                    if (endRange) query = query.lte('data_pagamento', endRange.end);
+                }
+                return query.order('id');
+            });
 
             if (!pagamentos || pagamentos.length === 0) {
                 contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Nenhum pagamento encontrado no período</div>';

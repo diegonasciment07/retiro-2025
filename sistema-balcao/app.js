@@ -147,22 +147,15 @@
         // diferente na mesma instância.
         async function fetchAllRows(buildQuery) {
             let rows = [];
-            let page = 0;
-            let keepFetching = true;
-
-            while (keepFetching) {
-                const from = page * PARTICIPANT_CHUNK_SIZE;
+            while (true) {
+                const from = rows.length;
                 const to = from + PARTICIPANT_CHUNK_SIZE - 1;
                 const { data, error } = await buildQuery().range(from, to);
                 if (error) throw error;
 
-                if (!data || data.length === 0) {
-                    keepFetching = false;
-                } else {
-                    rows = rows.concat(data);
-                    page += 1;
-                    if (data.length < PARTICIPANT_CHUNK_SIZE) keepFetching = false;
-                }
+                if (!data || data.length === 0) break;
+                // Continua mesmo quando o limite do servidor é menor que o lote.
+                rows = rows.concat(data);
             }
 
             return rows;
@@ -183,7 +176,7 @@
                 }
                 if (normalizedAtendente) q = q.ilike('atendente', normalizedAtendente);
                 if (filterForma) q = q.eq('forma_pagamento', filterForma);
-                return q;
+                return q.order('id');
             };
         }
 
@@ -194,12 +187,10 @@
             const participants = [];
             for (let i = 0; i < uniqueIds.length; i += PARTICIPANT_CHUNK_SIZE) {
                 const chunk = uniqueIds.slice(i, i + PARTICIPANT_CHUNK_SIZE);
-                const { data, error } = await supabase
+                const data = await fetchAllRows(() => supabase
                     .from('inscricoes')
                     .select('id, status_pagamento')
-                    .in('id', chunk);
-
-                if (error) throw error;
+                    .in('id', chunk).order('id'));
                 participants.push(...(data || []));
             }
 
@@ -369,36 +360,14 @@
 
         async function loadParticipants() {
             try {
-                allParticipants = [];
-                let page = 0;
-                let keepFetching = true;
-
-                while (keepFetching) {
-                    const from = page * PARTICIPANT_CHUNK_SIZE;
-                    const to = from + PARTICIPANT_CHUNK_SIZE - 1;
-
-                    const { data, error } = await supabase
-                        .from('inscricoes')
-                        .select('*')
-                        .eq('status', 'ATIVO')
-                        .order('data_inscricao', { ascending: false })
-                        .range(from, to);
-
-                    if (error) {
-                        console.error('Erro Supabase:', error);
-                        throw error;
-                    }
-
-                    if (!data || data.length === 0) {
-                        keepFetching = false;
-                    } else {
-                        allParticipants = allParticipants.concat(data);
-                        page += 1;
-                        if (data.length < PARTICIPANT_CHUNK_SIZE) {
-                            keepFetching = false;
-                        }
-                    }
-                }
+                const participants = await fetchAllRows(() => supabase
+                    .from('inscricoes')
+                    .select('*')
+                    .eq('status', 'ATIVO')
+                    .order('data_inscricao', { ascending: false })
+                    .order('id'));
+                // Substitui a base apenas depois de receber todas as páginas.
+                allParticipants = participants;
 
                 console.log('✅ Participantes carregados:', allParticipants.length);
 
@@ -412,11 +381,9 @@
         async function loadAtendentes() {
             try {
                 // Carrega atendentes da tabela de pagamentos, que é mais precisa
-                const { data, error } = await supabase
+                const data = await fetchAllRows(() => supabase
                     .from('pagamentos_históricos')
-                    .select('atendente');
-
-                if (error) throw error;
+                    .select('atendente').order('id'));
 
                 const atendentes = [...new Set(data
                     .map(p => p.atendente)
@@ -487,18 +454,13 @@
             try {
                 console.log('🔍 Buscando por:', searchTerm);
                 
-                const { data: participantesEncontrados, error } = await supabase
+                const participantesEncontrados = await fetchAllRows(() => supabase
                     .from('inscricoes')
                     .select('*')
                     .eq('status', 'ATIVO')
                     .or(`nome_completo.ilike.%${searchTerm}%,whatsapp.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
                     .order('data_inscricao', { ascending: false })
-                    .limit(20);
-
-                if (error) {
-                    console.error('❌ Erro na busca Supabase:', error);
-                    throw error;
-                }
+                    .order('id'));
 
                 if (!participantesEncontrados || participantesEncontrados.length === 0) {
                     statusDiv.textContent = 'Nenhum participante encontrado';
@@ -761,15 +723,11 @@
 
         async function loadPaymentHistory(participantId) {
             try {
-                const { data, error } = await supabase
+                const payments = await fetchAllRows(() => supabase
                     .from('pagamentos_históricos')
                     .select('*')
                     .eq('inscricao_id', participantId)
-                    .order('criado_em', { ascending: false });
-
-                if (error) throw error;
-
-                const payments = data || [];
+                    .order('criado_em', { ascending: false }).order('id'));
                 displayPaymentHistory(payments);
                 updatePaymentSummary(payments);
 
@@ -863,12 +821,10 @@
             }
 
             try {
-                const { data: outrosPagamentos, error: fetchError } = await supabase
+                const outrosPagamentos = await fetchAllRows(() => supabase
                     .from('pagamentos_históricos')
                     .select('id, valor_pago')
-                    .eq('inscricao_id', currentParticipant.id);
-
-                if (fetchError) throw fetchError;
+                    .eq('inscricao_id', currentParticipant.id).order('id'));
 
                 const totalOutros = outrosPagamentos
                     .filter(p => p.id !== paymentId)
@@ -917,12 +873,10 @@
             try {
                 console.log('🔄 Forçando sincronização para participante:', participantId);
                 
-                const { data: payments, error } = await supabase
+                const payments = await fetchAllRows(() => supabase
                     .from('pagamentos_históricos')
                     .select('*')
-                    .eq('inscricao_id', participantId);
-
-                if (error) throw error;
+                    .eq('inscricao_id', participantId).order('id'));
 
                 const totalPaid = payments.reduce((sum, payment) => {
                     const valor = parseFloat(payment.valor_pago);
@@ -1062,10 +1016,10 @@
             }
 
             try {
-                const { data: pagamentosExistentes } = await supabase
+                const pagamentosExistentes = await fetchAllRows(() => supabase
                     .from('pagamentos_históricos')
                     .select('valor_pago')
-                    .eq('inscricao_id', currentParticipant.id);
+                    .eq('inscricao_id', currentParticipant.id).order('id'));
                 
                 const totalRealPago = pagamentosExistentes ? 
                     pagamentosExistentes.reduce((sum, p) => sum + parseFloat(p.valor_pago), 0) : 0;
@@ -1633,13 +1587,11 @@
             try {
                 const participant = await getParticipantById(participantId);
 
-                const { data: payments, error } = await supabase
+                const payments = await fetchAllRows(() => supabase
                     .from('pagamentos_históricos')
                     .select('*')
                     .eq('inscricao_id', participantId)
-                    .order('data_pagamento', { ascending: true }); // Ascendente para histórico
-
-                if (error) throw error;
+                    .order('data_pagamento', { ascending: true }).order('id'));
                 
                 const today = new Date().toISOString().split('T')[0];
                 let totalPago = 0;
@@ -1793,19 +1745,18 @@
             document.getElementById('adm-export-btn').style.display = 'none';
 
             try {
-                let query = supabase.from('pagamentos_históricos').select('*');
-
-                if (startDate) {
-                    const startRange = getUTCDateRangeForLocalDate(startDate);
-                    if (startRange) query = query.gte('data_pagamento', startRange.start);
-                }
-                if (endDate) {
-                    const endRange = getUTCDateRangeForLocalDate(endDate);
-                    if (endRange) query = query.lte('data_pagamento', endRange.end);
-                }
-
-                const { data: pagamentos, error } = await query;
-                if (error) throw error;
+                const pagamentos = await fetchAllRows(() => {
+                    let query = supabase.from('pagamentos_históricos').select('*');
+                    if (startDate) {
+                        const startRange = getUTCDateRangeForLocalDate(startDate);
+                        if (startRange) query = query.gte('data_pagamento', startRange.start);
+                    }
+                    if (endDate) {
+                        const endRange = getUTCDateRangeForLocalDate(endDate);
+                        if (endRange) query = query.lte('data_pagamento', endRange.end);
+                    }
+                    return query.order('id');
+                });
 
                 if (!pagamentos || pagamentos.length === 0) {
                     contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Nenhum pagamento encontrado no período</div>';
@@ -2701,13 +2652,14 @@
         // ── Carrega eventos ───────────────────────────────────────
         async function loadEvents() {
             try {
-                let query = supabase
-                    .from('eventos')
-                    .select('*, inscricoes_eventos!evento_id(count)')
-                    .order('criado_em', { ascending: false });
-                if (!isCurrentUserAdm()) query = query.eq('ativo', true);
-                const { data, error } = await query;
-                if (error) throw error;
+                const data = await fetchAllRows(() => {
+                    let query = supabase
+                        .from('eventos')
+                        .select('*, inscricoes_eventos!evento_id(count)')
+                        .order('criado_em', { ascending: false }).order('id');
+                    if (!isCurrentUserAdm()) query = query.eq('ativo', true);
+                    return query;
+                });
                 allEvents = data || [];
                 renderEventsGrid();
             } catch (err) {
@@ -3017,10 +2969,9 @@
             document.getElementById('event-list-container').innerHTML =
                 '<div style="text-align:center;padding:40px;"><div class="loading"></div></div>';
             try {
-                const { data, error } = await supabase.from('inscricoes_eventos')
+                const data = await fetchAllRows(() => supabase.from('inscricoes_eventos')
                     .select('*').eq('evento_id', selectedEvent.id)
-                    .order('criado_em', { ascending: false });
-                if (error) throw error;
+                    .order('criado_em', { ascending: false }).order('id'));
                 eventRegistrations = data || [];
                 updateEventStats();
                 renderEventList();

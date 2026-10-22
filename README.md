@@ -96,6 +96,23 @@ administradores autorizados a gerenciar equipes podem usar essas funções.
 Validação local: `npm ci` e `npm test`. Os testes de SQL usam PostgreSQL embarcado
 via PGlite, sem acesso nem alterações ao banco de produção.
 
+## Downloads e carregamento completo dos relatórios
+
+O Relatório dos Times permite escolher PDF, Excel (para edição) ou HTML, além
+de imprimir. Os downloads usam os mesmos dados exibidos na prévia, incluindo
+os participantes sem time do evento selecionado.
+
+As listas de inscrições, equipes, eventos e pagamentos do balcão usam paginação
+com ordenação por ID para desempate. O carregamento avança pelo número real de
+linhas recebidas e só termina quando recebe uma página vazia, mesmo se o limite
+do Supabase for menor que as mil linhas solicitadas. Uma falha em uma página
+interrompe a operação; a base em memória só é substituída após a consulta completa.
+A busca de participantes também carrega todos os resultados. A lista de ganhadores
+mantém a regra específica dos primeiros 150 pagamentos.
+
+Os testes em `tests/pagination.test.cjs` cobrem mais de mil registros, limites
+reduzidos do servidor, erros durante a paginação e consistência da tela e relatório.
+
 ## 📧 Contato
 
 Para dúvidas: oalvocuritiba@gmail.com
