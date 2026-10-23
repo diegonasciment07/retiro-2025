@@ -1760,8 +1760,11 @@
         if (uniqueIds.length === 0) return [];
 
         const participants = [];
-        for (let i = 0; i < uniqueIds.length; i += KIDS_CHUNK_SIZE) {
-            const chunk = uniqueIds.slice(i, i + KIDS_CHUNK_SIZE);
+        // O filtro .in() vai na URL: 1000 UUIDs ultrapassam o limite HTTP.
+        // O lote de IDs é independente da paginação das linhas retornadas.
+        const idsPerRequest = 100;
+        for (let i = 0; i < uniqueIds.length; i += idsPerRequest) {
+            const chunk = uniqueIds.slice(i, i + idsPerRequest);
             const data = await fetchAllRowsKids(() => sb().from('inscricoes_kids')
                 .select('id, status_pagamento').in('id', chunk).order('id'));
             participants.push(...(data || []));

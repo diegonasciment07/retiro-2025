@@ -185,8 +185,10 @@
             if (uniqueIds.length === 0) return [];
 
             const participants = [];
-            for (let i = 0; i < uniqueIds.length; i += PARTICIPANT_CHUNK_SIZE) {
-                const chunk = uniqueIds.slice(i, i + PARTICIPANT_CHUNK_SIZE);
+            // .in() serializa os IDs na URL; mil UUIDs excedem o limite HTTP.
+            const idsPerRequest = 100;
+            for (let i = 0; i < uniqueIds.length; i += idsPerRequest) {
+                const chunk = uniqueIds.slice(i, i + idsPerRequest);
                 const data = await fetchAllRows(() => supabase
                     .from('inscricoes')
                     .select('id, status_pagamento')
