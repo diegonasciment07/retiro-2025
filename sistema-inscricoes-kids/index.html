@@ -257,7 +257,7 @@
 
             <div class="info-box">
                 <strong>👧🏻 ACAMPA KIDS:</strong> de 05 a 09 anos — R$ 250,00<br>
-                <strong>👦🏻 BROTHERS CAMP:</strong> de 10 a 14 anos — <strong>inscrições de participantes encerradas</strong><br>
+                <strong>👦🏻 BROTHERS CAMP:</strong> de 10 a 14 anos — R$ 300,00<br>
                 <strong>🤝 TRABALHO</strong> (equipe de apoio, qualquer um dos dois): R$ 100,00
             </div>
 
@@ -287,10 +287,6 @@
                             <span class="faixa">10 a 14 anos</span>
                             <span class="valor">R$ 300,00</span>
                         </label>
-                    </div>
-                    <div class="error-message" id="aviso-encerrado" role="alert" style="margin: 12px 0 0;">
-                        🚫 <strong>Novas inscrições estão encerradas.</strong><br>
-                        O Brothers Camp não aceita mais inscrições de participantes. Continuam abertas apenas as inscrições para a <strong>equipe de trabalho</strong>.
                     </div>
                     <div id="evento-hint" style="font-size: 0.85em; color: #ccc; margin-top: 8px; display: none;">
                         💡 Se for servir nos dois eventos, pode marcar os dois (R$ 100,00 em cada, R$ 200,00 no total).
@@ -506,22 +502,6 @@
             return el ? el.value : 'PARTICIPANTE';
         }
 
-        // Inscrições de participantes do Brothers Camp encerradas; só a equipe de
-        // trabalho segue aberta. A mesma trava existe no banco (kids_registrar_e_atribuir).
-        function inscricaoEncerrada(tipoEvento, funcao) {
-            return tipoEvento === 'BROTHERS_CAMP' && funcao === 'PARTICIPANTE';
-        }
-
-        function atualizarAvisoEncerrado() {
-            const funcao = getFuncaoSelecionada();
-            const encerrado = getTiposEventoSelecionados().some(t => inscricaoEncerrada(t, funcao));
-            const aviso = document.getElementById('aviso-encerrado');
-            const wasHidden = aviso.style.display !== 'block';
-            aviso.style.display = encerrado ? 'block' : 'none';
-            document.getElementById('submit-btn').disabled = encerrado || isSubmitting;
-            if (encerrado && wasHidden) aviso.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
-
         function getValorEsperado(tipoEvento, funcao) {
             if (funcao === 'TRABALHO') return 100;
             if (tipoEvento === 'ACAMPA_KIDS') return 250;
@@ -593,7 +573,6 @@
             const idade = calcularIdade(dataNascimento);
 
             atualizarDataEvento();
-            atualizarAvisoEncerrado();
 
             const valorTotal = tipos.reduce((soma, tipo) => soma + getValorEsperado(tipo, funcao), 0);
             display.textContent = tipos.length ? `R$ ${valorTotal.toFixed(2).replace('.', ',')}` : 'Selecione o evento';
@@ -735,11 +714,6 @@
 
             const funcao = getFuncaoSelecionada();
             const tipos = getTiposEventoSelecionados();
-
-            if (tipos.some(t => inscricaoEncerrada(t, funcao))) {
-                atualizarAvisoEncerrado();
-                return;
-            }
             const dataNascimento = document.getElementById('data-nascimento').value;
             const idade = calcularIdade(dataNascimento);
 
