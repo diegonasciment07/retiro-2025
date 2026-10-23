@@ -1189,6 +1189,12 @@
                         </button>
                     </div>
 
+                    <div style="margin-bottom: 16px;">
+                        <label for="kids-teams-search" style="display: block; color: var(--primary); font-weight: bold; margin-bottom: 8px;">🔎 Em qual time está?</label>
+                        <input type="search" id="kids-teams-search" class="input" placeholder="Digite o nome do participante" oninput="KidsModule.searchTeamsParticipants()" aria-describedby="kids-teams-search-hint" aria-controls="kids-teams-search-results">
+                        <p id="kids-teams-search-hint" style="color: var(--text-light); font-size: 0.85em; margin-top: 6px;">Busca no evento selecionado, inclusive participantes sem equipe.</p>
+                        <div id="kids-teams-search-results" aria-live="polite" style="max-height: 30vh; overflow-y: auto; margin-top: 10px;"></div>
+                    </div>
                     <div id="kids-teams-list" style="max-height: 45vh; overflow-y: auto;"></div>
                 </div>
             </div>
@@ -1727,7 +1733,7 @@
     
     <script type="module" src="./app.js?v=20261023.1"></script>
     <script src="./kids-team-balance.js?v=20261021.3"></script>
-    <script type="module" src="./kids.js?v=20261023.1"></script>
+    <script type="module" src="./kids.js?v=20261023.2"></script>
 
 </body>
 </html>

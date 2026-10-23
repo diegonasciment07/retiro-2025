@@ -1459,7 +1459,35 @@
         return { membros, total: membros.length, meninos, meninas, idadeMedia };
     }
 
+    function searchTeamsParticipants() {
+        const results = document.getElementById('kids-teams-search-results');
+        if (!results) return;
+        results.innerHTML = '';
+        if (!isTeamsAdmin()) return;
+        const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').trim();
+        const query = normalize(document.getElementById('kids-teams-search')?.value);
+        if (!query) return;
+        const terms = query.split(/\s+/);
+        const matches = allKids.filter(k => k.tipo_evento === currentTeamsTipoEvento &&
+            k.funcao === 'PARTICIPANTE' && k.status === 'ATIVO' &&
+            terms.every(term => normalize(k.nome_crianca).includes(term)))
+            .sort((a, b) => (a.nome_crianca || '').localeCompare(b.nome_crianca || '', 'pt-BR'));
+        if (!matches.length) {
+            results.textContent = 'Nenhum participante encontrado neste evento.';
+            return;
+        }
+        results.innerHTML = `<p style="color: var(--text-light); font-size: 0.85em; margin-bottom: 8px;">${matches.length} participante(s) encontrado(s)</p>` + matches.map(k => {
+            const team = allTeams.find(t => t.id === k.equipe_id);
+            const teamLabel = team ? team.nome_time : k.equipe_id ? 'Equipe indisponível' : 'Sem equipe';
+            return `<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px; margin-bottom: 6px; border: 1px solid #333; border-radius: 8px; background: #1a1a1a;">
+                <span><strong>${escapePickupText(k.nome_crianca)}</strong> (${escapePickupText(k.idade)} anos)</span>
+                <strong style="color: var(--primary);">${escapePickupText(teamLabel)}</strong>
+            </div>`;
+        }).join('');
+    }
+
     function renderTeamsList() {
+        searchTeamsParticipants();
         const container = document.getElementById('kids-teams-list');
         if (!container) return;
 
@@ -2597,6 +2625,7 @@
         startEditTeam,
         saveEditTeam,
         renderTeamsList,
+        searchTeamsParticipants,
         atribuirPendentes,
         showDashboard,
         hideDashboard,
