@@ -11,3 +11,6 @@
 .DS_Store
 Thumbs.db
 node_modules/
+# Dados pessoais locais (backups e relatórios)
+backups/
+relatorios/

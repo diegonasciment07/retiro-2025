@@ -2109,7 +2109,7 @@
                 <table class="table" style="width: 100%;">
                     <thead>
                         <tr>
-                            <th>RETIRO SETEMBRO 26</th>
+                            <th>RETIRO DEZEMBRO 26</th>
                             <th style="text-align: center;">ENCONTRISTA</th>
                             <th style="text-align: center;">TRABALHO</th>
                             <th style="text-align: center;">Total Geral</th>
@@ -2157,7 +2157,7 @@
                     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
                             <tr style="background: #ff6b35; color: white;">
-                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">RETIRO SETEMBRO 26</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">RETIRO DEZEMBRO 26</th>
                                 <th style="border: 1px solid #ddd; padding: 8px;">ENCONTRISTA</th>
                                 <th style="border: 1px solid #ddd; padding: 8px;">TRABALHO</th>
                                 <th style="border: 1px solid #ddd; padding: 8px;">Total Geral</th>
